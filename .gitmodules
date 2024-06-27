@@ -1,0 +1,68 @@
+[submodule "modules/web-css"]
+	path = modules/web-css
+	url = https://github.com/manakai/perl-web-css
+	track = master
+[submodule "modules/web-markup"]
+	path = modules/web-markup
+	url = https://github.com/manakai/perl-web-markup
+	track = master
+[submodule "modules/web-encodings"]
+	path = modules/web-encodings
+	url = https://github.com/manakai/perl-web-encodings
+	track = master
+[submodule "modules/web-url"]
+	path = modules/web-url
+	url = https://github.com/manakai/perl-web-url
+	track = master
+[submodule "modules/web-resource"]
+	path = modules/web-resource
+	url = https://github.com/manakai/perl-web-resource
+	track = master
+[submodule "modules/promise"]
+	path = modules/promise
+	url = https://github.com/wakaba/perl-promise
+	track = master
+[submodule "modules/web-datetime"]
+	path = modules/web-datetime
+	url = https://github.com/manakai/perl-web-datetime
+	track = master
+[submodule "modules/streams"]
+	path = modules/streams
+	url = https://github.com/manakai/perl-streams
+	track = master
+[submodule "modules/promised-file"]
+	path = modules/promised-file
+	url = https://github.com/pawjy/perl-promised-file
+	track = master
+[submodule "modules/promised-command"]
+	path = modules/promised-command
+	url = https://github.com/pawjy/perl-promised-command
+	track = master
+[submodule "modules/json-ps"]
+	path = modules/json-ps
+	url = https://github.com/wakaba/perl-json-ps
+	track = master
+[submodule "t_deps/modules/sarze"]
+	path = t_deps/modules/sarze
+	url = https://github.com/wakaba/sarze
+	track = master
+[submodule "t_deps/modules/test-x1"]
+	path = t_deps/modules/test-x1
+	url = https://github.com/wakaba/perl-test-x1
+	track = master
+[submodule "t_deps/modules/serverset"]
+	path = t_deps/modules/serverset
+	url = https://github.com/wakaba/serverset
+	track = master
+[submodule "t_deps/modules/ooutils"]
+	path = t_deps/modules/ooutils
+	url = https://github.com/wakaba/perl-ooutils
+	track = master
+[submodule "t_deps/modules/wanage"]
+	path = t_deps/modules/wanage
+	url = https://github.com/wakaba/wanage
+	track = master
+[submodule "modules/web-dom"]
+	path = modules/web-dom
+	url = https://github.com/manakai/perl-web-dom
+	track = master

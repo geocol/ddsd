@@ -1,0 +1,12 @@
+{
+  "github": {
+    "merger": true,
+    "gaa": true,
+    "build": [
+      "make deps"
+    ],
+    "tests": [
+      "make test"
+    ]
+  }
+}
