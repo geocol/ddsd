@@ -110,7 +110,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c, name => 'reset mirror';
     return $current->check_files ([
       {path => "local/ddsd/states/packages.json", json => sub {
@@ -237,7 +237,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c, name => 'reset mirror';
     return $current->check_files ([
       {path => "local/ddsd/states/packages.json", json => sub {

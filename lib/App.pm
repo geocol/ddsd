@@ -247,7 +247,7 @@ sub main ($$$$$$$) {
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
          insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
-         $exit = 2 if $cmd->has_error;
+         $exit = 12 if $cmd->has_error;
        });
      } elsif ($sub eq 'add') {
        $self->{logger}->throw ({
@@ -263,7 +263,7 @@ sub main ($$$$$$$) {
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
          insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
-         $exit = 2 if $cmd->has_error;
+         $exit = 12 if $cmd->has_error;
        });
      } elsif ($sub eq 'use' or $sub eq 'unuse') {
        $self->{logger}->throw ({
@@ -279,7 +279,7 @@ sub main ($$$$$$$) {
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
          insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
-         $exit = 2 if $cmd->has_error;
+         $exit = 12 if $cmd->has_error;
        });
      } elsif ($sub eq 'freeze') {
        $self->{logger}->throw ({

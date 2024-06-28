@@ -23,7 +23,7 @@ for my $args (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config', is_none => 1},
@@ -62,23 +62,23 @@ Test {
       {path => 'config/ddsd/packages.json', json => sub {
          my $json = shift;
          my $def = $json->{$key};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
-         is $item->{type}, 'package';
+         is $item->{files}->{data}, 'package/package.ckan.json';
+         is $item->{type}, 'meta';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key/package-ckan.json", json => sub {
+      {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -116,23 +116,23 @@ Test {
       {path => 'config/ddsd/packages.json', json => sub {
          my $json = shift;
          my $def = $json->{$key};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
-         is $item->{type}, 'package';
+         is $item->{files}->{data}, 'package/package.ckan.json';
+         is $item->{type}, 'meta';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key/package-ckan.json", json => sub {
+      {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -199,7 +199,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'config', is_none => 1},
@@ -238,23 +238,23 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
+         is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'package';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key/package-ckan.json", json => sub {
+      {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -304,17 +304,17 @@ Test {
        }},
       {path => "local/data/$key-2/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
-         is $item->{type}, 'package';
+         is $item->{files}->{data}, 'package/package.ckan.json';
+         is $item->{type}, 'meta';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key-2/package-ckan.json", json => sub {
+      {path => "local/data/$key-2/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -363,23 +363,23 @@ Test {
          is $json->{"$key-2"}->{type}, 'foo';
          is 0+keys %{$json->{"$key-2"}}, 1;
          my $def = $json->{"$key-3"};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
       {path => "local/data/$key-3/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
+         is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'package';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key-3/package-ckan.json", json => sub {
+      {path => "local/data/$key-3/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -424,23 +424,23 @@ for (
            my $json = shift;
            is 0+keys %$json, 1;
            my $def = $json->{$out_name};
-           is 0+keys %{$def}, 2;
+           is 0+keys %{$def}, 3;
            is $def->{type}, 'ckan';
            is $def->{url}, "http://foo.test/$key/dataset/".$in_name;
          }},
         {path => "local/data/$out_name/index.json", json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is 0+keys %{$json->{url_sha256s}}, 0;
            is 0+keys %{$json->{urls}}, 0;
            is 0+keys %{$json->{items}}, 1;
            my $item = [values %{$json->{items}}]->[0];
-           is $item->{files}->{data}, 'package-ckan.json';
-           is $item->{type}, 'package';
+           is $item->{files}->{data}, 'package/package.ckan.json';
+           is $item->{type}, 'meta';
            is $json->{source}->{type}, 'ckan';
            is $json->{source}->{url}, "http://foo.test/$key/api/action/package_show?id=" . $in_name;
          }},
-        {path => "local/data/$out_name/package-ckan.json", json => sub {
+        {path => "local/data/$out_name/package/package.ckan.json", json => sub {
           my $json = shift;
           is 0+@{$json->{result}->{resources}}, 0;
         }},
@@ -482,7 +482,7 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{hoge123};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "https://foo.test/abc/dataset/".$key;
        }},
@@ -493,12 +493,12 @@ Test {
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
-         is $item->{files}->{data}, 'package-ckan.json';
-         is $item->{type}, 'package';
+         is $item->{files}->{data}, 'package/package.ckan.json';
+         is $item->{type}, 'meta';
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "https://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/hoge123/package-ckan.json", json => sub {
+      {path => "local/data/hoge123/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 0;
       }},
@@ -540,7 +540,7 @@ for my $name (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config', is_none => 1},
@@ -582,7 +582,7 @@ for my $name (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config/ddsd/packages.json', json => sub {

@@ -20,7 +20,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
   });
 } n => 2, name => 'no repo';
@@ -959,7 +959,7 @@ Test {
     my $r = $_[0];
     $current->set_o (time4 => time);
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
   })->then (sub {

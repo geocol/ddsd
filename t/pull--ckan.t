@@ -693,7 +693,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c, name => "replaced by broken package";
     return $current->check_files ([
       {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
@@ -715,7 +715,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c, name => "still broken";
     return $current->check_files ([
       {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
@@ -900,7 +900,7 @@ for my $in (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 2;
+        is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => "local/data/$key/index.json", json => sub {
@@ -953,7 +953,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {

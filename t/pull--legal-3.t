@@ -604,7 +604,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key").'/index.json', json => sub {

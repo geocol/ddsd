@@ -394,7 +394,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
@@ -469,7 +469,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
@@ -601,7 +601,7 @@ for my $in (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 2;
+        is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'local/data/foo/index.json', is_none => 1},
@@ -664,7 +664,7 @@ for my $in (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 2;
+        is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'local/data/foo/index.json', json => sub {
@@ -713,7 +713,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
@@ -760,7 +760,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
@@ -806,7 +806,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {

@@ -96,7 +96,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
       is 0+@{$r->{jsonl}}, 0;
       like $r->{stderr}, qr{config};
       like $r->{stderr}, qr{Bad log file: Is a directory};

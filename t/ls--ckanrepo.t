@@ -299,7 +299,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->run ('ls', additional => ["package-name-$key", '--jsonl'], jsonl => 1);
   })->then (sub {

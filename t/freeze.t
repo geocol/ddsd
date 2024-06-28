@@ -22,7 +22,7 @@ for my $args (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config', is_none => 1},
@@ -395,7 +395,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->run ('freeze', additional => ['foo']);
   })->then (sub {

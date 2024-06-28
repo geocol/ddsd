@@ -106,7 +106,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2, 'error, unchanged';
+      is $r->{exit_code}, 12, 'error, unchanged';
     } $current->c;
     return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
   })->then (sub {
@@ -232,7 +232,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2, 'file missing';
+      is $r->{exit_code}, 12, 'file missing';
     } $current->c;
     return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
   })->then (sub {

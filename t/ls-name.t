@@ -24,7 +24,7 @@ for my $name (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
         is 0+@{$r->{lines}}, 0;
       } $current->c;
       return $current->check_files ([
@@ -43,7 +43,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
       is 0+@{$r->{lines}}, 0;
     } $current->c;
     return $current->check_files ([

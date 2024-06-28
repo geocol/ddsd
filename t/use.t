@@ -12,7 +12,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'config/ddsd/packages.json', is_none => 1},
@@ -29,7 +29,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'config/ddsd/packages.json', is_none => 1},
@@ -46,7 +46,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'local/data', is_none => 1},
@@ -62,7 +62,7 @@ Test {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
-      isnt $r->{exit_code}, 2;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => 'config/ddsd/packages.json', is_none => 1},
@@ -90,7 +90,7 @@ for my $args (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config/ddsd/packages.json', text => @$args == 2 ? "" : undef,
@@ -108,7 +108,7 @@ for my $args (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config/ddsd/packages.json', text => @$args == 1 ? "" : undef,
@@ -126,7 +126,7 @@ for my $args (
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 2;
+        isnt $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
         {path => 'config/ddsd/packages.json', text => @$args == 1 ? "" : undef,
@@ -424,7 +424,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "config/ddsd/packages.json", json => sub {
@@ -491,7 +491,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
@@ -552,7 +552,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "config/ddsd/packages.json", json => sub {
@@ -607,7 +607,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "config/ddsd/packages.json", json => sub {
@@ -1272,7 +1272,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "config/ddsd/packages.json", json => sub {
@@ -1342,7 +1342,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
       {path => "config/ddsd/packages.json", json => sub {
