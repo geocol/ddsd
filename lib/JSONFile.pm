@@ -139,8 +139,8 @@ sub path ($) { $_[0]->{path} }
 
 sub touch ($) { $_[0]->{touched} = 1 }
 
-sub save ($) {
-  my $self = $_[0];
+sub save ($;%) {
+  my ($self, %args) = @_;
   die "The file is not locked" unless defined $self->{lock};
   return Promise->resolve unless $_[0]->{touched};
 
@@ -151,6 +151,8 @@ sub save ($) {
   return $self->{done} = $self->{done}->then (sub {
     return $self->{file}->write_byte_string
         (perl2json_bytes_for_record $self->{json});
+  })->then (sub {
+    return $self->{file}->chmod (0444) if $args{readonly};
   });
 } # save
 

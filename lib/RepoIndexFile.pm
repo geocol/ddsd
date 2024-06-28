@@ -281,7 +281,7 @@ sub put_response ($$$) {
   }) if defined $fl;
   return Promise->all ([
     $self->{storage}->write_json ("objects/$key-meta.json", $meta),
-    $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path}),
+    $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path}, readonly => 1),
     (defined $fl ? $self->{storage}->write_jsonl ("objects/$key-log.jsonl", [$fl]) : undef),
   ])->then (sub {
     return $return;

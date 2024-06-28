@@ -223,7 +223,7 @@ sub check_files ($$;%) {
     return promised_for {
       my $test = shift;
 
-      my $specified_path = ref $test->{path} ? $test->{path} : [$test->{path}];
+      my $specified_path = ref $test->{path} eq 'ARRAY' ? $test->{path} : [$test->{path}];
       die "Bad |path|" unless @$specified_path;
 
       my $path0 = $self->app_path ($args{app} || 0)->child (shift @$specified_path);
@@ -284,6 +284,17 @@ sub check_files ($$;%) {
             }
           });
         };
+      })->then (sub {
+        if ($test->{is_none}) {
+          return;
+        } elsif ($test->{readonly}) {
+          return Promised::File->new_from_path ($current_path)->stat->then (sub {
+            my $mode = $_[0]->[2] & 0777;
+            test {
+              is $mode, 0444, 'mode readonly';
+            } $self->c, name => $specified_path;
+          });
+        }
       })->then (sub {
         if ($test->{is_none}) {
           return;

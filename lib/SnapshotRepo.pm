@@ -283,8 +283,10 @@ sub sync ($$$;%) {
     my $ix = $_[0];
     $ix->ensure_type ($self->type);
     return Promise->all ([
-      Promised::File->new_from_path ($storage->{path}->child ('files'))->remove_tree,
-      Promised::File->new_from_path ($storage->{path}->child ('package'))->remove_tree,
+      Promised::File->new_from_path ($storage->{path}->child ('files'))->remove_tree (unsafe => 1),
+      Promised::File->new_from_path ($storage->{path}->child ('package'))->remove_tree (unsafe => 1),
+      Promised::File->new_from_path ($storage->{path}->child ('LICENSE'))->remove_tree (unsafe => 1),
+      Promised::File->new_from_path ($storage->{path}->child ('index.json'))->remove_tree (unsafe => 1),
     ])->then (sub {
       my $items = $ix->items;
       $ix->touch;
@@ -304,7 +306,7 @@ sub sync ($$$;%) {
 
         return $storage->hardlink_from ($name, $file->{path});
       } $files;
-    })->then (sub { return $ix->save })->then (sub {
+    })->then (sub { return $ix->save (readonly => 1) })->then (sub {
       my $legal_path = $storage->{path}->child ('LICENSE');
       my $outer = ListWriter->new_from_filehandle ($legal_path->openw);
       my $cleanup = sub { };
@@ -313,7 +315,10 @@ sub sync ($$$;%) {
         $cleanup = $from_repo->format_legal ($outer, $json); # XXX locale
       })->finally (sub {
         $cleanup->();
-        return $outer->close;
+        return $outer->close->then (sub {
+          my $file = Promised::File->new_from_path ($legal_path);
+          return $file->chmod (0444);
+        });
       });
     });
   });

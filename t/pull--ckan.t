@@ -454,7 +454,7 @@ Test {
          my $item = $json->{items}->{$json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}};
          ok $item->{files}->{meta};
          ok $item->{files}->{data};
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
          my $meta_path = $path->parent->child ($item->{files}->{meta});
          my $meta = json_bytes2perl $meta_path->slurp;
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
@@ -524,7 +524,7 @@ Test {
          my $item = $json->{items}->{$json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}};
          ok $item->{files}->{meta};
          ok $item->{files}->{data};
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
          my $meta_path = $path->parent->child ($item->{files}->{meta});
          my $meta = json_bytes2perl $meta_path->slurp;
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
@@ -611,9 +611,13 @@ Test {
          isnt $json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}, $current->o ('head2');
          is 0+keys %{$json->{items}}, 3;
        }},
+      {path => "local/data/foo/index.json", text => sub { }, readonly => 1},
+      {path => "local/data/foo/LICENSE", text => sub { }, readonly => 1},
+      {path => "local/data/foo/package/package.ckan.json",
+       text => sub { }, readonly => 1},
     ]);
   });
-} n => 53, name => 'last-modified';
+} n => 56, name => 'last-modified';
 
 Test {
   my $current = shift;

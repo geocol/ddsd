@@ -86,11 +86,13 @@ sub write_jsonl ($$) {
       (join '', map { (perl2json_bytes $_) . "\x0A" } @$items);
 } # write_jsonl
 
-sub hardlink_from ($$) {
-  my ($self, $name, $from_path) = @_;
+sub hardlink_from ($$;%) {
+  my ($self, $name, $from_path, %args) = @_;
   my $path = $self->{path}->child ($name);
-  return Promised::File->new_from_path ($path)->hardlink_from
-      ($from_path, fallback_to_copy => 1);
+  my $file = Promised::File->new_from_path ($path);
+  return $file->hardlink_from ($from_path, fallback_to_copy => 1)->then (sub {
+    return $file->chmod (0444) if $args{readonly};
+  });
 } # hardlink_from
 
 sub for_child_directories ($$$) {
