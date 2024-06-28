@@ -35,12 +35,12 @@ pmbp-install: pmbp-upgrade
 build: bin/booter bin/booter.staging
 
 bin/booter: bin/booter.src
-	sed s/@@BRANCH@@/master/ $< > local/booter.master
+	sed s/@@BRANCH@@/master/g $< > local/booter.master
 	perl local/bin/pmbp.pl $(PMBP_OPTIONS) \
 	    --create-bootstrap-script "local/booter.master $@"
 	chmod ugo+x $@
 bin/booter.staging: bin/booter.src
-	sed s/@@BRANCH@@/staging/ $< > local/booter.staging
+	sed s/@@BRANCH@@/staging/g $< > local/booter.staging
 	perl local/bin/pmbp.pl $(PMBP_OPTIONS) \
 	    --create-bootstrap-script "local/booter.staging $@"
 	chmod ugo+x $@

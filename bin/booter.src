@@ -7,7 +7,7 @@ perl local/bin/pmbp.pl --install-commands "make git wget"
 
 mkdir -p local/ddsd
 (git clone -b @@BRANCH@@ --depth 1 https://github.com/geocol/ddsd local/ddsd/app) || \
-(cd local/ddsd/app && git pull && (git checkout -b @@BRANCH@@ || git checkout -b @@BRANCH@@))
+(cd local/ddsd/app && git pull && (git checkout -b @@BRANCH@@ || git checkout @@BRANCH@@) && git pull)
 
 cd local/ddsd/app
 make deps
