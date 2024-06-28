@@ -6,7 +6,6 @@ use DataView;
 use Promise;
 use Promised::Flow;
 use Promised::File;
-use AnyEvent::IO;
 use Digest::SHA;
 use JSON::PS;
 
@@ -90,16 +89,8 @@ sub write_jsonl ($$) {
 sub hardlink_from ($$) {
   my ($self, $name, $from_path) = @_;
   my $path = $self->{path}->child ($name);
-  return Promised::File->new_from_path ($path->parent)->mkpath->then (sub {
-    # XXX If another filesystem
-    return  Promise->new (sub {
-      my ($ok, $ng) = @_;
-      aio_link $from_path => $path, sub {
-        @_ or return $ng->(Promise->reject ("XXX |$from_path| => |$path| $!"));
-        $ok->();
-      };
-    });
-  });
+  return Promised::File->new_from_path ($path)->hardlink_from
+      ($from_path, fallback_to_copy => 1);
 } # hardlink_from
 
 sub for_child_directories ($$$) {

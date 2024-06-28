@@ -47,17 +47,17 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
        }},
-      {path => 'local/data/foo/package-ckan.json', json => sub { }},
+      {path => 'local/data/foo/package/package.ckan.json', json => sub { }},
       {path => 'local/data/foo/files/r1', text => "r1"},
       {path => 'local/data/foo/files/r2', text => "r2"},
       {path => 'local/data/foo/files/r3', is_none => 1},
     ]);
   });
-} n => 5, name => 'skipped a resource';
+} n => 7, name => 'skipped a resource';
 
 Test {
   my $current = shift;
@@ -96,17 +96,17 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 2;
+      is $r->{exit_code}, 0;
     } $current->c;
     return $current->check_files ([
-      {path => 'local/data/foo/index.json', is_none => 1},
-      {path => 'local/data/foo/package-ckan.json', is_none => 1},
-      {path => 'local/data/foo/files/r1', is_none => 1},
-      {path => 'local/data/foo/files/r2', is_none => 1},
+      {path => 'local/data/foo/index.json', json => sub { }},
+      {path => 'local/data/foo/package/package.ckan.json', json => sub { }},
+      {path => 'local/data/foo/files/r1', text => "r1"},
+      {path => 'local/data/foo/files/r2', text => "r2"},
       {path => 'local/data/foo/files/r3', is_none => 1},
     ]);
   });
-} n => 2, name => 'skipped a package';
+} n => 4, name => 'skipped a package';
 
 Run;
 
