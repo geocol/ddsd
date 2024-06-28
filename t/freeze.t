@@ -18,7 +18,9 @@ for my $args (
 ) {
   Test {
     my $current = shift;
-    return $current->run ('freeze', additional => $args)->then (sub {
+    return $current->prepare (undef, {})->then (sub {
+      return $current->run ('freeze', additional => $args);
+    })->then (sub {
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
@@ -82,7 +84,7 @@ Test {
          is $def->{url}, 'https://hoge/dataset/package-name-' . $key;
          is $def->{hoge}, "abc";
          ok $def->{skip_other_files};
-         is 0+keys %{$def->{files}}, 5;
+         is 0+keys %{$def->{files}}, 6;
          {
            my $f = $def->{files}->{'meta:ckan.json'};
            is $f->{name}, undef;
@@ -251,7 +253,7 @@ Test {
          is $def->{url}, 'http://hoge/dataset/package-name-' . $key;
          is $def->{hoge}, "abc";
          ok $def->{skip_other_files};
-         is 0+keys %{$def->{files}}, 5;
+         is 0+keys %{$def->{files}}, 4;
          {
            my $f = $def->{files}->{'meta:ckan.json'};
            is $f->{name}, undef;
@@ -332,7 +334,7 @@ Test {
          is $def->{url}, 'http://hoge/dataset/package-name-' . $key;
          is $def->{hoge}, "abc";
          ok $def->{skip_other_files};
-         is 0+keys %{$def->{files}}, 5;
+         is 0+keys %{$def->{files}}, 6;
          {
            my $f = $def->{files}->{'meta:ckan.json'};
            is $f->{name}, undef;

@@ -46,7 +46,7 @@ sub open_by_app ($$;%) {
 } # open_by_app
 
 sub get ($$) {
-  return $_[0]->{json}->{$_[1]} //= {};
+  return $_[0]->{json}->{$_[1] // ''} //= {};
 } # get
 
 1;
