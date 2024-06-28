@@ -3,7 +3,7 @@ all:
 CURL = curl
 GIT = git
 
-updatenightly: local/bin/pmbp.pl
+updatenightly: local/bin/pmbp.pl build
 	$(CURL) -s -S -L -f https://gist.githubusercontent.com/wakaba/34a71d3137a52abb562d/raw/gistfile1.txt | sh
 	$(GIT) add modules t_deps/modules
 	perl local/bin/pmbp.pl --update-pmbp-pl
@@ -31,6 +31,19 @@ pmbp-install: pmbp-upgrade
             --create-perl-command-shortcut @prove \
 	    --create-perl-command-shortcut ddsd=perl\ bin/ddsd.pl
 	chmod ugo+x ddsd
+
+build: bin/booter bin/booter.staging
+
+bin/booter: bin/booter.src
+	sed s/@@BRANCH@@/master/ $< > local/booter.master
+	perl local/bin/pmbp.pl $(PMBP_OPTIONS) \
+	    --create-bootstrap-script "local/booter.master $@"
+	chmod ugo+x $@
+bin/booter.staging: bin/booter.src
+	sed s/@@BRANCH@@/staging/ $< > local/booter.staging
+	perl local/bin/pmbp.pl $(PMBP_OPTIONS) \
+	    --create-bootstrap-script "local/booter.staging $@"
+	chmod ugo+x $@
 
 test: test-deps test-main
 
