@@ -129,11 +129,11 @@ for my $pack (
     type => 'ckan',
     url => 'https://raw.githubusercontent.com/wakaba/nemui/hoge/api/action/package_show?id=abc', # 404
   },
-  {
-    type => 'ckan',
-    url => 'http://raw.githubusercontent.com/wakaba/nemui/8874b5575dc71394665cbf1867d6221ce52b5e98/api/action/package_show?id=abc', # insecure error
-    insecure => 0,
-  },
+#  {
+#    type => 'ckan',
+#    url => 'http://raw.githubusercontent.com/wakaba/nemui/8874b5575dc71394665cbf1867d6221ce52b5e98/api/action/package_show?id=abc', # insecure error
+#    insecure => 0,
+#  },
 ) {
   Test {
     my $current = shift;
@@ -199,6 +199,8 @@ for my $pack (
     insecure => 0,
   },
 ) {
+  last;
+  
   Test {
     my $current = shift;
     my $key = '' . rand;

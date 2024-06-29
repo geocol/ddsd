@@ -74,10 +74,10 @@ sub serverset (@) {
     foo.test hoge search.ckan.jp hoge.xn--4gq data.bodik.jp
     gist.githubusercontent.com
     1.hoge 2.hoge 3.hoge 4.hoge 5.hoge 6.hoge 7.hoge 8.hoge 9.hoge
+    raw.githubusercontent.com
   )];
   my $remote_hosts = [qw(
     hoge.test www.test badserver.test hoge.badserver.test foo fo noserver.test
-    raw.githubusercontent.com
   )];
   
   return ServerSet->run ({
@@ -106,6 +106,8 @@ sub serverset (@) {
           ],
           psgi_file_name => $RootPath->child ('t_deps/bin/xs.psgi'),
           max_worker_count => 1,
+          connections_per_worker => +"inf",
+          seconds_per_worker => +"inf",
           #debug => 2,
         };
       }, # prepare

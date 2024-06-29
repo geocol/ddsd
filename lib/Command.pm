@@ -68,11 +68,11 @@ sub _pull_ddsd_data ($;%) {
   } [
     ['legal' => {
       type => 'packref',
-      url => 'https://gist.githubusercontent.com/wakaba/30f9cce1283f1eceb34a495c78d2b431/raw/packref.json',
+      url => 'https://raw.githubusercontent.com/geocol/ddsd-data/master/legal/packref.json',
     }],
     ['mirrors' => {
       type => 'packref',
-      url => 'https://gist.githubusercontent.com/wakaba/aed3fb2f2ed824dbe6d932527dbc0d94/raw/packref.json',
+      url => 'https://raw.githubusercontent.com/geocol/ddsd-data/master/mirrors/packref.json',
     }],
   ];
 } # _pull_ddsd_data

@@ -44,8 +44,8 @@ sub repo_path ($$$) {
   return path ('local/ddsd/repo/'.$type.'/' . $host . '/' . $hash);
 } # repo_path
 
-sub legal_url_prefix ($) { q<https://gist.githubusercontent.com/wakaba/30f9cce1283f1eceb34a495c78d2b431/raw/> }
-sub mirrors_url_prefix ($) { q<https://gist.githubusercontent.com/wakaba/aed3fb2f2ed824dbe6d932527dbc0d94/raw/> }
+sub legal_url_prefix ($) { q<https://raw.githubusercontent.com/geocol/ddsd-data/master/legal/> }
+sub mirrors_url_prefix ($) { q<https://raw.githubusercontent.com/geocol/ddsd-data/master/mirrors/> }
 
 sub xs_client ($) {
   my $self = $_[0];
