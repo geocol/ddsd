@@ -68,6 +68,7 @@ sub fetch ($;%) {
           url => $r->{url}->stringify,
         });
       }
+      $ret->{broken} = 1;
       $args{has_error}->();
       return;
     } elsif ($r->{not_modified}) {
@@ -76,6 +77,15 @@ sub fetch ($;%) {
         $ret->{insecure} = 1 if $r->{is_new_insecure};
         $ret->{not_modified} = 1;
         $ret->{_skip} = 1;
+        if ($r->{is_new_broken}) {
+          $args{has_error}->();
+          $ret->{broken} = 1;
+          $logger->message ({
+            type => 'package is broken',
+            url => $r->{url}->stringify,
+          });
+          return;
+        }
         return;
       } else {
         #
@@ -93,6 +103,7 @@ sub fetch ($;%) {
         $ret->{has_package} = 1;
       } else {
         $args{has_error}->();
+        $ret->{broken} = 1;
         return;
       }
       return PackRef->open_by_app_and_path (
@@ -102,6 +113,7 @@ sub fetch ($;%) {
         my $pack = $_[0];
         unless (defined $pack) {
           $args{has_error}->();
+          $ret->{broken} = 1;
           return;
         }
 
@@ -116,6 +128,7 @@ sub fetch ($;%) {
               %{$pack->{error_location}},
             });
             $args{has_error}->();
+            $ret->{broken} = 1;
             return;
           }
 
@@ -125,6 +138,7 @@ sub fetch ($;%) {
                allow_bad_repo_type => 1, allow_files => 1);
           unless (defined $repo) {
             $args{has_error}->();
+            $ret->{broken} = 1;
             return;
           }
           return if $repo eq ''; # type=files
@@ -134,6 +148,10 @@ sub fetch ($;%) {
           return $repo->_find_mirror ($args{data_area_key}, $source)->then (sub {
             return $repo->fetch (
               %args,
+              has_error => sub {
+                $args{has_error}->();
+                $ret->{broken} = 1;
+              },
               file_defs => $fdefs,
               insecure => $insecure,
               #XXX nest_level
@@ -169,6 +187,7 @@ sub fetch ($;%) {
                 ($file->{source}->{url}, $self->{url});
             if (not defined $url or not $url->is_http_s) {
               $args{has_error}->();
+              $ret->{broken} = 1;
               $as->message ({
                 type => 'bad URL',
                 value => $file->{source}->{url},
@@ -176,10 +195,15 @@ sub fetch ($;%) {
               });
               return;
             }
-            
+
+            my $fdef = $fdefs->{$file->{key}};
             return $self->_fetch_file (
-              $url, $fdefs->{$file->{key}},
+              $url, $fdef,
               %args,
+              has_error => sub {
+                $args{has_error}->();
+                $ret->{broken} = 1;
+              },
               mime => $file->{source}->{mime},
               insecure => $insecure,
               index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
@@ -191,6 +215,7 @@ sub fetch ($;%) {
               $ret->{insecure} = 1 if $r->{insecure};
               if ($r->{error}) {
                 $args{has_error}->();
+                $ret->{broken} = 1;
               } elsif ($r->{not_modified}) {
                 # XXX at risk
                 if (defined $file->{rev} and defined $file->{rev}->{sha256}) {
@@ -237,18 +262,31 @@ sub fetch ($;%) {
     #return if $has_legal;
     return $self->_fetch_post_legal (
       %args,
+      has_error => sub {
+        $args{has_error}->();
+        $ret->{broken} = 1;
+      },
       dest_item_key => $package_item_key,
       packref_url => $self->{url},
       logger => $logger,
     );
   })->then (sub {
-    return unless $ret->{insecure} and $ret->{has_modified} and
-        $args{is_special_repo};
+    return unless $args{is_special_repo};
+
+    my $x = {_ => 'hasinsecure'};
+    if ($ret->{insecure} and $ret->{has_modified}) {
+      $x->{has_insecure} = 1;
+    }
+    if ($ret->{broken} and $ret->{has_modified}) {
+      $x->{broken} = 1;
+    }
+    return unless 1 < keys %$x;
+    
     return $self->lock_index->then (sub {
       my $ix = $_[0];
       return $ix->put_fetch_log_by_item_key (
         $r_item_key,
-        fetch_log => {has_insecure => 1, _ => 'hasinsecure'},
+        fetch_log => $x,
       )->then (sub { $ix->save });
     });
   })->then (sub {

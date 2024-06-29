@@ -433,7 +433,9 @@ sub _fetch_file ($$$%) {
                 my $j = json_bytes2perl $_;
                 if ($j->{has_insecure}) {
                   $r->{is_new_insecure} = 1;
-                  last;
+                }
+                if ($j->{broken}) {
+                  $r->{is_new_broken} = 1;
                 }
               }
               return [$r, $item, $item_key];
@@ -497,7 +499,7 @@ sub _fetch_file ($$$%) {
             $r->{key} = $ret->{key};
             if ($ret->{not_modified}) {
               $r->{not_modified} = 1;
-            } elsif ($ret->{sha256_mismatch}) {
+            } elsif ($r->{sha256_mismatch}) {
               $r->{error} = 1;
             }
           })->then (sub { $ix->save });
