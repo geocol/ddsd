@@ -75,8 +75,6 @@ Test {
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'meta';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -84,7 +82,7 @@ Test {
       }},
     ]);
   });
-} n => 14, name => 'empty packages';
+} n => 12, name => 'empty packages';
 
 Test {
   my $current = shift;
@@ -129,8 +127,6 @@ Test {
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'meta';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -138,7 +134,7 @@ Test {
       }},
     ]);
   });
-} n => 14, name => 'empty packages, explicit --insecure';
+} n => 12, name => 'empty packages, explicit --insecure';
 
 Test {
   my $current = shift;
@@ -167,8 +163,8 @@ Test {
       isnt $r->{exit_code}, 0;
     } $current->c;
     return $current->check_files ([
-      {path => 'config', is_none => 1},
-      {path => 'local', is_none => 1},
+      {path => 'config/ddsd/packages.json', is_none => 1},
+      {path => 'local/data', is_none => 1},
     ]);
   });
 } n => 2, name => 'empty packages, insecure';
@@ -202,8 +198,8 @@ Test {
       isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
-      {path => 'config', is_none => 1},
-      {path => 'local', is_none => 1},
+      {path => 'config/ddsd/packages.json', is_none => 1},
+      {path => 'local/data', is_none => 1},
     ]);
   });
 } n => 3, name => '404';
@@ -250,9 +246,7 @@ Test {
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
-         is $item->{type}, 'package';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
+         is $item->{type}, 'meta';
        }},
       {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -260,7 +254,7 @@ Test {
       }},
     ]);
   });
-} n => 15, name => 'added to empty package list';
+} n => 13, name => 'added to empty package list';
 
 Test {
   my $current = shift;
@@ -298,7 +292,7 @@ Test {
          is $json->{$key}->{type}, 'foo';
          is 0+keys %{$json->{$key}}, 1;
          my $def = $json->{"$key-2"};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
@@ -311,8 +305,6 @@ Test {
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'meta';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/$key-2/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -320,7 +312,7 @@ Test {
       }},
     ]);
   });
-} n => 17, name => 'auto-rename by conflict';
+} n => 15, name => 'auto-rename by conflict';
 
 Test {
   my $current = shift;
@@ -376,8 +368,6 @@ Test {
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'package';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/$key-3/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -385,13 +375,13 @@ Test {
       }},
     ]);
   });
-} n => 19, name => 'auto-rename by conflict, 2';
+} n => 17, name => 'auto-rename by conflict, 2';
 
 for (
   ['a%5B%5D' => 'a_5B_5D'],
   ['%00' => '_00'],
   ['a%2F%5Cb' => 'a_2F_5Cb'],
-  ['1234567890123456789012345678901234567890123456789012345678901234567890', '123456789012345678901234567890123456789012345678901234567890'],
+  ["1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901", "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"],
 ) {
   my ($in_name, $out_name) = @$_;
   Test {
@@ -437,8 +427,6 @@ for (
            my $item = [values %{$json->{items}}]->[0];
            is $item->{files}->{data}, 'package/package.ckan.json';
            is $item->{type}, 'meta';
-           is $json->{source}->{type}, 'ckan';
-           is $json->{source}->{url}, "http://foo.test/$key/api/action/package_show?id=" . $in_name;
          }},
         {path => "local/data/$out_name/package/package.ckan.json", json => sub {
           my $json = shift;
@@ -446,7 +434,7 @@ for (
         }},
       ]);
     });
-  } n => 15, name => ['bad name', $in_name];
+  } n => 13, name => ['bad name', $in_name];
 }
 
 Test {
@@ -488,15 +476,13 @@ Test {
        }},
       {path => "local/data/hoge123/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
          is $item->{type}, 'meta';
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "https://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/hoge123/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -504,7 +490,7 @@ Test {
       }},
     ]);
   });
-} n => 15, name => '--name';
+} n => 13, name => '--name';
 
 for my $name (
   '',
@@ -596,51 +582,56 @@ for my $name (
   } n => 5, name => ['conflict --name', $name];
 }
 
-
 Test {
   my $current = shift;
-  my $key = rand;
-  return $current->prepare (undef, {
-    $current->legal_url_prefix . 'packref.json' => {
-      json => {
-        type => 'packref',
-        source => {
-          type => 'files',
-          files => {
-            'file:r:ckan.json' => {
-              url => 'abc',
-            },
-          },
-        },
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://foo.test/$key" => {
+        text => q{hoge},
       },
     },
-    $current->legal_url_prefix . 'abc' => {
-      text => 'ABC',
-    },
-    "https://hoge/$key/index.json" => {
-      json => {
-        type => 'packref',
-        source => {type => 'files'},
-      },
-    },
-  })->then (sub {
-    return $current->run ('add', additional => ["https://hoge/$key/index.json"]);
+  )->then (sub {
+    return $current->run ('add', additional => ["https://foo.test/$key"]);
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 0;
+      isnt $r->{exit_code}, 0;
+      isnt $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
+      {path => 'config/ddsd/packages.json', is_none => 1},
       {path => 'local/data', is_none => 1},
-      {path => 'local/ddsd/data/legal/index.json', json => sub {
-         my $json = shift;
-         is 0+keys %{$json->{items}}, 1;
-         is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
-       }},
-      {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
     ]);
   });
-} n => 4, name => 'legal';
+} n => 3, name => 'not supported response 1';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://foo.test/$key" => {
+        text => q{ {"type": "unknown"} },
+        mime => 'application/json',
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://foo.test/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      isnt $r->{exit_code}, 0;
+      isnt $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'config/ddsd/packages.json', is_none => 1},
+      {path => 'local/data', is_none => 1},
+    ]);
+  });
+} n => 3, name => 'not supported response 2';
 
 Run;
 

@@ -17,7 +17,7 @@ sub run ($$;%) {
   my $url = Web::URL->parse_string ($input);
   if (not defined $url or not $url->is_http_s) {
     $logger->throw ({
-      type => 'Bad URL',
+      type => 'bad URL',
       value => $input,
     });
   }
@@ -133,8 +133,10 @@ sub run ($$;%) {
     }
 
     unless (defined $def and defined $name) {
-      #XXX
-      die "XXX unknown URL";
+      return $logger->throw ({
+        type => 'package type not detected',
+        url => $input,
+      });
     }
 
     $name = $args{name} if defined $args{name};

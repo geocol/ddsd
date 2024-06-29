@@ -10,6 +10,51 @@ Test {
   my $current = shift;
   my $key = rand;
   return $current->prepare (undef, {
+    $current->legal_url_prefix . 'packref.json' => {
+      json => {
+        type => 'packref',
+        source => {
+          type => 'files',
+          files => {
+            'file:r:ckan.json' => {
+              url => 'abc',
+            },
+          },
+        },
+      },
+    },
+    $current->legal_url_prefix . 'abc' => {
+      text => 'ABC',
+    },
+    "https://hoge/$key/index.json" => {
+      json => {
+        type => 'packref',
+        source => {type => 'files'},
+      },
+    },
+  })->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key/index.json"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data', is_none => 1},
+      {path => 'local/ddsd/data/legal/index.json', json => sub {
+         my $json = shift;
+         is 0+keys %{$json->{items}}, 1;
+         is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
+       }},
+      {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
+    ]);
+  });
+} n => 4, name => 'legal';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (undef, {
     "https://hoge/$key/dataset/" . $key => {
       text => q{<meta name="generator" content="ckan 1.2.3">},
     },
