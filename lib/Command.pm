@@ -34,7 +34,7 @@ sub _pull_ddsd_data ($;%) {
       data_area_key => undef,
     )->then (sub {
       my $ret = $_[0];
-      unless ($ret->{has_package}) {
+      unless ($ret->{has_package} or $ret->{not_modified}) {
         $logger->message ({
           type => 'package data not available',
           value => $key,

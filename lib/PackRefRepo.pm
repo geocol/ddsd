@@ -74,6 +74,7 @@ sub fetch ($;%) {
       if ($r->{is_new}) {
         $ret->{timestamp} = $r->{is_new};
         $ret->{insecure} = 1 if $r->{is_new_insecure};
+        $ret->{not_modified} = 1;
         $ret->{_skip} = 1;
         return;
       } else {
