@@ -48,8 +48,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          {
-           my $item = $json->{items}->{package};
-           ok $item->{files}->{data};
+           ok ! $json->{items}->{package};
          }
        }},
       {path => "local/data/foo/package/package.ckan.json", json => sub {
@@ -58,7 +57,7 @@ Test {
       }},
     ]);
   });
-} n => 7, name => 'CKAN referenced 1';
+} n => 8, name => 'CKAN referenced 1';
 
 Test {
   my $current = shift;
@@ -109,8 +108,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
          {
-           my $item = $json->{items}->{package};
-           ok $item->{files}->{data};
+           ok ! $json->{items}->{package};
          }
        }},
       {path => "local/data/foo/package/package.ckan.json", json => sub {
@@ -120,7 +118,7 @@ Test {
       {path => "local/data/foo/files/abc.txt", text => "xyz"},
     ]);
   });
-} n => 7, name => 'CKAN referenced 2';
+} n => 8, name => 'CKAN referenced 2';
 
 Test {
   my $current = shift;
@@ -178,8 +176,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
          {
-           my $item = $json->{items}->{package};
-           ok $item->{files}->{data};
+           ok ! $json->{items}->{package};
          }
        }},
       {path => "local/data/foo/package/package.ckan.json", json => sub {
@@ -190,7 +187,7 @@ Test {
       {path => "local/data/foo/files/abc2.txt", is_none => 1},
     ]);
   });
-} n => 7, name => 'some skipped by local';
+} n => 8, name => 'some skipped by local';
 
 Test {
   my $current = shift;
@@ -248,8 +245,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
          {
-           my $item = $json->{items}->{package};
-           ok $item->{files}->{data};
+           ok ! $json->{items}->{package};
          }
        }},
       {path => "local/data/foo/package/package.ckan.json", json => sub {
@@ -260,7 +256,7 @@ Test {
       {path => "local/data/foo/files/abc2.txt", is_none => 1},
     ]);
   });
-} n => 7, name => 'some skipped by ref';
+} n => 8, name => 'some skipped by ref';
 
 Test {
   my $current = shift;
@@ -337,7 +333,7 @@ Test {
       {path => "local/data/foo/files/abc3.xml", is_none => 1},
     ]);
   });
-} n => 5, name => 'files renamed';
+} n => 8, name => 'files renamed';
 
 Test {
   my $current = shift;
@@ -409,7 +405,7 @@ Test {
       {path => "local/data/foo/files/abc3.txt", is_none => 1},
     ]);
   });
-} n => 5, name => 'sha256 1';
+} n => 6, name => 'sha256 1';
 
 Test {
   my $current = shift;
@@ -484,7 +480,7 @@ Test {
       {path => "local/data/foo/files/abc3.txt", is_none => 1},
     ]);
   });
-} n => 5, name => 'sha256 2';
+} n => 6, name => 'sha256 2';
 
 Test {
   my $current = shift;
@@ -556,11 +552,11 @@ Test {
        }},
       {path => "local/data/foo/package/package.ckan.json", json => sub { }},
       {path => "local/data/foo/files/abc.txt", text => "r1"},
-      {path => "local/data/foo/files/abc2.txt", text => "r2"},
-      {path => "local/data/foo/files/abc3.txt", text => "r3"},
+      {path => "local/data/foo/files/abc2.txt", text => "r1"},
+      {path => "local/data/foo/files/abc3.txt", text => "r1"},
     ]);
   });
-} n => 5, name => 'sha256 3';
+} n => 8, name => 'sha256 3';
 
 for my $in (
   {
@@ -813,7 +809,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 0;
+         is 0+keys %{$json->{items}}, 1;
        }},
       {path => "local/data/foo/files/sparqlep", is_none => 1},
       {path => "local/data/foo/files/sparqlep/part-0.ttl", is_none => 1},

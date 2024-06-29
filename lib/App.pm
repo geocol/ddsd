@@ -397,6 +397,8 @@ sub stringify ($) {
   }
   if (defined $error->{url}) {
     $msg .= ", URL <$error->{url}>";
+  } elsif (defined $error->{source} and defined $error->{source}->{url}) {
+    $msg .= ", URL <$error->{source}->{url}>";
   }
   if (defined $error->{status}) {
     $msg .= ", status " . $error->{status};

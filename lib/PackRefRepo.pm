@@ -313,7 +313,7 @@ sub get_item_list ($;%) {
       my $repo = $self->set->get_repo_by_source
           ($source, error_location => $pack->{error_location},
            allow_bad_repo_type => 1, allow_files => 1);
-      my $repo_is_files = $repo eq ''; # type=files
+      my $repo_is_files = (defined $repo and $repo eq ''); # type=files
       return Promise->resolve->then (sub {
         if ($repo_is_files) {
           unshift @$files, $pack_file;
@@ -405,6 +405,8 @@ sub get_item_list ($;%) {
           push @$files, @{$_[0]};
         });
       })->then (sub {
+        return unless $repo_is_files;
+        
         for my $file_key (keys %$fdefs) {
           next unless $file_key =~ /^file:r:/;
           my $fdef = $fdefs->{$file_key};

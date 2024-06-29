@@ -54,15 +54,15 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 3;
+         is 0+keys %{$json->{items}}, 2;
        }},
       {path => "local/data/foo/files/foo", text => "abc"},
-      {path => "local/data/foo/files/bar", text => "xyz"},
+      {path => "local/data/foo/files/bar", is_none => 1},
     ]);
   });
-} n => 5, name => 'files';
+} n => 6, name => 'files';
 
 Test {
   my $current = shift;
@@ -73,7 +73,6 @@ Test {
         type => 'packref',
         url => "https://hoge/$key/pack.json",
         files => {
-          "file:r:123" => {url => "https://hoge/$key/bar"},
         },
       },
     },
@@ -82,22 +81,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
+            type => 'files',
+            files => {
+              "file:r:123" => {url => "https://hoge/$key/foo"},
+              "file:r:456" => {url => "https://hoge/$key/bar"},
+            },
           },
         },
       },
@@ -114,7 +102,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
        }},
@@ -122,7 +110,7 @@ Test {
       {path => "local/data/foo/files/bar", is_none => 1},
     ]);
   });
-} n => 5, name => '404';
+} n => 6, name => '404';
 
 Test {
   my $current = shift;
@@ -133,8 +121,6 @@ Test {
         type => 'packref',
         url => "https://hoge/$key/pack.json",
         files => {
-          "file:r:123" => {url => "https://hoge/$key/bar",
-                           name => "abc.txt"},
         },
       },
     },
@@ -143,22 +129,12 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
+            type => 'files',
+            files => {
+              "file:r:123" => {url => "https://hoge/$key/bar",
+                               name => "abc.txt"},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
+            },
           },
         },
       },
@@ -175,7 +151,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
        }},
@@ -184,7 +160,7 @@ Test {
       {path => "local/data/foo/files/abc.txt", text => "xyz"},
     ]);
   });
-} n => 5, name => 'file name specified';
+} n => 7, name => 'file name specified';
 
 Test {
   my $current = shift;
@@ -201,25 +177,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
+            type => 'files',
             files => {
               "file:r:123" => {url => "https://hoge/$key/bar"},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
             },
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
           },
         },
       },
@@ -236,7 +198,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
        }},
@@ -244,7 +206,7 @@ Test {
       {path => "local/data/foo/files/bar", text => "xyz"},
     ]);
   });
-} n => 5, name => 'inner';
+} n => 7, name => 'files inner';
 
 Test {
   my $current = shift;
@@ -264,25 +226,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
+            type => 'files',
             files => {
               "file:r:123" => {url => "https://hoge/$key/bar"},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
             },
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
           },
         },
       },
@@ -300,7 +248,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
        }},
@@ -309,7 +257,7 @@ Test {
       {path => "local/data/foo/files/baz", text => "pqr"},
     ]);
   });
-} n => 5, name => 'inner and outer URLs';
+} n => 7, name => 'inner and outer URLs';
 
 Test {
   my $current = shift;
@@ -329,25 +277,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
+            type => 'files',
             files => {
               "file:r:123" => {url => "https://hoge/$key/bar", name => 2},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
             },
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
           },
         },
       },
@@ -365,7 +299,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
        }},
@@ -375,7 +309,7 @@ Test {
       {path => "local/data/foo/files/1.txt", text => "xyz"},
     ]);
   });
-} n => 5, name => 'inner and outer names';
+} n => 7, name => 'inner and outer names';
 
 Test {
   my $current = shift;
@@ -386,7 +320,6 @@ Test {
         type => 'packref',
         url => "https://hoge/$key/pack.json",
         files => {
-          "file:r:123" => {},
         },
       },
     },
@@ -395,22 +328,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
+            type => 'files',
+            files => {
+              "file:r:123" => {},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
+            },
           },
         },
       },
@@ -427,7 +349,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
        }},
@@ -435,7 +357,7 @@ Test {
       {path => "local/data/foo/files/bar", is_none => 1},
     ]);
   });
-} n => 5, name => 'URL missing';
+} n => 6, name => 'URL missing';
 
 Test {
   my $current = shift;
@@ -446,7 +368,6 @@ Test {
         type => 'packref',
         url => "https://hoge/$key/pack.json",
         files => {
-          "file:r:123" => {url => "javascript:"},
         },
       },
     },
@@ -455,22 +376,11 @@ Test {
         json => {
           type => 'packref',
           source => {
-            type => 'ckan',
-            url => "https://hoge/dataset/package-name-$key",
-          },
-        },
-      },
-      "https://hoge/dataset/package-name-$key" => {
-        text => "",
-      },
-      "https://hoge/api/action/package_show?id=package-name-$key" => {
-        json => {
-          success => \1,
-          result => {
-            resources => [{
-              id => 'foo',
-              url => "https://hoge/$key/foo",
-            }],
+            type => 'files',
+            files => {
+              "file:r:123" => {url => "javascript:"},
+              "file:r:4" => {url => "https://hoge/$key/foo"},
+            },
           },
         },
       },
@@ -487,7 +397,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
        }},
@@ -495,7 +405,7 @@ Test {
       {path => "local/data/foo/files/bar", is_none => 1},
     ]);
   });
-} n => 5, name => 'bad URL';
+} n => 6, name => 'bad URL';
 
 Test {
   my $current = shift;
@@ -531,14 +441,14 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 1;
+         is 0+keys %{$json->{items}}, 2;
        }},
       {path => "local/data/foo/files/bar", text => "xyz"},
     ]);
   });
-} n => 5, name => 'files only';
+} n => 6, name => 'files only';
 
 Run;
 

@@ -49,6 +49,7 @@ sub run ($;%) {
             $as->message ({
               type => 'package data not available',
               value => $key,
+              source => $def,
             });
             return;
           }

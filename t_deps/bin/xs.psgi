@@ -103,6 +103,7 @@ return sub {
       if (defined $FilePaths->{$url}) {
         $http->send_response_body_as_ref (\$FilePaths->{$url}->slurp);
       } elsif (length $Files->{$url}) {
+        $http->add_response_header ('content-length', length $Files->{$url});
         $http->send_response_body_as_ref (\$Files->{$url});
       }
       $Accesses->{$url}++;

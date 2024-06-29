@@ -38,6 +38,7 @@ sub _pull_ddsd_data ($;%) {
         $logger->message ({
           type => 'package data not available',
           value => $key,
+          source => $def,
         });
         return;
       }
