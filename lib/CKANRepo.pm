@@ -147,6 +147,7 @@ sub fetch ($;%) {
       skip_if_found => $args{no_update},
       with_item_key => 1,
       data_area_key => $args{data_area_key},
+      report_unexpandable_set_type => 1,
     )->then (sub {
       my $all_files = shift;
       if (@$all_files) {
@@ -175,6 +176,11 @@ sub fetch ($;%) {
         for my $file (@$all_files) {
           if ($file->{type} eq 'meta') {
             push @$files, $file;
+            next;
+          }
+          if ($file->{type} eq 'package' or
+              $file->{type} eq 'dataset') {
+            $logger->count (['add_skipped']);
             next;
           }
           if (--$count < 0) {
@@ -216,6 +222,7 @@ sub fetch ($;%) {
         my $file = shift;
         $as->{next}->(undef, undef, {key => $file->{key}});
         return if $file->{key} eq 'meta:ckan.json';
+        return if $file->{type} eq 'dataset';
         my $res = $file->{ckan_resource} || {};
 
         if (not defined $res->{url}) {
@@ -734,7 +741,12 @@ sub get_item_list ($;%) {
           });
         }
 
-        $file->{type} = 'file';
+        if (defined $res->{format} and $res->{format} eq 'fiware-ngsi') {
+          $file->{type} = 'dataset';
+          $file->{set_type} = $res->{format};
+        } else {
+          $file->{type} = 'file';
+        }
         if (defined $file_defs->{$file->{key}} and
             $file_defs->{$file->{key}}->{skip}) {
           if ($args{with_skipped}) {
@@ -792,6 +804,16 @@ sub get_item_list ($;%) {
         } # with_props
 
         push @$files, $file;
+
+        if ($file->{type} eq 'dataset') {
+          $self->_expand_dataset
+              ($file, $file_defs, $in =>
+               ($with_package ? $files->[0] : {}), $files, $logger,
+               %args,
+               error_location => {
+                 path => $in->path->absolute,
+               });
+        } # dataset
       } # $res
 
       if ($with_package and $args{with_snapshot_hash}) {

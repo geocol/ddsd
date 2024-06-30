@@ -43,6 +43,7 @@ sub run ($$;%) {
           ($no_local ? ($item->{type} eq 'package' or $item->{type} eq 'dataset') ? '' : '(No local copy)' : ((defined $item->{rev} and $item->{rev}->{insecure}) ? '(Insecure)' : ''));
       $m .= sprintf "  %s\x0A",
           {
+            'fiware-ngsi' => 'FIWARE-NGSI API',
             sparql => 'SPARQL endpoint',
           }->{$item->{set_type}} // 'Unknown' if defined $item->{set_type};
       $m .= sprintf "  %s\x0A", join ' ', @v if @v;

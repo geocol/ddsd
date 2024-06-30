@@ -489,52 +489,10 @@ sub get_item_list ($;%) {
           push @$files, $file;
 
           if ($file->{type} eq 'dataset') {
-            if ($file->{set_type} eq 'sparql') {
-              for my $h ('0'..'9', 'a'..'f') {
-                my $f = {key => "part:sparql[$file->{key}]:$h",
-                         type => 'part',
-                         package_item => {
-                           title => '', mime => 'text/turtle',
-                         },
-                         source => {mime => 'turtle'}};
-                if (defined $file->{source}->{url}) {
-                  $f->{source}->{url} = $file->{source}->{url};
-                  $f->{source}->{url} .= $f->{source}->{url} =~ /\?/ ? '&' : '?';
-                  $f->{source}->{url} .= 'query=SELECT%20%2A%20WHERE%20%7B%20%20%3Fs%20%3Fp%20%3Fo%20.%20%20FILTER%20(STRSTARTS(SUBSTR(MD5(STR(%3Fs)),%201,%202),%20%22'.$h.'%22))%20%7D';
-                }
-                $self->_set_item_file_info
-                    (Web::URL->parse_string ($f->{source}->{url} // ''), $fdefs->{$f->{key}}, $in, $f, %args);
-                
-                my $fd = $fdefs->{$f->{key}};
-                if (defined $fd and defined $fd->{name}) {
-                  $f->{file}->{directory} = 'files';
-                  $f->{file}->{name} = $fd->{name};
-                } else {
-                  $f->{file}->{directory_file_key} = $file->{key};
-                  $f->{file}->{name} = "part-$h.ttl";
-                }
-
-                if (defined $f->{package_item}->{file_time}) {
-                  $pack_file->{package_item}->{file_time} //= $f->{package_item}->{file_time};
-                  $pack_file->{package_item}->{file_time} = $f->{package_item}->{file_time}
-                      if $pack_file->{package_item}->{file_time} < $f->{package_item}->{file_time};
-                }
-
-                push @$files, $f;
-              }
-
-              $file->{source}->{base_url} = delete $file->{source}->{url};
-            } else { # set_type
-              if ($args{report_unknown_set_type}) {
-                $logger->message ({
-                  type => 'unknown set_type',
-                  value => $file->{set_type},
-                  %{$pack->{error_location}},
-                });
-                $args{has_error}->();
-                return;
-              }
-            }
+            $self->_expand_dataset
+                ($file, $fdefs, $in => $pack_file, $files, $logger,
+                 %args,
+                 error_location => $pack->{error_location});
           } # dataset
         } # $file_key
       })->finally (sub {

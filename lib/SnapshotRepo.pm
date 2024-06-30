@@ -54,13 +54,20 @@ sub construct_file_list_of ($$$;%) {
         }
       }
 
-      if (defined $file->{set_type}) {
+      if (defined $file->{type} eq 'dataset') {
         if (defined $def->{files} and
             defined $def->{files}->{$file->{key}} and
             $def->{files}->{$file->{key}}->{skip}) {
           $skipped->{$file->{key}} = 1;
           next;
         } else {
+          if ($args{init_by_default}) {
+            unless ($args{init_no_skip_marking}) {
+              unless ($file->{set_type} eq 'sparql') {
+                $def->{files}->{$file->{key}}->{skip} = 1;
+              }
+            }
+          }
           $file->{snapshot}->{is_directory} = 1;
         }
       } elsif (not defined $file->{path}) { # no copy available

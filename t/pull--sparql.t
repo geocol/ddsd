@@ -47,7 +47,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 16;
+         is 0+keys %{$json->{items}}, 17;
          {
            my $item = $json->{items}->{'part:sparql[file:r:sparql]:0'};
            is $item->{files}->{data}, 'files/sparqlep/part-0.ttl';
@@ -122,7 +122,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 16;
+         is 0+keys %{$json->{items}}, 17;
          {
            my $item = $json->{items}->{'part:sparql[file:r:sparql]:0'};
            is $item->{files}->{data}, 'files/abc/part-0.ttl';
@@ -198,7 +198,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 16;
+         is 0+keys %{$json->{items}}, 17;
          {
            my $item = $json->{items}->{'part:sparql[file:r:sparql]:0'};
            is $item->{files}->{data}, 'files/sparqlep/part-0.ttl';
