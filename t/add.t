@@ -367,7 +367,7 @@ Test {
          is 0+keys %{$json->{items}}, 1;
          my $item = [values %{$json->{items}}]->[0];
          is $item->{files}->{data}, 'package/package.ckan.json';
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
        }},
       {path => "local/data/$key-3/package/package.ckan.json", json => sub {
         my $json = shift;

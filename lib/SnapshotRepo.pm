@@ -43,9 +43,13 @@ sub construct_file_list_of ($$$;%) {
         if (defined $file->{path} and $file->{type} eq 'meta') {
           #
         } else {
-          $def->{files}->{$file->{key}}->{skip} = \1;
-          $skipped->{$file->{key}} = 1;
-          $logger->count (['add_skipped']);
+          if ($file->{type} eq 'package') {
+            #
+          } else {
+            $def->{files}->{$file->{key}}->{skip} = \1;
+            $skipped->{$file->{key}} = 1;
+            $logger->count (['add_skipped']);
+          }
           next;
         }
       }
@@ -75,9 +79,13 @@ sub construct_file_list_of ($$$;%) {
             }
           } else {
             unless ($args{init_no_skip_marking}) {
-              $def->{files}->{$file->{key}}->{skip} = \1;
-              $skipped->{$file->{key}} = 1;
-              $logger->count (['add_skipped']);
+              if ($file->{type} eq 'package') {
+                #
+              } else {
+                $def->{files}->{$file->{key}}->{skip} = \1;
+                $skipped->{$file->{key}} = 1;
+                $logger->count (['add_skipped']);
+              }
               next;
             }
           }
@@ -105,6 +113,9 @@ sub construct_file_list_of ($$$;%) {
       if (defined $def->{files} and
           defined $def->{files}->{$file->{key}} and
           $def->{files}->{$file->{key}}->{skip}) {
+        $skipped->{$file->{key}} = 1;
+        next;
+      } elsif ($file->{type} eq 'package') {
         $skipped->{$file->{key}} = 1;
         next;
       } elsif (defined $file->{file}->{directory} and
@@ -224,6 +235,9 @@ sub construct_file_list_of ($$$;%) {
         if (defined $def->{files} and
             defined $def->{files}->{$file->{key}} and
             $def->{files}->{$file->{key}}->{skip}) {
+          $skipped->{$file->{key}} = 1;
+          next;
+        } elsif ($file->{type} eq 'package') {
           $skipped->{$file->{key}} = 1;
           next;
         } elsif (defined $def->{files} and
