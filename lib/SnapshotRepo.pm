@@ -31,7 +31,6 @@ sub construct_file_list_of ($$$;%) {
     with_path => 1, file_defs => $def->{files},
     has_error => $args{has_error},
     skip_other_files => $args{skip_other_files},
-    with_skipped => $args{with_skipped},
     with_source_meta => 1,
     data_area_key => $args{data_area_key},
   )->then (sub {

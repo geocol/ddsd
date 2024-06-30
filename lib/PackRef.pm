@@ -70,7 +70,9 @@ sub get_file_defs ($$) {
     my $fdef2 = $source->{files}->{$key} || {};
     next unless ref $fdef2 eq 'HASH';
     my $fdef3 = {};
-    $fdef3->{skip} = 1 if $fdef1->{skip} or $fdef2->{skip};
+    if (defined $fdef1->{skip} or defined $fdef2->{skip}) {
+      $fdef3->{skip} = $fdef1->{skip} // $fdef2->{skip};
+    }
     $fdef3->{name} = $fdef1->{name} // $fdef2->{name}; # or undef
     $fdef3->{url} = $fdef1->{url} // $fdef2->{url}; # or undef
     $fdef3->{set_type} = $fdef1->{set_type} // $fdef2->{set_type}; # or undef

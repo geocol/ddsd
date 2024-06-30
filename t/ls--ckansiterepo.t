@@ -102,7 +102,7 @@ Test {
         is $item->{file}->{directory}, 'files';
         is $item->{file}->{name}, 'package_list.json';
         is $item->{package_item}->{title}, '';
-        is $item->{package_item}->{mime}, 'application/json';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
         like $item->{path}, qr{^/.+/local/data/hoge/files/package_list.json$}; # XXX platform
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
