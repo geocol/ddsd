@@ -281,7 +281,7 @@ Test {
       ok grep { /CKAN/ } @{$r->{lines}};
       ok ! grep { /File revision/ } @{$r->{lines}};
     } $current->c;
-    return $current->run ('ls', additional => ['abcd', '--with-file-meta'], lines => 1);
+    return $current->run ('ls', additional => ['abcd', '--with-item-meta'], lines => 1);
   })->then (sub {
     my $r = $_[0];
     test {
@@ -291,7 +291,7 @@ Test {
       ok ! grep { /CKAN/ } @{$r->{lines}};
       ok grep { /File revision/ } @{$r->{lines}};
     } $current->c;
-    return $current->run ('ls', additional => ['abcd', '--with-file-meta', '--with-source-meta'], lines => 1);
+    return $current->run ('ls', additional => ['abcd', '--with-item-meta', '--with-source-meta'], lines => 1);
   })->then (sub {
     my $r = $_[0];
     test {

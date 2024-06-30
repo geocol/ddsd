@@ -13,25 +13,34 @@ my $HelpText = {
 Add a package specified by a URL <url>.
 
 Options
-  --name=<package>  The package name to be used.  If not specified,
-                    determined by the package's content or URL.
+  --name=<package>
+                The key of the data package to be used.  If not
+                specified, determined by the data package's content or
+                URL.
 
 }, # XXX exit code
-  ls => qq{%%DDSD%% ls [<package>] [--jsonl]
+  ls => qq{%%DDSD%% ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
 
 Show list of data packages or files.
 
 Arguments
 
-  <package>  The key of a data package.
+  <package>     The key of a data package.
 
-             If <package> is omitted, the list of the data packages
-             available in the current working directory is shown.
+                If <package> is omitted, the list of the data packages
+                available in the current working directory is shown.
 
-             If <package> is specified, the list of files in the data
-             package is shown.
+                If <package> is specified, the list of files in the
+                data package is shown.
 
-  --jsonl    Output the list in JSON Lines format.
+  --jsonl       Output the list in JSON Lines format.
+  --with-item-meta
+                Output the computed metadata for items.  Only applicable
+                when <package> is specified.
+  --with-source-meta
+                Output the metadata from the package source file (e.g.
+                CKAN package file), if any.  Only applicable when
+                <package> is specified.
 
 Output
 
@@ -43,9 +52,9 @@ Output
     name/value pairs representing a data package in the current
     working directory is printed as a line:
 
-      data_package_key    The key of the data package.
-      path                The path to the directory for the data package,
-                          if any.
+      data_package_key
+                The key of the data package.
+      path      The path to the directory for the data package, if any.
 
     Otherwise, a line represents the key of a data package and the
     path to the directory for the data package, if any.
@@ -81,24 +90,48 @@ sub run ($$$) {
     $outer->formatted ($text);
   } else {
     $outer->formatted ("Usage: $ddsd <command> <args>\n\n");
-    $outer->formatted ("Commands:
-  add     Add a package
-  export  Export files of a package
-  help    Show usage
-  freeze  Freeze the version of the files of a package
-  legal   Show legal information of a package
-  ls      Show list of data packages or files
-  pull    Update files to the latest version
-  unuse   Deactivate a file in package
-  use     Activate a file in package
-  version Describe about ddsd
+    $outer->formatted ("Arguments
 
-Run:
-  \$ $ddsd help <command>
-... to show about a specific command.
+  <command>     The subcommands to run.  One of the followings:
+
+    add         Add a data package
+    export      Export files of a data package
+    help        Show usage of ddsd
+    freeze      Freeze the version of the files of a data package
+    legal       Show legal information of a data package
+    ls          Show list of data packages or files
+    pull        Update files to the latest version
+    unuse       Deactivate a file in data package
+    use         Activate a file in data package
+    version     Describe about ddsd
+
+  --log-file=<path>
+                The path to the log file.  If specified, log file is
+                generated.  Specify |-| for the standard output,
+                |/dev/stderr| for the standard error output.
+
+  Run:
+
+    \$ $ddsd help <command>
+
+  ... to show about a specific command.
+
+  For command-specific arguments, see command's help.
+
+Environment variables
+
+  http_proxy, https_proxy, no_proxy
+                The proxy configuration.
+
+Exit statuses
+
+  0             The command has been successfully completed.
+  12            The command has been done, but some of files or metadata
+                are not available.
+  Otherwise     There are something wrong.
+
 ");
   }
-  # XXX http_proxy
   
   return $outer->close;
 } # run

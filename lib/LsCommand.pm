@@ -19,7 +19,7 @@ sub run ($$;%) {
       my $m = '';
       my @v;
       my $no_local = not defined $item->{rev};
-      if (defined $item->{rev}->{length}) {
+      if (defined $item->{rev} and defined $item->{rev}->{length}) {
         push @v, sprintf "%d B", # XXX formatting
             $item->{rev}->{length};
       }
@@ -51,6 +51,8 @@ sub run ($$;%) {
       }
       if (defined $item->{rev} and defined $item->{rev}->{original_url}) {
         $m .= sprintf "  <%s>\x0A", $item->{rev}->{original_url};
+      } elsif (defined $item->{package_item}->{page_url}) {
+        $m .= sprintf "  <%s>\x0A", $item->{package_item}->{page_url};
       }
       if (defined $item->{path}) {
         $m .= sprintf qq{  "%s"\x0A}, $item->{path}->relative ('.');
@@ -73,7 +75,14 @@ sub run ($$;%) {
         $v =~ s/\x0A  \z/\x0A/;
         $m .= "  " . $v;
       }
-      if ($args{with_file_meta} and defined $item->{rev}) {
+      if ($args{with_item_meta} and defined $item->{package_item}) {
+        $m .= sprintf "  Item:\x0A";
+        my $v = perl2json_chars_for_record $item->{package_item};
+        $v =~ s/\x0A/\x0A  /g;
+        $v =~ s/\x0A  \z/\x0A/;
+        $m .= "  " . $v;
+      }
+      if ($args{with_item_meta} and defined $item->{rev}) {
         $m .= sprintf "  File revision:\x0A";
         my $v = perl2json_chars_for_record $item->{rev};
         $v =~ s/\x0A/\x0A  /g;

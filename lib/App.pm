@@ -180,7 +180,7 @@ sub main ($$$$$$$) {
       'json' => \$opts->{json},
       'jsonl' => \$opts->{jsonl},
       'with-source-meta' => \$opts->{with_source_meta},
-      'with-file-meta' => \$opts->{with_file_meta},
+      'with-item-meta' => \$opts->{with_item_meta},
       'min' => \$opts->{min},
       'all' => \$opts->{all},
       'name=s' => \$opts->{name},
@@ -303,7 +303,7 @@ sub main ($$$$$$$) {
        return $cmd->run ($out, %args,
                          jsonl => $opts->{jsonl},
                          with_source_meta => $opts->{with_source_meta},
-                         with_file_meta => $opts->{with_file_meta});
+                         with_item_meta => $opts->{with_item_meta});
      } elsif ($sub eq 'legal') {
        $self->{logger}->throw ({
          type => 'Bad arguments',
