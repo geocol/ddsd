@@ -57,12 +57,13 @@ sub xs_client ($) {
 
 sub run ($$;%) {
   my ($self, $subcommand, %args) = @_;
+  my $log_path = $self->{temp_path}->child (rand);
   my $cmd = Promised::Command->new ([
     $self->{ddsd_path},
     (defined $subcommand ? $subcommand : ()),
     ($args{insecure} ? '--insecure' : ()),
     ((not defined $args{cacert} or $args{cacert}) ? '--cacert=' . $self->{ca_cert_path}->absolute : ()),
-    ($self->{show_log} ? ('--log-file', '/dev/stderr') : ()),
+    ($args{logs} ? ('--log-file', $log_path) : $self->{show_log} ? ('--log-file', '/dev/stderr') : ()),
     @{$args{additional} or []},
   ]);
   $cmd->wd ($self->app_path ($args{app} || 0));
@@ -102,7 +103,15 @@ sub run ($$;%) {
     if ($args{stderr}) {
       $r->{stderr} = $stderr;
     }
-    return $r;
+    if ($args{logs}) {
+      return Promised::File->new_from_path ($log_path)->read_byte_string->then (sub {
+        $r->{logs} = [map { json_bytes2perl $_ } split /\x0A/, $_[0]];
+        print STDERR $_[0] if $self->{show_log};
+        return $r;
+      });
+    } else {
+      return $r;
+    }
   });
 } # run
 

@@ -107,6 +107,7 @@ sub fetch ($;%) {
           $ret->{insecure} = 1 if $r->{insecure};
           if ($r->{error}) {
             $args{has_error}->();
+            $as->count (['fetch_failure']);
           }
         });
       } $files;

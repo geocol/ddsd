@@ -127,7 +127,7 @@ for my $pi (
 for my $pack (
   {
     type => 'ckan',
-    url => 'https://raw.githubusercontent.com/wakaba/nemui/hoge/api/action/package_show?id=abc', # 404
+    url => 'https://raw.githubusercontent.com/wakaba/nemui/hoge/dataset/abc', # 404
   },
 #  {
 #    type => 'ckan',
@@ -174,10 +174,13 @@ for my $pack (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', is_none => 1},
+        {path => 'local/data/foo/index.json', json => sub {
+           my $json = $_[0];
+           is 0+keys %{$json->{items}}, 0;
+         }},
       ]);
     });
-  } n => 2, name => 'broken packages 2';
+  } n => 3, name => 'broken packages 2';
 } # $pack
 
 for my $pack (
@@ -399,7 +402,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
        }},
-      {path => 'local/data/foo/package-ckan.json', json => sub {
+      {path => 'local/data/foo/package/package.ckan.json', json => sub {
          my $json = shift;
          ok $json->{foo1};
        }},
@@ -409,7 +412,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
        }},
-      {path => 'local/data/foo2/package-ckan.json', json => sub {
+      {path => 'local/data/foo2/package/package.ckan.json', json => sub {
          my $json = shift;
          ok $json->{hoge};
        }},
@@ -463,7 +466,7 @@ Test {
       {path => 'local/data/foo/files/r3', text => "r3"},
     ]);
   });
-} n => 5, name => '404 resource 1';
+} n => 7, name => '404 resource 1';
 
 Test {
   my $current = shift;
@@ -526,7 +529,7 @@ Test {
       {path => 'local/data/foo/files/r3', text => "R3"},
     ]);
   });
-} n => 6, name => '404 resource 2';
+} n => 9, name => '404 resource 2';
 
 Test {
   my $current = shift;
@@ -584,7 +587,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
        }},
-      {path => $current->repo_path ('ckan', 'http://hoge/api/action/package_show?id=package-name-' . $key)->child ('index.json'), json => sub {
+      {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
          my $json = shift;
          is $json->{items}->{$json->{urls}->{"http://hoge/$key/r1"}}->{rev}->{http_etag}, '"R1"';
          is $json->{items}->{$json->{urls}->{"http://hoge/$key/r2"}}->{rev}->{http_etag}, '"r2"';
@@ -595,7 +598,7 @@ Test {
       {path => 'local/data/foo/files/r3', text => "R3"},
     ]);
   });
-} n => 9, name => '304';
+} n => 12, name => '304';
 
 Test {
   my $current = shift;
@@ -637,23 +640,24 @@ Test {
 Test {
   my $current = shift;
   my $key = '' . rand;
-  return $current->prepare (
-    {
+  return $current->prepare (undef, {})->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    return $current->prepare ({
       foo => {
         type => 'ckan',
         url => 'https://hoge/dataset/package-name-' . $key,
         files => {'meta:ckan.json' => {skip => 1}},
       },
-    },
-    {
+    }, {
       "https://hoge/api/action/package_show?id=package-name-" . $key => {
         json => {
           success => \1,
           result => {},
         },
       },
-    },
-  )->then (sub {
+    });
+  })->then (sub {
     return $current->run ('pull', insecure => 0, cacert => 0);
   })->then (sub {
     my $r = $_[0];
@@ -661,10 +665,13 @@ Test {
       is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
-      {path => 'local/data/foo/index.json', is_none => 1},
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = $_[0];
+         is 0+keys %{$json->{items}}, 0;
+       }},
     ]);
   });
-} n => 2, name => 'HTTPS, no root CA cert, not --insecure';
+} n => 3, name => 'HTTPS, no root CA cert, not --insecure';
 
 Test {
   my $current = shift;
@@ -1048,9 +1055,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
+      is 0+@{$r->{jsonl}}, 6;
       {
-        my $file = $r->{jsonl}->[3];
+        my $file = $r->{jsonl}->[5];
         ok ! $file->{rev}->{insecure};
         is $file->{rev}->{url}, "https://hoge/" . $key . "/r3";
         is $file->{rev}->{original_url}, "http://hoge/" . $key . "/r3";
@@ -1190,6 +1197,102 @@ Test {
     } $current->c;
   });
 } n => 14, name => 'resource URL auto-upgrade but bad cert';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {
+          "file:id:bar" => {skip => 0},
+        },
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+              {id => 'bar', url => "https://hoge/$key/bar"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+      "https://hoge/$key/bar" => {text => "xyz"},
+    },
+  )->then (sub {
+    return $current->run ('pull', logs => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+
+      my $cc = [grep { $_->{counts} } @{$r->{logs}}]->[0]->{counts};
+      ok $cc->{http_request};
+      ok $cc->{http_request_completed};
+      ok $cc->{fetch_failure};
+
+      my $cmp = [grep { $_->{error}->{type} eq 'completed' } @{$r->{logs}}]->[0];
+      is $cmp->{error}->{value}, 0;
+    } $current->c;
+  });
+} n => 5, name => 'logs ok';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {
+          "file:id:bar" => {skip => 0},
+        },
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+              {id => 'bar', url => "https://hoge/$key/bar"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+      "https://hoge/$key/bar" => {text => "xyz", status => 404},
+    },
+  )->then (sub {
+    return $current->run ('pull', logs => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+
+      my $cc = [grep { $_->{counts} } @{$r->{logs}}]->[0]->{counts};
+      ok $cc->{http_request};
+      ok $cc->{http_request_completed};
+      ok $cc->{fetch_failure};
+
+      my $cmp = [grep { $_->{error}->{type} eq 'completed' } @{$r->{logs}}]->[0];
+      is $cmp->{error}->{value}, 12;
+    } $current->c;
+  });
+} n => 5, name => 'logs error';
 
 Run;
 

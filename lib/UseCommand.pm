@@ -132,6 +132,8 @@ sub run ($$$$;%) {
     return $da_repo->close if defined $da_repo;
   })->finally (sub {
     return $repo->close if defined $repo;
+  })->finally (sub {
+    $logger->message_counts;
   });
 } # run
 

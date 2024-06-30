@@ -25,8 +25,8 @@ sub child ($@) {
   return $storage;
 } # child
 
-sub write_by_readable ($$;%) {
-  my ($self, $rs, %args) = @_;
+sub write_by_readable ($$$;%) {
+  my ($self, $rs, $logger, %args) = @_;
   my $dest_path = $self->{path}->child (rand);
   my $d;
   $d = Digest::SHA->new ("sha256") if $args{sha256};
@@ -60,7 +60,7 @@ sub write_by_readable ($$;%) {
         }
         $dest_w->write ($_[0]->{value}); # XXX catch
         $length += $_[0]->{value}->byte_length;
-        $args{as}->{next}->($_[0]->{value}->byte_length);
+        $logger->{next}->($_[0]->{value}->byte_length);
         
         return not 'done';
       });
@@ -69,6 +69,7 @@ sub write_by_readable ($$;%) {
     $r->{path} = $dest_path;
     $r->{sha256} = $d->hexdigest if $args{sha256};
     $r->{length} = $length;
+    $logger->count (['http_request_completed']);
     return $r;
   });
 } # write_by_readable

@@ -45,6 +45,7 @@ sub construct_file_list_of ($$$;%) {
         } else {
           $def->{files}->{$file->{key}}->{skip} = \1;
           $skipped->{$file->{key}} = 1;
+          $logger->count (['add_skipped']);
           next;
         }
       }
@@ -76,6 +77,7 @@ sub construct_file_list_of ($$$;%) {
             unless ($args{init_no_skip_marking}) {
               $def->{files}->{$file->{key}}->{skip} = \1;
               $skipped->{$file->{key}} = 1;
+              $logger->count (['add_skipped']);
               next;
             }
           }

@@ -1,20 +1,11 @@
 package HelpCommand;
 use strict;
 use warnings;
-use Path::Tiny;
 
 use Command;
 push our @ISA, qw(Command);
 
 use ListWriter;
-
-sub _ddsd_path () {
-  my $path1 = path ($0)->parent->parent->child ('ddsd');
-  my $path2 = $path1->relative (".");
-  my $path = (length $path1) > (length $path2) ? $path2 : $path1;
-  $path = './' . $path if $path eq 'ddsd';
-  return '' . $path;
-} # _ddsd_path
 
 my $HelpText = {
   add => qq{%%DDSD%% add <url> [--name=<package>]
@@ -81,9 +72,9 @@ sub run ($$$) {
   my ($self, $out, $sub) = @_;
   my $outer = ListWriter->new_from_filehandle ($out);
 
-  # XXXX locale
-  my $ddsd = _ddsd_path;
+  my $ddsd = $self->app->logger->ddsd_path_string;
 
+  # XXXX locale
   if (defined $sub and defined $HelpText->{$sub}) {
     my $text = $HelpText->{$sub};
     $text =~ s/%%DDSD%%/$ddsd/g;
@@ -118,7 +109,7 @@ sub run_version ($$;%) {
   if ($args{json}) {
     $outer->item ({
       name => 'ddsd',
-      path => _ddsd_path,
+      path => $self->app->logger->ddsd_path_string,
       perl_script_path => $0,
       perl_version => (sprintf '%vd', $^V),
     });

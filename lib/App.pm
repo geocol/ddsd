@@ -345,10 +345,7 @@ sub main ($$$$$$$) {
       type => 'completed subcommand',
       subcommand => $sub,
     });
-    $self->{logger}->info ({
-      type => 'completed',
-      value => $exit,
-    });
+    $self->{logger}->message_completed ($exit);
     return $exit;
   });
 } # main

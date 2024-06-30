@@ -22,6 +22,7 @@ sub run ($$;%) {
     });
   }
 
+  my $name;
   return $self->_pull_ddsd_data (%args)->then (sub {
     return Fetcher->fetch (
       $self->app, $url,
@@ -41,7 +42,6 @@ sub run ($$;%) {
     }
     
     my $def;
-    my $name;
 
     if (defined $r->{json}) {
       if (ref $r->{json} eq 'HASH' and
@@ -145,7 +145,7 @@ sub run ($$;%) {
     $name = FileNames::truncate_file_name $name;
     if (defined $args{name}) {
       return $logger->throw ({
-        type => 'bad name specified',
+        type => 'bad data package key specified',
         value => $args{name},
       }) unless $args{name} eq $name;
     }
@@ -173,12 +173,12 @@ sub run ($$;%) {
         while (defined $plist->get_def ($name)) {
           $name = $n . '-' . $i++;
           return $logger->throw ({
-            type => 'conflicting name specified',
+            type => 'conflicting data package key specified',
             value => $args{name},
           }) if defined $args{name};
         }
         my $da_repo = $self->app->data_area->get_repo ($name);
-        die "Bad data area key |$name|" unless defined $da_repo;
+        die "Bad data package key |$name|" unless defined $da_repo;
         my $files;
         return $da_repo->construct_file_list_of (
           $repo, $def,
@@ -192,10 +192,10 @@ sub run ($$;%) {
           $plist->defs->{$name} = $def;
           $plist->touch;
           $logger->message ({
-            type => 'package added',
-            value => $name,
+            type => 'data package added',
+            key => $name,
           });
-          # XXX report # skipped files
+          $logger->count (['add_package']);
 
           return $plist->save;
         })->finally (sub {
@@ -209,6 +209,8 @@ sub run ($$;%) {
     })->finally (sub {
       return $repo->close;
     });
+  })->finally (sub {
+    $logger->message_counts (data_package_key => $name);
   });
 } # run
 

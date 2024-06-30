@@ -70,6 +70,7 @@ sub fetch ($;%) {
       }
       $ret->{broken} = 1;
       $args{has_error}->();
+      $logger->count (['fetch_failure']);
       return;
     } elsif ($r->{not_modified}) {
       if ($r->{is_new}) {
@@ -216,6 +217,7 @@ sub fetch ($;%) {
               if ($r->{error}) {
                 $args{has_error}->();
                 $ret->{broken} = 1;
+                $as->count (['fetch_failure']);
               } elsif ($r->{not_modified}) {
                 # XXX at risk
                 if (defined $file->{rev} and defined $file->{rev}->{sha256}) {

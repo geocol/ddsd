@@ -123,6 +123,7 @@ sub fetch ($;%) {
         });
       }
       $args{has_error}->();
+      $logger->count (['fetch_failure']);
     } elsif ($r->{not_modified}) {
       if ($r->{is_new}) {
         $ret->{timestamp} = $r->{is_new};
@@ -176,7 +177,10 @@ sub fetch ($;%) {
             push @$files, $file;
             next;
           }
-          last if --$count < 0;
+          if (--$count < 0) {
+            $logger->count (['add_skipped']);
+            next;
+          }
           my $item = $file->{ckan_resource} || {};
           if ($item->{size} and $item->{size} > 100_000_000) {
             $logger->info ({
@@ -185,13 +189,18 @@ sub fetch ($;%) {
               key => $file->{key},
               value => $item->{size},
             });
+            $logger->count (['add_skipped']);
             next;
           }
-          next if not defined $item->{url};
-          next if $item->{url} =~ m<\{>;
+          if (not defined $item->{url} or $item->{url} =~ m<\{>) {
+            $logger->count (['add_skipped']);
+            next;
+          }
           my $u = Web::URL->parse_string ($item->{url});
-          next if not defined $u;
-          next if not $u->is_http_s;
+          if (not defined $u and not $u->is_http_s) {
+            $logger->count (['add_skipped']);
+            next;
+          }
           push @$files, $file;
         }
       } else {
@@ -252,6 +261,7 @@ sub fetch ($;%) {
           $ret->{insecure} = 1 if $r->{insecure};
           if ($r->{error}) {
             $he->();
+            $as->count (['fetch_failure']);
           }
         });
       } $files;

@@ -251,8 +251,8 @@ sub fetch ($$$;%) {
     
     my $storage = $app->temp_storage;
     return $storage->write_by_readable (
-      $res->body_stream,
-      sha256 => $args{sha256}, as => $as,
+      $res->body_stream, $as,
+      sha256 => $args{sha256},
       need_body_bytes => $need_bytes,
     )->then (sub {
       my $r = $_[0];
@@ -316,6 +316,7 @@ sub _fetch ($$$%) {
       insecure => $args{insecure},
     },
   });
+  $logger->count (['http_request']);
   return $client->request (
     url => $url,
     headers => $headers,

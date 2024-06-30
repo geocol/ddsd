@@ -84,6 +84,8 @@ sub run ($;%) {
     })->then ($as->{ok}, $as->{ng})->finally (sub {
       return $plist->close;
     });
+  })->finally (sub {
+    $logger->message_counts;
   });
 } # run
 

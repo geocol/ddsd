@@ -1,6 +1,7 @@
 package JSONLogger;
 use strict;
 use warnings;
+use Path::Tiny;
 use Time::HiRes qw(time);
 use ArrayBuffer;
 use DataView;
@@ -70,6 +71,48 @@ sub message ($$) {
   }
   print STDERR (App::Error->new ($error));
 } # message
+
+sub message_counts ($;%) {
+  my ($self, %args) = @_;
+
+  my $cc = $self->{counts} || {};
+  my $error = {level => 'message', time => time, counts => $cc,
+               error => {type => 'counts'}};
+  $self->_error ($error);
+
+  if (delete $self->{stderr_continue}) {
+    print STDERR "\n";
+  }
+  # XXX locale
+  printf STDERR "%s HTTP requests, %s files transferred, %s fetches failed.\n",
+      $cc->{http_request} || 0, $cc->{http_request_completed} || 0,
+      $cc->{fetch_failure} || 0;
+  if ($cc->{add_package}) {
+    printf STDERR "%s data package added, %s files skipped.\n",
+        $cc->{add_package}, $cc->{add_skipped} || 0;
+    if (defined $args{data_package_key} and $cc->{add_skipped}) {
+      printf STDERR "Run:\n\n  \$ %s use %s --all\n\n... to use skipped files.\n",
+          $self->ddsd_path_string,
+          (quotemeta $args{data_package_key});
+    }
+  }
+} # message_counts
+
+sub message_completed ($$) {
+  my ($self, $exit) = @_;
+  $self->info ({
+    type => 'completed',
+    value => $exit,
+  });
+
+  unless ($exit == 0) {
+    if (delete $self->{stderr_continue}) {
+      print STDERR "\n";
+    }
+    # XXXlocale
+    printf STDERR "Exit status: %d\n", $exit;
+  }
+} # message_completed
 
 sub start ($$$;%) {
   my ($self, $max, $opts, %args) = @_;
@@ -175,6 +218,19 @@ sub throw ($$) {
   die App::Error->new ($error);
 } # throw
 
+sub count ($$) {
+  my ($self, $names) = @_;
+  $self->{counts}->{$_}++ for @$names;
+} # count
+
+sub ddsd_path_string ($) {
+  my $path1 = path ($0)->parent->parent->child ('ddsd');
+  my $path2 = $path1->relative (".");
+  my $path = (length $path1) > (length $path2) ? $path2 : $path1;
+  $path = './' . $path if $path eq 'ddsd';
+  return '' . $path;
+} # ddsd_path_string
+
 sub close ($) {
   my $self = $_[0];
   if ($self->{stderr_continue}) {
@@ -189,6 +245,7 @@ sub info ($@) { shift->{logger}->info (@_) }
 sub message ($@) { shift->{logger}->message (@_) }
 sub throw ($@) { shift->{logger}->throw (@_) }
 sub propagate ($@) { shift->{logger}->propagate (@_) }
+sub count ($@) { shift->{logger}->count (@_) }
 
 sub start ($@) {
   my $self = shift;

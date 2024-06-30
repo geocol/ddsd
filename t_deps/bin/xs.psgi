@@ -111,7 +111,7 @@ return sub {
     }
     
     $http->set_status (404);
-    warn "XS: URL <$url> not found";
+    warn "$$: XS: URL <$url> not found";
     return $http->close_response_body;
   });
 };
