@@ -91,7 +91,7 @@ sub start ($$$;%) {
   };
   my $this_up = sub ($$$) {
     my $v = ($_[0] // $max) * $current->{p} * $current->{q};
-    printf STDERR "\r%2.1f %s ", $v, substr $_[1], 0, 60;
+    printf STDERR "\r%2.1f %% %s ", $v, substr $_[1], 0, 60;
     $current->{written} = 1;
     if ($v >= 100) {
       printf STDERR "\n";

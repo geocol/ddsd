@@ -148,36 +148,45 @@ sub run ($$;%) {
     });
   } else {
     my $outer = ListWriter->new_from_filehandle ($out);
-    $outer->formatter (sub {
-      my $item = $_[0];
-      return sprintf "%s\t%s\x0A",
-          $item->{short_name}, $item->{path}->relative ('.');
-    }) unless $args{jsonl};
-    return $self->run_data_area_list ($outer)->finally (sub {
+    return $self->run_data_area_list ($outer, jsonl => $args{jsonl})->finally (sub {
       return $outer->close;
     });
   }
 } # run
 
-sub run_data_area_list ($$) {
-  my ($self, $outer) = @_;
-  my $logger = $self->app->logger;
-  return $self->app->data_area->storage->for_child_directories (sub {
+sub run_data_area_list ($$;%) {
+  my ($self, $outer, %args) = @_;
+  $outer->formatter (sub {
     my $item = $_[0];
-    unless ($self->app->is_short_name ($item->{short_name})) {
-      $logger->info ({
-        type => 'directory name is not a short name',
-        path => $item->{path}->absolute,
-      });
-      return;
+    if (defined $item->{path}) {
+      return sprintf qq{%s\t"%s"\x0A},
+          $item->{data_package_key}, $item->{path}->relative ('.');
+    } else {
+      return sprintf "%s\t-\x0A",
+          $item->{data_package_key};
     }
+  }) unless $args{jsonl};
+  my $logger = $self->app->logger;
+  return PackageListFile->open_by_app ($self->app, allow_missing => 1)->then (sub {
+    my $plist = $_[0];
+    my $defs = $plist->defs;
+    return $self->app->data_area->storage->for_child_directories (sub {
+      my $item = $_[0];
+      my $def = delete $defs->{$item->{short_name}};
+      return unless defined $def;
 
-    my $it = {
-      path => $item->{path}->absolute,
-      short_name => $item->{short_name},
-    };
-    $outer->item ($it);
-  }, $logger);
+      my $it = {
+        path => $item->{path}->absolute,
+        data_package_key => $item->{short_name},
+      };
+      $outer->item ($it);
+    }, $logger)->then (sub {
+      for my $key (keys %$defs) {
+        my $it = {data_package_key => $key};
+        $outer->item ($it);
+      }
+    });
+  });
 } # run
 
 1;

@@ -90,9 +90,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 3;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
         is $f->{rev}->{original_url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
@@ -100,7 +100,7 @@ Test {
         ok $f->{rev}->{sha256};
         ok $f->{rev}->{timestamp};
         ok $f->{rev}->{http_date};
-        is $f->{key}, 'package';
+        is $f->{key}, 'meta:ckan.json';
         is $f->{package_item}->{mime}, 'application/json';
         is $f->{package_item}->{title}, '';
       }
@@ -150,9 +150,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
         is $f->{rev}->{original_url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
@@ -162,12 +162,12 @@ Test {
         ok $f->{rev}->{http_date};
         is $f->{rev}->{http_last_modified}, undef;
         is $f->{rev}->{http_etag}, undef;
-        is $f->{key}, 'package';
+        is $f->{key}, 'meta:ckan.json';
         is $f->{package_item}->{mime}, 'application/json';
         is $f->{package_item}->{title}, '';
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/file1/' . $key,
         is $f->{rev}->{original_url}, 'http://hoge/file1/' .  $key;
@@ -235,9 +235,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
         is $f->{rev}->{original_url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
@@ -254,7 +254,7 @@ Test {
         is $f->{ckan_resource}, undef;
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/file1/' . $key,
         is $f->{rev}->{original_url}, 'http://hoge/file1/' .  $key;

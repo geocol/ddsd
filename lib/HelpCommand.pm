@@ -26,17 +26,46 @@ Options
                     determined by the package's content or URL.
 
 }, # XXX exit code
-  ls => qq{%%DDSD%% ls [--jsonl]
-%%DDSD%% ls <package> [--jsonl]
+  ls => qq{%%DDSD%% ls [<package>] [--jsonl]
 
-When <package> is NOT specified, the list of the packages in the
-current working directory is shown.
+Show list of data packages or files.
 
-When <package> is specified, the list of files in the package
-<package> is shown.
+Arguments
 
-Options
-  --jsonl   Output the list in JSON Lines format.
+  <package>  The key of a data package.
+
+             If <package> is omitted, the list of the data packages
+             available in the current working directory is shown.
+
+             If <package> is specified, the list of files in the data
+             package is shown.
+
+  --jsonl    Output the list in JSON Lines format.
+
+Output
+
+  The list is printed to the standard output.
+
+  When <package> is omitted:
+
+    If |--jsonl| is specified, a JSON object with the following
+    name/value pairs representing a data package in the current
+    working directory is printed as a line:
+
+      data_package_key    The key of the data package.
+      path                The path to the directory for the data package,
+                          if any.
+
+    Otherwise, a line represents the key of a data package and the
+    path to the directory for the data package, if any.
+
+  When <package> is specified:
+
+    If |--jsonl| is specified, a JSON object representing an item in
+    the specified data package is printed as a line.
+
+    Otherwise, a set of lines represents an item in the specified data
+    package.
 
 },
 #XXX  export  Export files of a package
@@ -67,7 +96,7 @@ sub run ($$$) {
   help    Show usage
   freeze  Freeze the version of the files of a package
   legal   Show legal information of a package
-  ls      Show list of files
+  ls      Show list of data packages or files
   pull    Update files to the latest version
   unuse   Deactivate a file in package
   use     Activate a file in package
