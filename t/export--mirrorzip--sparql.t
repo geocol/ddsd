@@ -50,7 +50,7 @@ Test {
          ok $files->{"LICENSE"}->{size};
          is $files->{'data/18ac3e7343f016890c510e93f935261169d9e3f565436429830faf0934f4f8e4.dat'}->{size}, 1;
          is $files->{'data/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.dat'}->{size}, 1;
-         is 0+(grep { m{^data/} } keys %$files), 16;
+         is 0+(grep { m{^data/} } keys %$files), 17;
        }},
     ]);
   });

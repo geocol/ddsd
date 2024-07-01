@@ -1498,9 +1498,10 @@ sub _expand_dataset ($$$$$$%) {
                 }
 
                 push @$files, $f;
-              }
+    }
 
     $file->{source}->{base_url} = delete $file->{source}->{url};
+    $file->{set_expanded} = \1;
   } elsif ($file->{set_type} eq 'fiware-ngsi') {
     if ($args{report_unexpandable_set_type}) {
       $logger->message ({

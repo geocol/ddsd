@@ -46,7 +46,7 @@ Test {
     return $current->check_files ([
       {path => 'config/ddsd/packages.json', json => sub {
          my $json = shift;
-         is 0+keys %{$json->{foo}->{files}}, 17;
+         is 0+keys %{$json->{foo}->{files}}, 19;
          {
            my $item = $json->{foo}->{files}->{'file:r:sparql'};
            is $item->{name}, undef;

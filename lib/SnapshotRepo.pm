@@ -54,7 +54,7 @@ sub construct_file_list_of ($$$;%) {
         }
       }
 
-      if (defined $file->{type} eq 'dataset') {
+      if ($file->{type} eq 'dataset') {
         if (defined $def->{files} and
             defined $def->{files}->{$file->{key}} and
             $def->{files}->{$file->{key}}->{skip}) {
@@ -64,7 +64,10 @@ sub construct_file_list_of ($$$;%) {
           if ($args{init_by_default}) {
             unless ($args{init_no_skip_marking}) {
               unless ($file->{set_type} eq 'sparql') {
-                $def->{files}->{$file->{key}}->{skip} = 1;
+                $def->{files}->{$file->{key}}->{skip} = \1;
+                $skipped->{$file->{key}} = 1;
+                $logger->count (['add_skipped']);
+                next;
               }
             }
           }
@@ -228,6 +231,10 @@ sub construct_file_list_of ($$$;%) {
     my $key_to_dir_name = {};
     for my $file (@$files) {
       if (defined $file->{file}->{directory_file_key}) {
+        if ($skipped->{$file->{file}->{directory_file_key}}) {
+          $skipped->{$file->{key}} = 1;
+          next;
+        }
         my $dir_name = $key_to_dir_name->{$file->{file}->{directory_file_key}};
         if (defined $dir_name) {
           $found->{"$dir_name/$file->{file}->{name}"}++;

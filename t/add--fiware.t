@@ -70,10 +70,11 @@ Test {
         is $item->{package_item}->{mime}, undef;
         is $item->{package_item}->{file_type}, undef;
         is $item->{path}, undef;
+        ok ! $item->{set_expanded};
       }
     } $current->c;
   });
-} n => 18, name => 'added';
+} n => 19, name => 'added';
 
 Run;
 

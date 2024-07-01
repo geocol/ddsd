@@ -66,7 +66,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 0;
+         is 0+keys %{$json->{items}}, 1;
        }},
       {path => "local/data/foo/files/sparqlep", is_none => 1},
     ]);
@@ -86,7 +86,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 16;
+         is 0+keys %{$json->{items}}, 17;
          {
            my $item = $json->{items}->{'part:sparql[file:r:sparql]:0'};
            is $item->{files}->{data}, 'files/sparqlep/part-0.ttl';
@@ -112,8 +112,28 @@ Test {
       {path => "local/data/foo/files/sparqlep/part-0.ttl", text => "0"},
       {path => "local/data/foo/files/sparqlep/part-f.ttl", text => "f"},
     ]);
+  })->then (sub {
+    return $current->run ('unuse', additional => ['foo', 'file:r:sparql']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'config/ddsd/packages.json', json => sub {
+         my $json = shift;
+         ok $json->{foo}->{files}->{"file:r:sparql"}->{skip};
+       }},
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is $json->{type}, 'datasnapshot';
+         is ref $json->{items}, 'HASH';
+         is 0+keys %{$json->{items}}, 1;
+       }},
+      {path => "local/data/foo/files/sparqlep", is_none => 1},
+    ]);
   });
-} n => 32, name => 'sparql';
+} n => 38, name => 'sparql';
 
 Run;
 

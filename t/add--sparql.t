@@ -27,6 +27,7 @@ Test {
       (map {
         ("https://hoge/$key/sparqlep?query=SELECT%20%2A%20WHERE%20%7B%20%20%3Fs%20%3Fp%20%3Fo%20.%20%20FILTER%20(STRSTARTS(SUBSTR(MD5(STR(%3Fs)),%201,%202),%20%22".$_."%22))%20%7D" => {
           text => $_,
+          mime => 'text/turtle',
         });
       } 0..9, 'a'..'f'),
     },
@@ -37,12 +38,18 @@ Test {
     test {
       is $r->{exit_code}, 0;
     } $current->c;
+    return $current->run ('use', additional => ["foo", "--all"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 16;
+         is 0+keys %{$json->{items}}, 17;
          {
            my $item = $json->{items}->{'part:sparql[file:r:sparql]:0'};
            is $item->{files}->{data}, 'files/sparqlep/part-0.ttl';
@@ -67,9 +74,40 @@ Test {
        }},
       {path => "local/data/foo/files/sparqlep/part-0.ttl", text => "0"},
       {path => "local/data/foo/files/sparqlep/part-f.ttl", text => "f"},
+      {path => "local/data/foo/package/packref.json", json => sub { }},
     ]);
+  })->then (sub {
+    return $current->run ('ls', additional => ["foo", '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 19;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+      } 
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+      } 
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'dataset';
+        is $item->{set_type}, 'sparql';
+        ok $item->{set_expanded};
+        is $item->{package_item}->{mime}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{type}, 'part';
+        is $item->{set_type}, undef;
+        ok ! $item->{set_expanded};
+        is $item->{package_item}->{mime}, 'text/turtle';
+      }
+    } $current->c;
   });
-} n => 25, name => 'sparql';
+} n => 38, name => 'sparql';
 
 Run;
 
