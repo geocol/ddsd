@@ -1486,6 +1486,130 @@ Test {
   });
 } n => 9, name => 'secure and insecure with same response, different cert status, ng then ok';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->prepare (undef, {
+      "https://hoge/$key/foo" => {text => "abc", mime => 'text/css'},
+    });
+  })->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         my $item = $json->{items}->{'file:id:foo'};
+         is $item->{rev}->{http_content_type}, 'text/css';
+       }},
+      {path => 'local/data/foo/files/foo', text => "abc"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         is $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{rev}->{http_content_type}, 'text/css';
+         my $items = [grep { $json->{items}->{$_}->{rev}->{url} eq "https://hoge/$key/foo" and not defined $json->{items}->{$_}->{rev}->{http_content_type} } keys %{$json->{items}}];
+         is 0+@$items, 1;
+         isnt $items->[0], $json->{urls}->{"https://hoge/$key/foo"};
+         is $json->{items}->{$items->[0]}->{files}->{data}, $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{files}->{data};
+       }},
+    ]);
+  });
+} n => 9, name => 'mime type changed';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => ""},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->prepare (undef, {
+      "https://hoge/$key/foo" => {text => "", incomplete => 1},
+    });
+  })->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         my $item = $json->{items}->{'file:id:foo'};
+         ok $item->{rev}->{http_incomplete};
+       }},
+      {path => 'local/data/foo/files/foo', text => ""},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         ok $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{rev}->{http_incomplete};
+         my $items = [grep { $json->{items}->{$_}->{rev}->{url} eq "https://hoge/$key/foo" and not $json->{items}->{$_}->{rev}->{http_incomplete} } keys %{$json->{items}}];
+         is 0+@$items, 1;
+         isnt $items->[0], $json->{urls}->{"https://hoge/$key/foo"};
+         is $json->{items}->{$items->[0]}->{files}->{data}, $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{files}->{data};
+       }},
+    ]);
+  });
+} n => 9, name => 'incomplete response';
+
 Run;
 
 =head1 LICENSE

@@ -105,11 +105,15 @@ return sub {
       if (defined $FilePaths->{$url}) {
         $http->send_response_body_as_ref (\$FilePaths->{$url}->slurp);
       } elsif (length $Files->{$url}) {
-        $http->add_response_header ('content-length', length $Files->{$url});
         $http->send_response_body_as_ref (\$Files->{$url});
       }
       $Accesses->{$url}++;
-      return $http->close_response_body;
+      if ($Meta->{$url}->{incomplete}) {
+        sleep 3;
+        die "incomplete response";
+      } else {
+        return $http->close_response_body;
+      }
     }
     
     $http->set_status (404);

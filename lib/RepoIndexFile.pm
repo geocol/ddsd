@@ -158,6 +158,10 @@ sub put_response ($$$) {
       unless defined $meta->{rev}->{http_content_type};
   $meta->{rev}->{length} = $r->{length};
   $meta->{rev}->{sha256} = $r->{sha256} if defined $r->{sha256};
+  if ($r->{res}->incomplete) {
+    $meta->{rev}->{http_incomplete} = 1;
+    $return->{incomplete} = 1;
+  }
 
   $meta->{http_status} = $r->{res}->{status};
   $meta->{http_status_text} = $r->{res}->{status_text};
@@ -165,7 +169,6 @@ sub put_response ($$$) {
   for (@{$r->{res}->{headers}}) {
     push @{$meta->{http_headers} ||= []}, [$_->[0], $_->[1]];
   }
-  $meta->{http_incomplete} = 1 if $r->{res}->incomplete;
 
   my $storage_path = $self->{storage}->{path};
   my $logger = $self->app->logger;
@@ -183,43 +186,11 @@ sub put_response ($$$) {
           $meta->{rev}->{sha256} eq $it->{rev}->{sha256} and
           $meta->{rev}->{url} eq $it->{rev}->{url}) {
         $return->{data_path} = $storage_path->child ($it->{files}->{data});
-        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
-            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
-          $matched = $na;
-          $return->{item} = $it;
-          $return->{key} = $na;
-        } else {
-          $old_data = $it->{files}->{data};
-        }
-        last;
-      } elsif (defined $meta->{rev}->{http_etag} and
-               defined $it->{rev}->{http_etag} and
-               defined $meta->{rev}->{url} and
-               defined $it->{rev}->{url} and
-               $meta->{rev}->{http_etag} eq $it->{rev}->{http_etag} and
-               $meta->{rev}->{http_url} eq $it->{rev}->{url}) {
-        $return->{data_path} = $storage_path->child ($it->{files}->{data});
-        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
-            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
-          $matched = $na;
-          $return->{item} = $it;
-          $return->{key} = $na;
-        } else {
-          $old_data = $it->{files}->{data};
-        }
-        last;
-      } elsif (defined $meta->{rev}->{http_last_modified} and
-               defined $it->{rev}->{http_last_modified} and
-               defined $meta->{rev}->{length} and
-               defined $it->{rev}->{length} and
-               defined $meta->{rev}->{url} and
-               defined $it->{rev}->{url} and
-               $meta->{rev}->{http_last_modified} == $it->{rev}->{http_last_modified} and
-               $meta->{rev}->{length} == $it->{rev}->{length} and
-               $meta->{rev}->{url} eq $it->{rev}->{url}) {
-        $return->{data_path} = $storage_path->child ($it->{files}->{data});
-        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
-            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
+        if ((($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
+            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) and
+            (($meta->{rev}->{http_incomplete} and $it->{rev}->{http_incomplete}) or
+            (not $meta->{rev}->{http_incomplete} and not $it->{rev}->{http_incomplete})) and
+            (($meta->{rev}->{http_content_type} // '') eq ($it->{rev}->{http_content_type} // ''))) {
           $matched = $na;
           $return->{item} = $it;
           $return->{key} = $na;

@@ -269,7 +269,9 @@ sub _fetch_file_from_mirrorzip ($$$%) {
           )->then (sub {
             my $ret = $_[0];
             $r->{key} = $ret->{key};
-            if ($ret->{not_modified} or $ret->{sha256_mismatch}) {
+            if ($ret->{not_modified} or
+                $ret->{sha256_mismatch} or
+                $ret->{incomplete}) {
               return $logger->throw ({
                 type => 'failed to fetch mirrorzip',
                 url => $self->{mirror_url}->stringify,
@@ -499,7 +501,19 @@ sub _fetch_file ($$$%) {
             $r->{key} = $ret->{key};
             if ($ret->{not_modified}) {
               $r->{not_modified} = 1;
-            } elsif ($r->{sha256_mismatch}) {
+            } elsif ($ret->{incomplete}) {
+              # XXX retry?
+              $logger->message ({
+                type => 'response is incomplete',
+                url => $r->{url}->stringify,
+              });
+              $r->{error} = 1;
+            } elsif ($r->{sha256_mismatch}) { # not $ret
+              $logger->message ({
+                type => 'sha256 different from expected',
+                url => $r->{url}->stringify,
+                value => $r->{sha256},
+              });
               $r->{error} = 1;
             }
           })->then (sub { $ix->save });
