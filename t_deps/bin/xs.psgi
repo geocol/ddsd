@@ -26,12 +26,13 @@ return sub {
   
   $http->send_response (onready => sub {
     if ($http->request_method eq 'PUT') {
-      my $u = $http->get_request_header ('content-location');
-
-      my $def = json_bytes2perl ${ $http->request_body_as_ref };
-      my $body;
-      delete $FilePaths->{$u};
-      $Accesses->{$u} = 0;
+      my $json = json_bytes2perl ${ $http->request_body_as_ref };
+      for (keys %$json) {
+        my $u = Web::URL->parse_string ($_)->stringify;
+        my $def = $json->{$_};
+        my $body;
+        delete $FilePaths->{$u};
+        $Accesses->{$u} = 0;
       if (exists $def->{json}) {
         $body = perl2json_bytes $def->{json};
       } elsif (exists $def->{jsonl}) {
@@ -64,14 +65,15 @@ return sub {
           push @{$def->{headers}}, [$_, $headers->{$_}];
         }
       }
-      push @{$Meta->{$u}->{headers} ||= []}, ['content-type', $def->{mime}]
-          if defined $def->{mime};
-      push @{$Meta->{$u}->{headers} ||= []},
-          ['last-modified', Web::DateTime->new_from_unix_time ($def->{last_modified})->to_http_date_string]
-          if defined $def->{last_modified};
-      push @{$Meta->{$u}->{headers} ||= []},
-          ['date', Web::DateTime->new_from_unix_time ($def->{date})->to_http_date_string]
-          if defined $def->{date};
+        push @{$Meta->{$u}->{headers} ||= []}, ['content-type', $def->{mime}]
+            if defined $def->{mime};
+        push @{$Meta->{$u}->{headers} ||= []},
+            ['last-modified', Web::DateTime->new_from_unix_time ($def->{last_modified})->to_http_date_string]
+            if defined $def->{last_modified};
+        push @{$Meta->{$u}->{headers} ||= []},
+            ['date', Web::DateTime->new_from_unix_time ($def->{date})->to_http_date_string]
+            if defined $def->{date};
+      } # $json
       return $http->close_response_body;
     }
 

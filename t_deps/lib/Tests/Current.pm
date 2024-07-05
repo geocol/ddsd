@@ -169,21 +169,14 @@ sub prepare ($$$;%) {
       return $file->write_byte_string (perl2json_bytes $packages);
     }
   })->then (sub {
-    return promised_for {
-      my $url = shift;
-      my $def = $remote->{$url};
-      return $client->request (
-        method => 'PUT',
-        path => [],
-        headers => {
-          'content-location' => Web::URL->parse_string ($url)->stringify,
-        },
-        body => (perl2json_bytes $def),
-      )->then (sub {
-        my $res = $_[0];
-        die $res unless $res->status == 200;
-      });
-    } [keys %$remote];
+    return $client->request (
+      method => 'PUT',
+      path => [],
+      body => (perl2json_bytes $remote),
+    )->then (sub {
+      my $res = $_[0];
+      die $res unless $res->status == 200;
+    });
   })->then (sub {
     return promised_for {
       my $name = shift;

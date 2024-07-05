@@ -172,6 +172,7 @@ sub put_response ($$$) {
 
   my $index = $self->index;
   my $matched = undef;
+  my $old_data;
   if (not $args{force}) {
     for my $na (keys %{$index->{items}}) {
       my $it = $index->{items}->{$na};
@@ -181,10 +182,15 @@ sub put_response ($$$) {
           defined $it->{rev}->{url} and
           $meta->{rev}->{sha256} eq $it->{rev}->{sha256} and
           $meta->{rev}->{url} eq $it->{rev}->{url}) {
-        $matched = $na;
-        $return->{item} = $it;
-        $return->{key} = $na;
         $return->{data_path} = $storage_path->child ($it->{files}->{data});
+        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
+            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
+          $matched = $na;
+          $return->{item} = $it;
+          $return->{key} = $na;
+        } else {
+          $old_data = $it->{files}->{data};
+        }
         last;
       } elsif (defined $meta->{rev}->{http_etag} and
                defined $it->{rev}->{http_etag} and
@@ -192,10 +198,15 @@ sub put_response ($$$) {
                defined $it->{rev}->{url} and
                $meta->{rev}->{http_etag} eq $it->{rev}->{http_etag} and
                $meta->{rev}->{http_url} eq $it->{rev}->{url}) {
-        $matched = $na;
-        $return->{item} = $it;
-        $return->{key} = $na;
         $return->{data_path} = $storage_path->child ($it->{files}->{data});
+        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
+            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
+          $matched = $na;
+          $return->{item} = $it;
+          $return->{key} = $na;
+        } else {
+          $old_data = $it->{files}->{data};
+        }
         last;
       } elsif (defined $meta->{rev}->{http_last_modified} and
                defined $it->{rev}->{http_last_modified} and
@@ -206,10 +217,15 @@ sub put_response ($$$) {
                $meta->{rev}->{http_last_modified} == $it->{rev}->{http_last_modified} and
                $meta->{rev}->{length} == $it->{rev}->{length} and
                $meta->{rev}->{url} eq $it->{rev}->{url}) {
-        $matched = $na;
-        $return->{item} = $it;
-        $return->{key} = $na;
         $return->{data_path} = $storage_path->child ($it->{files}->{data});
+        if (($meta->{rev}->{insecure} and $it->{rev}->{insecure}) or
+            (not $meta->{rev}->{insecure} and not $it->{rev}->{insecure})) {
+          $matched = $na;
+          $return->{item} = $it;
+          $return->{key} = $na;
+        } else {
+          $old_data = $it->{files}->{data};
+        }
         last;
       }
     }
@@ -235,13 +251,25 @@ sub put_response ($$$) {
     return $self->put_fetch_log_by_item_key ($matched, %args)->then (sub {
       return $return;
     });
+  } elsif (defined $old_data) {
+    $logger->info ({
+      type => 'duplicate data found in repository',
+      ref => $key,
+      path => $return->{data_path}->absolute,
+    });
   }
 
   my $meta_path = $storage_path->child ("objects/$key-meta.json");
-  my $data_path = $storage_path->child ("objects/$key-data.dat");
   my $log_path = $storage_path->child ("objects/$key-log.jsonl");
   $meta->{files}->{meta} = "objects/$key-meta.json";
-  $meta->{files}->{data} = "objects/$key-data.dat";
+
+  my $data_path = $storage_path->child ("objects/$key-data.dat");
+  if (defined $old_data) {
+    $meta->{files}->{data} = $old_data;
+  } else {
+    $meta->{files}->{data} = "objects/$key-data.dat";
+    $return->{data_path} = $data_path;
+  }
 
   my $fl = $args{fetch_log} || {};
   for my $key (@{[keys %$fl]}) {
@@ -263,7 +291,6 @@ sub put_response ($$$) {
     $index->{url_sha256s}->{$meta->{rev}->{original_url}, $meta->{rev}->{sha256}} = $key;
   }
 
-  $return->{data_path} = $data_path;
   $return->{key} = $key;
   $return->{new} = 1;
 
@@ -274,14 +301,14 @@ sub put_response ($$$) {
   $logger->info ({
     type => 'file created in repository',
     path => $data_path->absolute,
-  });
+  }) unless defined $old_data;
   $logger->info ({
     type => 'file created in repository',
     path => $log_path->absolute,
   }) if defined $fl;
   return Promise->all ([
     $self->{storage}->write_json ("objects/$key-meta.json", $meta),
-    $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path}, readonly => 1),
+    (defined $old_data ? undef : $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path}, readonly => 1)),
     (defined $fl ? $self->{storage}->write_jsonl ("objects/$key-log.jsonl", [$fl]) : undef),
   ])->then (sub {
     return $return;

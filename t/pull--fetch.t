@@ -50,7 +50,7 @@ for my $pi (
         {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 3, name => 'bad package location';
+  } n => 3, name => ['bad package location 1', %$pi];
   
   Test {
     my $current = shift;
@@ -72,7 +72,7 @@ for my $pi (
         {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 3, name => 'bad package location';
+  } n => 3, name => ['bad package location 2', %$pi];
 } # $pi
 
 for my $pi (
@@ -100,7 +100,7 @@ for my $pi (
         {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 2, name => 'bad package location';
+  } n => 2, name => ['bad package location 3', %$pi];
   
   Test {
     my $current = shift;
@@ -118,10 +118,13 @@ for my $pi (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', is_none => 1},
+        {path => 'local/data/foo/index.json', json => sub {
+           my $json = $_[0];
+           is 0+keys %{$json->{items}}, 0;
+         }},
       ]);
     });
-  } n => 2, name => 'bad package location';
+  } n => 3, name => ['bad package location 4', %$pi];
 } # $pi
 
 for my $pack (
@@ -152,10 +155,13 @@ for my $pack (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', is_none => 1},
+        {path => 'local/data/foo/index.json', json => sub {
+           my $json = $_[0];
+           is 0+keys %{$json->{items}}, 0;
+         }},
       ]);
     });
-  } n => 2, name => 'broken packages 1';
+  } n => 3, name => 'broken packages 1';
 
   Test {
     my $current = shift;
@@ -1293,6 +1299,192 @@ Test {
     } $current->c;
   });
 } n => 5, name => 'logs error';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->prepare (undef, {
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "http://hoge/$key/bar"},
+            ],
+          },
+        },
+      },
+      "http://hoge/$key/bar" => {text => "abc"},
+    });
+  })->then (sub {
+    return $current->run ('pull', additional => ['--insecure']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         my $item = $json->{items}->{'file:id:foo'};
+         ok $item->{rev}->{insecure};
+       }},
+      {path => 'local/data/foo/files/bar', text => "abc"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         isnt $json->{urls}->{"http://hoge/$key/bar"}, $json->{urls}->{"https://hoge/$key/foo"};
+         ok ! $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{rev}->{insecure};
+         ok $json->{items}->{$json->{urls}->{"http://hoge/$key/bar"}}->{rev}->{insecure};
+       }},
+    ]);
+  });
+} n => 8, name => 'secure and insecure with same response, different path';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('pull', additional => ['--insecure'], cacert => 0);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         my $item = $json->{items}->{'file:id:foo'};
+         ok $item->{rev}->{insecure};
+       }},
+      {path => 'local/data/foo/files/foo', text => "abc"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         ok $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{rev}->{insecure};
+         my $items = [grep { $json->{items}->{$_}->{rev}->{url} eq "https://hoge/$key/foo" and not $json->{items}->{$_}->{rev}->{insecure} } keys %{$json->{items}}];
+         is 0+@$items, 1;
+         isnt $items->[0], $json->{urls}->{"https://hoge/$key/foo"};
+         is $json->{items}->{$items->[0]}->{files}->{data}, $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{files}->{data};
+       }},
+    ]);
+  });
+} n => 9, name => 'secure and insecure with same response, different cert status, ok then ng';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "https://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {text => "abc"},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => ['--insecure'], cacert => 0);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         my $item = $json->{items}->{'file:id:foo'};
+         ok ! $item->{rev}->{insecure};
+       }},
+      {path => 'local/data/foo/files/foo', text => "abc"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         ok ! $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{rev}->{insecure};
+         my $items = [grep { $json->{items}->{$_}->{rev}->{url} eq "https://hoge/$key/foo" and $json->{items}->{$_}->{rev}->{insecure} } keys %{$json->{items}}];
+         is 0+@$items, 1;
+         isnt $items->[0], $json->{urls}->{"https://hoge/$key/foo"};
+         is $json->{items}->{$items->[0]}->{files}->{data}, $json->{items}->{$json->{urls}->{"https://hoge/$key/foo"}}->{files}->{data};
+       }},
+    ]);
+  });
+} n => 9, name => 'secure and insecure with same response, different cert status, ng then ok';
 
 Run;
 
