@@ -296,6 +296,41 @@ sub fetch ($;%) {
   });
 } # fetch
 
+## <https://wiki.suikawiki.org/n/CKAN%E8%B3%87%E6%BA%90#header-section-CKAN-%E8%B3%87%E6%BA%90%E2%80%A8MIME-%E5%9E%8B>
+my $ToComputedMIME = {};
+{
+  for (
+    ['application/zip', 'BVF' => 'application/bvf+zip'],
+    ['application/vnd.oma.drm.message', '' => 'application/dm'],
+    ['application/vnd.ms-excel', 'XLSX' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    ['application/zip', 'XLSX' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    ['application/json', 'GeoJSON' => 'application/geo+json'],
+    ['text/xml', 'RDF' => 'application/rdf+xml'],
+  ) {
+    $ToComputedMIME->{$_->[0], lc $_->[1]} = $_->[2];
+    $ToComputedMIME->{lc $_->[1]} = $_->[2];
+  }
+  for (
+    ['application/postscript', 'ai', 'ai' => 'application/illustrator'],
+    ['application/postscript', '', 'ai' => 'application/illustrator'],
+  ) {
+    $ToComputedMIME->{$_->[0], lc $_->[1], $_->[2]} = $_->[3];
+    $ToComputedMIME->{lc $_->[1]} = $_->[3] if length $_->[1];
+  }
+  for (
+    ['CSV' => 'text/csv'],
+    ['dm' => 'application/dm'],
+    ['image/vnd.dxf' => 'image/vnd.dxf'],
+    ['XLSX' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    ['PDF' => 'application/pdf'],
+    ['TIFF' => 'image/tiff'],
+    ['ttl' => 'text/turtle'],
+    ['ZIP' => 'application/zip'],
+  ) {
+    $ToComputedMIME->{lc $_->[0]} = $_->[1];
+  }
+}
+
 sub get_item_list ($;%) {
   my ($self, %args) = @_;
   my $logger = $self->set->app->logger;
@@ -799,8 +834,48 @@ sub get_item_list ($;%) {
             $pi->{file_time} = $file->{rev}->{http_date} // $file->{rev}->{timestamp};
             last;
           }
-        }
-        $pi->{title} = $res->{name} // '';
+          } # time
+          {
+            use utf8;
+            my $proto_mime = $pi->{mime} // '';
+            my $ckan_mime = $res->{mimetype} // '';
+            my $ckan_format = $res->{format} // '';
+            $ckan_format =~ tr/A-ZＡ-Ｚａ-ｚ０-９/a-za-za-z0-9/;
+            $ckan_format =~ s/^\.//;
+            $ckan_format = '' if $ckan_format eq $ckan_mime;
+            $proto_mime = '' if $proto_mime eq 'application/octet-stream';
+            $proto_mime = 'application/json' if $proto_mime =~ m{\Aapplication/json\s*;\s*charset=[Uu][Tt][Ff]-8\z};
+
+            my $file_name = $res->{url};
+            $file_name = $file->{rev}->{url} if defined $file->{rev};
+            my $ext = '';
+            if (defined $file->{rev} and $file->{rev}->{mime_filename}) {
+              $file_name = $file->{rev}->{mime_filename};
+            } elsif (defined $file_name) {
+              $file_name =~ s{#.*}{}s;
+              $file_name =~ s{\?.*}{}s;
+              $ext = $1 if $file_name =~ m{\.([^./]+)$};
+            }
+            
+            my $cmime;
+            warn "XXXX $proto_mime $ckan_mime $ckan_format";
+            if ($proto_mime eq $ckan_mime or $ckan_mime eq '') {
+              $cmime //= $ToComputedMIME->{$proto_mime, $ckan_format, $ext};
+              $cmime //= $ToComputedMIME->{$proto_mime, $ckan_format};
+            }
+            if ($proto_mime eq '') {
+              if (length $ckan_mime) {
+                $cmime //= $ToComputedMIME->{$ckan_mime, $ckan_format};
+                $cmime //= $ckan_mime;
+              } else {
+                $cmime //= $ToComputedMIME->{$ckan_format};
+              }
+            } else {
+              $cmime //= $proto_mime if $proto_mime ne ($pi->{mime} // '');
+            }
+            $pi->{mime} = $cmime if defined $cmime;
+          } # mime
+          $pi->{title} = $res->{name} // '';
         } # with_props
 
         push @$files, $file;

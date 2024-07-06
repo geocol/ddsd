@@ -34,22 +34,33 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'package';
         is $item->{key}, 'package';
-        is $item->{file}->{directory}, '';
-        is $item->{file}->{name}, 'package-ckan.json';
-        like $item->{path}, qr{/local/data/package-name-$key/package-ckan.json$};
         is $item->{package_item}->{title}, '';
-        ok $item->{package_item}->{file_time};
         ok $item->{package_item}->{legal};
         is 0+@{$item->{package_item}->{legal}}, 0;
         ok $item->{package_item}->{snapshot_hash};
-        is $item->{package_item}->{mime}, 'application/json';
+        is $item->{package_item}->{mime}, undef;
         is $item->{package_item}->{page_url}, "https://hoge/dataset/package-name-$key";
         is $item->{package_item}->{ckan_api_url}, "https://hoge/api/action/package_show?id=package-name-$key";
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{rev}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:ckan.json';
+        is $item->{file}->{directory}, 'package';
+        is $item->{file}->{name}, 'package.ckan.json';
+        like $item->{path}, qr{/local/data/package-name-$key/package/package.ckan.json$};
+        is $item->{package_item}->{title}, '';
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{mime}, 'application/json';
         ok $item->{rev}->{timestamp};
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
@@ -57,17 +68,14 @@ Test {
         is $item->{rev}->{original_url}, "https://hoge/api/action/package_show?id=package-name-$key";
         ok $item->{rev}->{sha256};
         ok ! $item->{rev}->{insecure};
-        is $item->{package_item}->{lang}, '';
-        is $item->{package_item}->{dir}, 'auto';
-        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
       }
       {
-        my $item = $r->{jsonl}->[1];
-        is $item->{type}, 'package';
-        is $item->{key}, 'package:activity.html';
-        is $item->{file}->{directory}, '';
-        is $item->{file}->{name}, 'package-ckan-activity.html';
-        like $item->{path}, qr{/local/data/package-name-$key/package-ckan-activity.html$};
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:activity.html';
+        is $item->{file}->{directory}, 'package';
+        is $item->{file}->{name}, 'activity.html';
+        like $item->{path}, qr{/local/data/package-name-$key/package/activity.html$};
         is $item->{package_item}->{title}, '';
         ok $item->{package_item}->{file_time};
         is $item->{package_item}->{mime}, 'text/html;charset=utf-8';
@@ -81,7 +89,7 @@ Test {
       }
     } $current->c;
   });
-} n => 41, name => 'lang not known';
+} n => 46, name => 'lang not known';
 
 Test {
   my $current = shift;
@@ -115,7 +123,7 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{lang}, 'ja-fr';
@@ -160,7 +168,7 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{lang}, 'ja';
@@ -206,7 +214,7 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{lang}, 'ja';
@@ -245,10 +253,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
-        is $item->{package_item}->{snapshot_hash}, '4f719d099bbcdded7e4393c9c43758ae5e98d2aecc5cf6ee08428f7f1baac96a';
+        is $item->{package_item}->{snapshot_hash},
+            '30bb85ee73f6254ecc260a00cbdc81d23289bf806736634f53708aed9e36d646';
       }
     } $current->c;
     return $current->run ('pull');
@@ -261,10 +270,11 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
-        is $item->{package_item}->{snapshot_hash}, '4f719d099bbcdded7e4393c9c43758ae5e98d2aecc5cf6ee08428f7f1baac96a';
+        is $item->{package_item}->{snapshot_hash},
+            '30bb85ee73f6254ecc260a00cbdc81d23289bf806736634f53708aed9e36d646';
       }
     } $current->c, name => 'unchanged';
     return $current->prepare (undef, {
@@ -283,10 +293,11 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
-        is $item->{package_item}->{snapshot_hash}, '4f719d099bbcdded7e4393c9c43758ae5e98d2aecc5cf6ee08428f7f1baac96a';
+        is $item->{package_item}->{snapshot_hash},
+            '30bb85ee73f6254ecc260a00cbdc81d23289bf806736634f53708aed9e36d646';
       }
     } $current->c, name => 'unchanged again';
     return $current->prepare (undef, {
@@ -299,13 +310,13 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 12;
+      is $r->{exit_code}, 0;
     } $current->c;
     return $current->run ('ls', additional => ["package-name-$key", '--jsonl'], jsonl => 1);
   })->then (sub {
     my $r = $_[0];
     test {
-      is 0+@{$r->{jsonl}}, 0;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         isnt $item->{package_item}->{snapshot_hash}, '4f719d099bbcdded7e4393c9c43758ae5e98d2aecc5cf6ee08428f7f1baac96a';
