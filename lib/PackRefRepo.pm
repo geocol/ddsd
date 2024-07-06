@@ -35,7 +35,6 @@ sub fetch ($;%) {
   my $file_defs = $args{file_defs} || {};
   my $ret = {};
   my $has_source = 0;
-  my $snapshot_hash_items = [];
   my $package_item_key;
   my $x;
   if ($args{is_special_repo}) {
@@ -219,43 +218,13 @@ sub fetch ($;%) {
                 $ret->{broken} = 1;
                 $as->count (['fetch_failure']);
               } elsif ($r->{not_modified}) {
-                # XXX at risk
-                if (defined $file->{rev} and defined $file->{rev}->{sha256}) {
-                  push @$snapshot_hash_items,
-                      [$file->{key}, $file->{rev}->{sha256}];
-                }
+                #
               } else {
                 $ret->{has_modified} = 1;
-                #XXX at risk
-                if (defined $r->{item} and defined $r->{item}->{rev} and
-                    defined $r->{item}->{rev}->{sha256}) {
-                  push @$snapshot_hash_items,
-                      [$file->{key}, $r->{item}->{rev}->{sha256}];
-                }
               }
             });
           } $files;
-        })->then ($as->{ok}, $as->{ng})->then (sub {
-          return unless $pack->{package}->{is_legal};
-          return if $has_source;
-          for my $fdef (values %$file_defs) {
-            if (defined $fdef and ref $fdef eq 'HASH' and
-                $fdef->{skip}) {
-              return;
-            }
-          }
-          
-          my $hash = $self->_get_snapshot_hash_of ($snapshot_hash_items);
-          my $path = $self->storage->{path}->child ('hash.jsonl');
-          my $file = $path->opena;
-          print $file perl2json_bytes [time, $hash, $snapshot_hash_items];
-          print $file "\x0A";
-
-          $logger->info ({
-            type => 'snapshot hash appended',
-            path => $path->absolute,
-          });
-        });
+        })->then ($as->{ok}, $as->{ng});
       });
     });
   })->then (sub {
@@ -504,9 +473,7 @@ sub get_item_list ($;%) {
       unshift @$files, $pack_file
           unless @$files and $files->[0]->{type} eq 'package';
       if ($args{with_snapshot_hash}) {
-        $self->_set_snapshot_hash
-            ($files,
-             with_snapshot_hash_items => $args{with_snapshot_hash_items});
+        $self->_set_snapshot_hash ($files);
       }
 
       $pack_file->{package_item}->{file_time} //= time;

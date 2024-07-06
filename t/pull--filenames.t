@@ -187,6 +187,68 @@ Test {
   });
 } n => 15, name => 'bad filename specified';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => "r1", url => "https://hoge/" . $key . "/r1",
+               name => "abc\x{4000}.zip"},
+              {id => "r2", url => "https://hoge/" . $key . "/r2",
+               name => "abc\x{4000}.ZIP"},
+              {id => "r3", url => "https://hoge/" . $key . "/r3",
+               name => "abc\x{4000}.zip"},
+              {id => "r4", url => "https://hoge/" . $key . "/r4",
+               name => "abc/def.zip"},
+            ],
+          },
+        },
+      },
+      "https://hoge/" . $key . "/r1" => {
+        text => "r1",
+        headers => {'content-disposition' => 'inline; filename=foo.txt'},
+        mime => 'application/zip',
+      },
+      "https://hoge/" . $key . "/r2" => {
+        text => "r2",
+        mime => 'application/zip',
+      },
+      "https://hoge/" . $key . "/r3" => {
+        text => "r3",
+        mime => 'text/css',
+      },
+      "https://hoge/" . $key . "/r4" => {
+        text => "r4",
+        mime => 'application/zip',
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/foo.txt', text => "r1"},
+      {path => "local/data/foo/files/abc\x{4000}.ZIP", text => "r2"},
+      {path => 'local/data/foo/files/r3', text => "r3"},
+      {path => 'local/data/foo/files/def.zip', text => "r4"},
+    ]);
+  });
+} n => 6, name => 'filename in ckan title';
+
 Run;
 
 =head1 LICENSE

@@ -20,8 +20,9 @@ sub run ($$;%) {
       my @v;
       my $no_local = not defined $item->{rev};
       if (defined $item->{rev} and defined $item->{rev}->{length}) {
-        push @v, sprintf "%d B", # XXX formatting
-            $item->{rev}->{length};
+        push @v, sprintf "%d B%s", # XXX formatting
+            $item->{rev}->{length},
+            ($item->{rev}->{http_incomplete} ? ' (incomplete)' : '');
       }
       if (defined $item->{package_item}->{mime} and
           length $item->{package_item}->{mime}) {

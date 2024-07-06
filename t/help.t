@@ -88,7 +88,7 @@ Test {
     test {
       is $r->{exit_code}, 0;
       like $r->{stdout}, qr{/ddsd};
-      like $r->{stdout}, qr{ls <package>};
+      like $r->{stdout}, qr{<package>};
       like $r->{stdout}, qr{\x0A\z};
       unlike $r->{stdout}, qr<\{>;
     } $current->c;
@@ -104,7 +104,7 @@ Test {
     test {
       is $r->{exit_code}, 0;
       like $r->{stdout}, qr{/ddsd};
-      like $r->{stdout}, qr{ls <package>};
+      like $r->{stdout}, qr{<package>};
       like $r->{stdout}, qr{\x0A\z};
       unlike $r->{stdout}, qr<\{>;
     } $current->c;

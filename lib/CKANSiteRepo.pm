@@ -222,7 +222,7 @@ sub get_item_list ($;%) {
     } # $log_bytes
 
     if ($args{with_props} and $args{with_snapshot_hash}) {
-      if (@$files and $files->[0]->{type} eq 'package') { # XXX never
+      if (@$files and $files->[0]->{type} eq 'package') {
         $self->_set_snapshot_hash ($files);
       }
     } # with_snapshot_hash

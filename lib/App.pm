@@ -176,7 +176,6 @@ sub main ($$$$$$$) {
         $opts->{cacert} = path ($_[1]);
       },
       'insecure' => \$opts->{insecure},
-      'insecure-fallback' => \$opts->{insecure_fallback},
       'json' => \$opts->{json},
       'jsonl' => \$opts->{jsonl},
       'with-source-meta' => \$opts->{with_source_meta},
@@ -245,7 +244,6 @@ sub main ($$$$$$$) {
        my $cmd = PullCommand->new_from_app ($self);
        return $cmd->run (
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
-         insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
          $exit = 12 if $cmd->has_error;
        });
@@ -261,7 +259,6 @@ sub main ($$$$$$$) {
          min => $opts->{min},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
-         insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
          $exit = 12 if $cmd->has_error;
        });
@@ -277,7 +274,6 @@ sub main ($$$$$$$) {
          all => $opts->{all},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
-         insecure_fallback => $opts->{insecure_fallback},
        )->then (sub {
          $exit = 12 if $cmd->has_error;
        });

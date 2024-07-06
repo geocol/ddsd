@@ -29,7 +29,6 @@ sub run ($$;%) {
       sha256 => 1,
       cacert => $args{cacert},
       insecure => $args{insecure},
-      insecure_fallback => $args{insecure_fallback},
       sniffing => 1,
     );
   })->then (sub {

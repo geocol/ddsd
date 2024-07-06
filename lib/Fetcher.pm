@@ -20,6 +20,7 @@ sub fetch ($$$;%) {
   my $client;
   my $used_url = my $current_url = $original_url->no_fragment;
 
+  my $error_reported;
   return Promise->resolve->then (sub {
     if (defined $args{rev} and defined $args{rev}->{sha256} and
         defined $args{file_def} and defined $args{file_def}->{sha256} and
@@ -197,7 +198,7 @@ sub fetch ($$$;%) {
             $is_json = 1;
           } elsif ($mt eq 'text/html') {
             $is_html = 1;
-          } elsif ($mt eq 'text/plain') {
+          } elsif ($mt eq 'text/plain' or $mt eq 'application/octet-stream') {
               #"text/plain; charset=utf-8"
             $is_json = 1;
           }
@@ -210,23 +211,25 @@ sub fetch ($$$;%) {
 
     if (defined $args{mime}) {
       if ($args{mime} eq 'json') {
-      unless ($is_json) {
-        $res->body_stream->cancel;
-        return $as->throw ({
-          type => 'Not a JSON MIME type',
-          url => $used_url->stringify,
-          value => $res->header ('content-type'),
-        });
-      }
+        unless ($is_json) {
+          $res->body_stream->cancel;
+          $error_reported = 1;
+          return $as->throw ({
+            type => 'not json mime type',
+            url => $used_url->stringify,
+            value => $res->header ('content-type'),
+          });
+        }
       } elsif ($args{mime} eq 'html') {
-      unless ($is_html) {
-        $res->body_stream->cancel;
-        return $as->throw ({
-          type => 'Not an HTML MIME type',
-          url => $used_url->stringify,
-          value => $res->header ('content-type'),
-        });
-      }
+        unless ($is_html) {
+          $res->body_stream->cancel;
+          $error_reported = 1;
+          return $as->throw ({
+            type => 'not html mime type',
+            url => $used_url->stringify,
+            value => $res->header ('content-type'),
+          });
+        }
       } elsif ($args{mime} eq 'turtle' or $args{mime} eq 'sparql-json') {
         #
       } else {
@@ -277,7 +280,7 @@ sub fetch ($$$;%) {
       type => 'fetch error',
       detail => '' . $e,
       url => $used_url->stringify,
-    });
+    }) unless $error_reported;
     return {error => 1, url => $used_url, insecure => $insecure};
   })->finally (sub {
     return $client->close if defined $client;

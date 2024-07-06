@@ -33,6 +33,7 @@ sub construct_file_list_of ($$$;%) {
     skip_other_files => $args{skip_other_files},
     with_source_meta => 1,
     data_area_key => $args{data_area_key},
+    with_props => 1,
   )->then (sub {
     my $files = shift;
     my $found = {};
@@ -185,9 +186,10 @@ sub construct_file_list_of ($$$;%) {
             $name = "$dir/$file->{file}->{name}";
           }
         } else {
-          if (defined $file->{rev} and
-              defined $file->{rev}->{mime_filename}) {
-            $name = $file->{rev}->{mime_filename};
+          if ((defined $file->{rev} and
+               defined $file->{rev}->{mime_filename}) or
+              (defined $file->{source}->{file_name})) {
+            $name = (defined $file->{rev} ? $file->{rev}->{mime_filename} : undef) // $file->{source}->{file_name};
             $name =~ s{^.*[/\\]}{}s;
             $name = encode_web_utf8 $name;
             $name =~ s/%([0-9A-Fa-f]{2})/pack 'C', hex $1/ge;

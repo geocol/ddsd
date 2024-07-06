@@ -319,7 +319,7 @@ sub check_files ($$;%) {
           }, sub {
             my $e = $_[0];
             test {
-              is $e, undef, "@$specified_path found";
+              is $e, undef, "@$specified_path ($current_path) found";
             } $self->c;
           });
         } elsif ($test->{json}) {

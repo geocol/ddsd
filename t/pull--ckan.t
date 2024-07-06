@@ -1097,6 +1097,151 @@ Test {
   });
 } n => 3, name => 'name 1';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge"},
+          ],
+        }, _pack => 1},
+        mime => 'text/javascript',
+      },
+      "https://hoge/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', is_none => 1},
+      {path => 'local/data/foo/package/package.ckan.json', is_none => 1},
+    ]);
+  });
+} n => 2, name => 'bad MIME type, 1';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge"},
+          ],
+        }},
+        mime => 'application/octet-stream',
+      },
+      "https://hoge/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', text => "ab"},
+    ]);
+  });
+} n => 3, name => 'bad MIME type, 2';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge"},
+          ],
+        }},
+        mime => 'text/plain',
+      },
+      "https://hoge/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', text => "ab"},
+    ]);
+  });
+} n => 3, name => 'bad MIME type, 3';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge"},
+          ],
+        }},
+        mime => 'text/plain; charset=utf-8',
+      },
+      "https://hoge/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', text => "ab"},
+    ]);
+  });
+} n => 3, name => 'bad MIME type, 4';
+
 Run;
 
 =head1 LICENSE

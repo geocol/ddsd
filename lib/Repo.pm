@@ -787,8 +787,6 @@ sub _set_snapshot_hash ($$;%) {
 
   $files->[0]->{package_item}->{snapshot_hash} 
       = $self->_get_snapshot_hash_of (\@item);
-  $files->[0]->{package_item}->{snapshot_hash_items} = \@item
-      if $args{with_snapshot_hash_items};
 } # _set_snapshot_hash
 
 sub _get_snapshot_hash_of ($$) {

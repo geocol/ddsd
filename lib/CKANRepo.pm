@@ -331,6 +331,39 @@ my $ToComputedMIME = {};
   }
 }
 
+my $MIMEToExt = {
+  'image/vnd.dxf' => ['dxf'],
+  'image/gif' => ['gif'],
+  'image/jpeg' => ['jpeg', 'jpg'],
+  'image/png' => ['png'],
+  'image/tiff' => ['tiff', 'tif'],
+  'audio/mpeg' => ['mp3'],
+  'video/mp4' => ['mp4'],
+  'text/csv' => ['csv'],
+  'text/html' => ['html', 'htm'],
+  'text/markdown' => ['md'],
+  'text/plain' => ['txt'],
+  'text/turtle' => ['ttl'],
+  'text/xml' => ['xml'],
+  'application/ai' => ['ai'],
+  'application/vnd.android.package-archive' => ['apk'],
+  'application/vnd.dbf' => ['dbf'],
+  'application/dm' => ['dm'],
+  'application/msword' => ['doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['docx'],
+  'application/geo+json' => ['geojson', 'json'],
+  'application/json' => ['json'],
+  'application/vnd.google-earth.kml+xml' => ['kml'],
+  'application/pdf' => ['pdf'],
+  'application/vnd.ms-powerpoint' => ['ppt'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation' => ['pptx'],
+  'application/rdf+xml' => ['rdf', 'xml'],
+  'application/vnd.ms-excel' => ['xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx'],
+  'application/vnd.ms-excel.sheet.macroEnabled.12' => 'xlsm',
+  'application/zip' => ['zip'],
+};
+
 sub get_item_list ($;%) {
   my ($self, %args) = @_;
   my $logger = $self->set->app->logger;
@@ -858,7 +891,6 @@ sub get_item_list ($;%) {
             }
             
             my $cmime;
-            warn "XXXX $proto_mime $ckan_mime $ckan_format";
             if ($proto_mime eq $ckan_mime or $ckan_mime eq '') {
               $cmime //= $ToComputedMIME->{$proto_mime, $ckan_format, $ext};
               $cmime //= $ToComputedMIME->{$proto_mime, $ckan_format};
@@ -876,6 +908,16 @@ sub get_item_list ($;%) {
             $pi->{mime} = $cmime if defined $cmime;
           } # mime
           $pi->{title} = $res->{name} // '';
+          {
+            my $title = $pi->{title};
+            $title =~ tr/A-Z/a-z/;
+            for my $ext (@{$MIMEToExt->{$pi->{mime}} // []}) {
+              if ($title =~ m{\.\Q$ext\E\z}) {
+                $file->{source}->{file_name} = $pi->{title};
+                last;
+              }
+            }
+          }
         } # with_props
 
         push @$files, $file;
@@ -893,9 +935,7 @@ sub get_item_list ($;%) {
 
       if ($with_package and $args{with_snapshot_hash}) {
         die unless @$files and $files->[0]->{type} eq 'package';
-        $self->_set_snapshot_hash
-            ($files,
-             with_snapshot_hash_items => $args{with_snapshot_hash_items});
+        $self->_set_snapshot_hash ($files);
       } # with_snapshot_hash
 
       return $files;
