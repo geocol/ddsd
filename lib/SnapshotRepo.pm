@@ -175,6 +175,10 @@ sub construct_file_list_of ($$$;%) {
           if (defined $file->{rev} and
               defined $file->{rev}->{mime_filename}) {
             $name = $file->{rev}->{mime_filename};
+            $name =~ s{^.*[/\\]}{}s;
+            $name = encode_web_utf8 $name;
+            $name =~ s/%([0-9A-Fa-f]{2})/pack 'C', hex $1/ge;
+            $name = decode_web_utf8 $name;
           } elsif ((defined $file->{rev} and defined $file->{rev}->{url}) or
                    (defined $file->{source} and (defined ($file->{source}->{url} // $file->{source}->{base_url})))) {
             $name = (defined $file->{rev} ? $file->{rev}->{url} : undef)

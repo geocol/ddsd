@@ -156,6 +156,19 @@ sub put_response ($$$) {
   $meta->{rev}->{http_content_type} = $r->{res}->header ('content-type');
   delete $meta->{rev}->{http_content_type}
       unless defined $meta->{rev}->{http_content_type};
+  {
+    my $header = $r->{res}->header ('content-disposition') // '';
+    # XXX parser
+    if ($header =~ m{;\s*[Ff][Ii][Ll][Ee][Nn][Aa][Mm][Ee]=("[^"]+"|[^";\\]+)}) {
+      my $name = $1;
+      if ($name =~ s/^"//) {
+        $name =~ s/"$//;
+      } else {
+        $name =~ s/\s+$//;
+      }
+      $meta->{rev}->{mime_filename} = $name if length $name;
+    }
+  }
   $meta->{rev}->{length} = $r->{length};
   $meta->{rev}->{sha256} = $r->{sha256} if defined $r->{sha256};
   if ($r->{res}->incomplete) {

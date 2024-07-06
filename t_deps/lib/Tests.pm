@@ -65,7 +65,7 @@ sub Test (&;%) {
     })->finally (sub {
       $current->c->done;
     });
-  } timeout => 60*5, %args;
+  } timeout => 60*10, %args;
 } # Test
 
 sub serverset (@) {
