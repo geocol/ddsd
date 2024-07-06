@@ -18,7 +18,7 @@ sub fetch ($$$;%) {
   my $as = $logger->start (undef, {type => 'fetch',
                                    url => $original_url->stringify});
   my $client;
-  my $used_url = my $current_url = $original_url;
+  my $used_url = my $current_url = $original_url->no_fragment;
 
   return Promise->resolve->then (sub {
     if (defined $args{rev} and defined $args{rev}->{sha256} and

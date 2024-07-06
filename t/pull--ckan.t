@@ -197,14 +197,14 @@ for my $in (
         isnt $r->{exit_code}, $in->{x} ? 2 : 0;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/package-ckan.json', json => sub { },
+        {path => 'local/data/foo/package/package.ckan.json', json => sub { },
          is_none => $in->{status} || $in->{y}},
         {path => 'local/data/foo/index.json', json => sub {
            my $json = shift;
            if ($in->{status} or $in->{y}) {
-             is $json->{items}->{'package'}, undef;
+             is $json->{items}->{'meta:ckan.json'}, undef;
            } else {
-             ok $json->{items}->{package};
+             ok $json->{items}->{'meta:ckan.json'};
            }
          }},
       ]);
@@ -255,7 +255,7 @@ Test {
          my $item = $json->{items}->{$json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}};
          ok $item->{files}->{meta};
          ok $item->{files}->{data};
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
          my $meta_path = $path->parent->child ($item->{files}->{meta});
          my $meta = json_bytes2perl $meta_path->slurp;
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
@@ -360,7 +360,7 @@ Test {
          my $item = $json->{items}->{$json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}};
          ok $item->{files}->{meta};
          ok $item->{files}->{data};
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
          my $meta_path = $path->parent->child ($item->{files}->{meta});
          my $meta = json_bytes2perl $meta_path->slurp;
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
@@ -422,12 +422,7 @@ Test {
     },
     {
       "http://hoge/api/action/package_show?id=package-name-" . $key => {
-        json => {
-          success => \1,
-          result => {
-            resources => [],
-          },
-        },
+        text => qq{ {"success":true, "result":{"resources":[]}} },
         headers => {'last-modified' => '20 Apr 2023 23:23:22 GMT'},
       },
     },
@@ -460,7 +455,7 @@ Test {
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
          is $meta->{rev}->{original_url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
          ok $meta->{rev}->{sha256};
-         is $meta->{rev}->{length}, 39;
+         is $meta->{rev}->{length}, 45;
          ok $meta->{rev}->{http_date};
          is $meta->{rev}->{http_last_modified}, 1682033002;
          is $meta->{rev}->{http_etag}, undef;
@@ -495,13 +490,7 @@ Test {
       },
       {
         "http://hoge/api/action/package_show?id=package-name-" . $key => {
-          json => {
-            success => \1,
-            result => {
-              resources => [],
-            },
-            _ => 2,
-          },
+          text => qq{ {"success":true, "result":{"resources":[]},"_":2} },
           headers => {'last-modified' => '20 Apr 2023 23:23:22 GMT'},
         },
       },
@@ -530,7 +519,7 @@ Test {
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
          is $meta->{rev}->{original_url}, "http://hoge/api/action/package_show?id=package-name-" . $key;
          ok $meta->{rev}->{sha256};
-         is $meta->{rev}->{length}, 45;
+         is $meta->{rev}->{length}, 51;
          ok $meta->{rev}->{http_date};
          is $meta->{rev}->{http_last_modified}, 1682033002;
          is $meta->{rev}->{http_etag}, undef;
@@ -550,13 +539,7 @@ Test {
       },
       {
         "http://hoge/api/action/package_show?id=package-name-" . $key => {
-          json => {
-            success => \1,
-            result => {
-              resources => [],
-            },
-            _ => 3,
-          },
+          text => qq{ {"success":true, "result":{"resources":[]},"_":2} },
           headers => {'last-modified' => '20 Apr 2023 23:23:22 GMT'},
         },
       },
@@ -567,7 +550,7 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-    } $current->c, name => "no replace (size unchanged)";
+    } $current->c, name => "no replace (size & time unchanged)";
     return $current->check_files ([
       {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
          my ($json, $path) = @_;
@@ -586,13 +569,7 @@ Test {
       },
       {
         "http://hoge/api/action/package_show?id=package-name-" . $key => {
-          json => {
-            success => \1,
-            result => {
-              resources => [],
-            },
-            _ => 3,
-          },
+          text => qq{ {"success":true, "result":{"resources":[]},"_":2} },
           headers => {'last-modified' => '20 Apr 2013 23:23:22 GMT'},
         },
       },
@@ -603,13 +580,13 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-    } $current->c, name => "replace (modified unchanged)";
+    } $current->c, name => "no replace (modified unchanged)";
     return $current->check_files ([
       {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
          my ($json, $path) = @_;
          is $json->{type}, 'ckan';
-         isnt $json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}, $current->o ('head2');
-         is 0+keys %{$json->{items}}, 3;
+         is $json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}, $current->o ('head2');
+         is 0+keys %{$json->{items}}, 2;
        }},
       {path => "local/data/foo/index.json", text => sub { }, readonly => 1},
       {path => "local/data/foo/LICENSE", text => sub { }, readonly => 1},
@@ -662,7 +639,7 @@ Test {
          my $item = $json->{items}->{$json->{urls}->{"http://hoge/api/action/package_show?id=package-name-" . $key}};
          ok $item->{files}->{meta};
          ok $item->{files}->{data};
-         is $item->{type}, 'package';
+         is $item->{type}, 'meta';
          my $meta_path = $path->parent->child ($item->{files}->{meta});
          my $meta = json_bytes2perl $meta_path->slurp;
          is $meta->{rev}->{url}, "http://hoge/api/action/package_show?id=package-name-" . $key;

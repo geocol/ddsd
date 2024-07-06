@@ -189,7 +189,7 @@ sub put_response ($$$) {
   my $index = $self->index;
   my $matched = undef;
   my $old_data;
-  if (not $args{force}) {
+  {
     for my $na (keys %{$index->{items}}) {
       my $it = $index->{items}->{$na};
       if (defined $meta->{rev}->{sha256} and

@@ -66,11 +66,13 @@ Test {
     return $current->check_files ([
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 2;
+         is 0+keys %{$json->{items}}, 3;
          is $json->{items}->{"file:r:1"}->{type}, 'file';
          is $json->{items}->{"file:r:1"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
          is $json->{items}->{"file:r:packref"}->{type}, 'file';
          is $json->{items}->{"file:r:packref"}->{rev}->{sha256}, "a369ab0659b3d0586378d20a3077338a84a78a0bec6da44ebc74a9b35756a91b";
+         is $json->{items}->{"meta:packref.json"}->{type}, 'meta';
+         is $json->{items}->{"meta:packref.json"}->{rev}->{sha256}, "a369ab0659b3d0586378d20a3077338a84a78a0bec6da44ebc74a9b35756a91b";
        }},
       {path => "local/data/foo/files/abc.txt", text => "abc"},
     ], app => 1);
@@ -93,7 +95,7 @@ Test {
     return $current->check_files ([
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 2;
+         is 0+keys %{$json->{items}}, 3;
          is $json->{items}->{"file:r:1"}->{type}, 'file';
          is $json->{items}->{"file:r:1"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
          is $json->{items}->{"file:r:packref"}->{type}, 'file';
@@ -109,7 +111,7 @@ Test {
       is $count, 1, '2nd pull does not fetch zip';
     } $current->c;
   });
-} n => 18, name => 'from mirror';
+} n => 20, name => 'from mirror';
 
 Run;
 

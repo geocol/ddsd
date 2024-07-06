@@ -54,7 +54,7 @@ Test {
       {path => 'local/data/foo/files/r3', text => "r3"},
     ]);
   });
-} n => 5, name => 'sha256 matched';
+} n => 8, name => 'sha256 matched';
 
 Test {
   my $current = shift;
@@ -106,7 +106,7 @@ Test {
       {path => 'local/data/foo/files/r3', text => "r3"},
     ]);
   });
-} n => 5, name => 'sha256 unmatched';
+} n => 7, name => 'sha256 unmatched';
 
 Test {
   my $current = shift;
@@ -146,14 +146,17 @@ Test {
       is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
-      {path => 'local/data/foo', is_none => 1},
-      {path => 'local/data/foo/package-ckan.json', is_none => 1},
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is 0+keys %{$json->{items}}, 0;
+       }},
+      {path => 'local/data/foo/package/package.ckan.json', is_none => 1},
       {path => 'local/data/foo/files/r1', is_none => 1},
       {path => 'local/data/foo/files/r2', is_none => 1},
       {path => 'local/data/foo/files/r3', is_none => 1},
     ]);
   });
-} n => 2, name => 'sha256 unmatched package';
+} n => 3, name => 'sha256 unmatched package';
 
 Test {
   my $current = shift;
@@ -301,7 +304,7 @@ Test {
       {path => 'local/data/foo/files/r2', text => "R2"},
     ]);
   });
-} n => 4, name => 'sha unchanged file';
+} n => 6, name => 'sha unchanged file';
 
 Run;
 

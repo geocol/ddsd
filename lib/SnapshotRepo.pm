@@ -36,6 +36,8 @@ sub construct_file_list_of ($$$;%) {
   )->then (sub {
     my $files = shift;
     my $found = {};
+    my $found_n2u = {};
+    my $found_u = {};
     my $mod = {};
     my $skipped = {};
     for my $file (@$files) {
@@ -128,8 +130,19 @@ sub construct_file_list_of ($$$;%) {
       } elsif ($file->{type} eq 'package') {
         $skipped->{$file->{key}} = 1;
         next;
-      } elsif (defined $file->{file}->{directory} and
-               $file->{file}->{directory} eq '') {
+      }
+
+      my $file_u;
+      $file_u = $file->{rev}->{url} if defined $file->{rev};
+      $file_u //= $file->{source}->{url} if defined $file->{source};
+      if (defined $file_u) {
+        my $url = Web::URL->parse_string ($file_u);
+        $file_u = defined $url ? $url->stringify_without_fragment : undef;
+        $found_u->{$file_u}++ if defined $file_u;
+      }
+
+      if (defined $file->{file}->{directory} and
+          $file->{file}->{directory} eq '') {
         die "Bad file name |$file->{file}->{name}|"
             unless FileNames::is_free_file_name $file->{file}->{name};
         $name = $file->{file}->{name};
@@ -179,10 +192,9 @@ sub construct_file_list_of ($$$;%) {
             $name = encode_web_utf8 $name;
             $name =~ s/%([0-9A-Fa-f]{2})/pack 'C', hex $1/ge;
             $name = decode_web_utf8 $name;
-          } elsif ((defined $file->{rev} and defined $file->{rev}->{url}) or
-                   (defined $file->{source} and (defined ($file->{source}->{url} // $file->{source}->{base_url})))) {
-            $name = (defined $file->{rev} ? $file->{rev}->{url} : undef)
-                // $file->{source}->{url} // $file->{source}->{base_url};
+          } elsif (defined $file_u or
+                   (defined $file->{source} and defined $file->{source}->{base_url})) {
+            $name = $file_u // $file->{source}->{base_url};
             $name =~ s{#.*}{}s;
             $name =~ s{\?.*}{}s;
             $name =~ s{^.*[/\\]}{}s;
@@ -228,11 +240,16 @@ sub construct_file_list_of ($$$;%) {
       } else {
         die "Bad directory |$file->{file}->{directory}|";
       }
-      $found->{lc $name}++ if defined $name;
-      $file->{snapshot}->{file_name} = $name if defined $name;
+      if (defined $name) {
+        $found->{lc $name}++;
+        $found_n2u->{lc $name} //= $file_u if defined $file_u;
+        $file->{snapshot}->{file_u} = $file_u; # or undef
+        $file->{snapshot}->{file_name} = $name;
+      }
     } # $file
     my $i = 1;
     my $key_to_dir_name = {};
+    my $found_u2 = {};
     for my $file (@$files) {
       if (defined $file->{file}->{directory_file_key}) {
         if ($skipped->{$file->{file}->{directory_file_key}}) {
@@ -290,14 +307,33 @@ sub construct_file_list_of ($$$;%) {
       } else {
         if (defined $file->{snapshot}->{file_name} and
             $found->{lc $file->{snapshot}->{file_name}} > 1) {
-          $args{has_error}->();
-          $logger->message ({
-            type => 'duplicate file name',
-            key => $file->{key},
-            value => $file->{snapshot}->{file_name},
-          });
-          delete $file->{snapshot}->{file_name};
-          next;
+          my $not_dup = 0;
+          if (defined $file->{snapshot}->{file_u}) {
+            my $u = $found_n2u->{lc $file->{snapshot}->{file_name}};
+            if (defined $u and $file->{snapshot}->{file_u} eq $u and
+                $found_u2->{$u}++) {
+              $logger->info ({
+                type => 'duplicate source url',
+                key => $file->{key},
+                url => $u,
+              });
+              $file->{snapshot}->{dup_file_name} = delete $file->{snapshot}->{file_name};
+              next;
+            } else {
+              $not_dup = 1;
+            }
+          }
+
+          unless ($not_dup) {
+            $args{has_error}->();
+            $logger->message ({
+              type => 'duplicate file name',
+              key => $file->{key},
+              value => $file->{snapshot}->{file_name},
+            });
+            delete $file->{snapshot}->{file_name};
+            next;
+          }
         }
       }
       if ($file->{snapshot}->{is_directory} and
@@ -328,7 +364,8 @@ sub sync ($$$;%) {
 
         return if $file->{snapshot}->{is_directory};
         
-        my $name = $file->{snapshot}->{file_name};
+        my $name = $file->{snapshot}->{file_name} //
+                   $file->{snapshot}->{dup_file_name};
         return unless defined $name;
 
         my $item = {};
@@ -337,6 +374,7 @@ sub sync ($$$;%) {
         $item->{rev} = $file->{rev};
         $items->{$file->{key}} = $item;
 
+        return unless defined $file->{snapshot}->{file_name};
         return $storage->hardlink_from ($name, $file->{path});
       } $files;
     })->then (sub { return $ix->save (readonly => 1) })->then (sub {

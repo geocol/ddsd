@@ -45,10 +45,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -58,7 +58,7 @@ Test {
       {path => "local/data/$key/files/r3", text => "r3"},
     ]);
   });
-} n => 9, name => 'ok';
+} n => 12, name => 'ok';
 
 Test {
   my $current = shift;
@@ -103,20 +103,20 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         is 0+keys %{$json->{items}}, 3;
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
-         ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
+         is $json->{items}->{"file:id:r3"}, undef;
        }},
       {path => "local/data/$key/files/r1", text => "r1"},
       {path => "local/data/$key/files/r2", text => "r2"},
-      {path => "local/data/$key/files/r3", text => "r3"},
+      {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 9, name => 'additional file';
+} n => 11, name => 'additional file';
 
 Run;
 

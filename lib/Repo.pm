@@ -60,10 +60,11 @@ sub __find_mirror ($$) {
   my $host = $url->host->to_ascii;
   return undef unless $host =~ /\A[0-9a-z][0-9a-z.-]+\z/;
 
-  $logger->info ({
+  $logger->message ({
     type => 'find mirrorzip',
     key => $host,
     value => $hash,
+    url => $def->{url},
   });
 
   my $name = 'hash-' . $type . '-' . $host . '.jsonl';
@@ -107,11 +108,13 @@ sub _find_mirror ($$$) {
           sha256_hex encode_web_utf8 $mirror_url->stringify;
       $logger->message ({
         type => 'mirrorzip selected',
+        key => $key,
         url => $mirror_url->stringify,
       });
     } else {
-      $logger->info ({
+      $logger->message ({
         type => 'mirror not selected',
+        key => $key,
       });
     }
 
@@ -395,8 +398,8 @@ sub _fetch_file ($$$%) {
   my $logger = $args{logger} // $self->set->app->logger;
   return Promise->resolve->then (sub {
     return [undef, $args{item_key}, undef]
-        if ($args{force} or $args{index_seen}) and
-           not $args{skip_if_new} and not $args{skip_if_found};
+        if ($args{index_seen}) and
+            not $args{skip_if_new} and not $args{skip_if_found};
     
     return $self->read_index->then (sub {
       my $in = $_[0];
@@ -404,7 +407,9 @@ sub _fetch_file ($$$%) {
     });
   })->then (sub {
     my ($in, $item_key, $item) = @{$_[0]};
-    if ($args{skip_if_found} and defined $item) {
+    if (defined $item and
+        ($args{skip_if_found} or
+         $self->{fetched}->{$url->stringify_without_fragment})) {
       return [{
         not_modified => 1, url => $url,
         insecure => (defined $item->{rev} ? $item->{rev}->{insecure} : undef),
@@ -493,7 +498,7 @@ sub _fetch_file ($$$%) {
           $ix->ensure_type ($self->type) if $args{set_repo_type};
           return $ix->put_response (
             $r,
-            type => $args{dest_type}, force => $args{force},
+            type => $args{dest_type},
             fetch_log => $args{fetch_log},
             logger => $logger,
           )->then (sub {
@@ -518,6 +523,7 @@ sub _fetch_file ($$$%) {
             }
           })->then (sub { $ix->save });
         })->then (sub {
+          $self->{fetched}->{$url->stringify_without_fragment} = 1;
           return $r;
         });
       }

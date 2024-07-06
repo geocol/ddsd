@@ -450,6 +450,54 @@ Test {
   });
 } n => 6, name => 'files only';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'packref',
+        url => "https://hoge/$key/pack.json",
+      },
+    },
+    {
+      "https://hoge/$key/pack.json" => {
+        json => {
+          type => 'packref',
+          source => {
+            type => 'files',
+            files => {
+              "file:r:123" => {url => "https://hoge/$key/bar#foo"},
+            },
+          },
+        },
+      },
+      "https://hoge/$key/bar" => {text => "xyz"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is $json->{type}, 'datasnapshot';
+         is ref $json->{items}, 'HASH';
+         is 0+keys %{$json->{items}}, 2;
+         {
+           my $item = $json->{items}->{'file:r:123'};
+           is $item->{rev}->{url}, "https://hoge/$key/bar";
+           is $item->{rev}->{original_url}, "https://hoge/$key/bar#foo";
+         }
+       }},
+      {path => "local/data/foo/files/bar", text => "xyz"},
+    ]);
+  });
+} n => 8, name => 'fragmented';
+
 Run;
 
 =head1 LICENSE

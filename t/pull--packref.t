@@ -57,7 +57,7 @@ Test {
       }},
     ]);
   });
-} n => 8, name => 'CKAN referenced 1';
+} n => 7, name => 'CKAN referenced 1';
 
 Test {
   my $current = shift;

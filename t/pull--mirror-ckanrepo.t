@@ -28,6 +28,8 @@ Test {
   })->then (sub {
     return $current->run ('pull');
   })->then (sub {
+    return $current->run ('ls', additional => ['hoge']);
+  })->then (sub {
     return $current->run ('export', additional => ['mirrorzip', 'hoge', 'a.zip', '--json'], json => 1);
   })->then (sub {
     my $r = $_[0];
@@ -40,10 +42,10 @@ Test {
         url => "https://1.hoge/dataset/$key",
         skip_other_files => 1,
         files => {
-          package => {
+          "meta:ckan.json" => {
             sha256 => "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a",
           },
-          "package:activity.html" => {},
+          "meta:activity.html" => {},
           "file:index:0" => {
             sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
           },
@@ -61,7 +63,8 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-1.hoge.jsonl' => {
         jsonl => [
-          ["198cfb6fbf394380bf243cd1e2f8b8f38342142bbd9804a88365aee0e20810f0", "https://1.hoge/$key/hash1.zip",
+          ["b4bdac56fe0fd601b76de463831b782a4b86b4a00d8f0d0d5eb7f4f3307ac597",
+           "https://1.hoge/$key/hash1.zip",
            $r->{json}->{sha256}, $r->{json}->{length}],
         ],
       },
@@ -76,10 +79,10 @@ Test {
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
          is 0+keys %{$json->{items}}, 3;
-         is $json->{items}->{package}->{type}, 'package';
-         is $json->{items}->{package}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
-         is $json->{items}->{"package:activity.html"}->{type}, 'package';
-         is $json->{items}->{"package:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
+         is $json->{items}->{'meta:ckan.json'}->{type}, 'meta';
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
+         is $json->{items}->{"meta:activity.html"}->{type}, 'meta';
+         is $json->{items}->{"meta:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
@@ -106,10 +109,10 @@ Test {
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
          is 0+keys %{$json->{items}}, 3;
-         is $json->{items}->{package}->{type}, 'package';
-         is $json->{items}->{package}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
-         is $json->{items}->{"package:activity.html"}->{type}, 'package';
-         is $json->{items}->{"package:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
+         is $json->{items}->{'meta:ckan.json'}->{type}, 'meta';
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
+         is $json->{items}->{"meta:activity.html"}->{type}, 'meta';
+         is $json->{items}->{"meta:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
@@ -123,7 +126,7 @@ Test {
       is $count, 1, '2nd pull does not fetch zip';
     } $current->c;
   });
-} n => 22, name => 'directly', timeout => 300;
+} n => 22, name => 'directly';
 
 Test {
   my $current = shift;
@@ -169,10 +172,10 @@ Test {
             url => "https://2.hoge/dataset/$key",
             skip_other_files => 1,
             files => {
-              package => {
+              'meta:ckan.json' => {
                 sha256 => "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a",
               },
-              "package:activity.html" => {},
+              "meta:activity.html" => {},
               "file:index:0" => {
                 sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
               },
@@ -191,7 +194,8 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-2.hoge.jsonl' => {
         jsonl => [
-          ["198cfb6fbf394380bf243cd1e2f8b8f38342142bbd9804a88365aee0e20810f0", "https://2.hoge/$key/hash1.zip",
+          ["b4bdac56fe0fd601b76de463831b782a4b86b4a00d8f0d0d5eb7f4f3307ac597",
+           "https://2.hoge/$key/hash1.zip",
            $r->{json}->{sha256}, $r->{json}->{length}],
         ],
       },
@@ -206,10 +210,10 @@ Test {
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
          is 0+keys %{$json->{items}}, 3;
-         is $json->{items}->{package}->{type}, 'package';
-         is $json->{items}->{package}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
-         is $json->{items}->{"package:activity.html"}->{type}, 'package';
-         is $json->{items}->{"package:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
+         is $json->{items}->{'meta:ckan.json'}->{type}, 'meta';
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
+         is $json->{items}->{"meta:activity.html"}->{type}, 'meta';
+         is $json->{items}->{"meta:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
@@ -236,10 +240,10 @@ Test {
       {path => "local/data/foo/index.json", json => sub {
          my $json = shift;
          is 0+keys %{$json->{items}}, 3;
-         is $json->{items}->{package}->{type}, 'package';
-         is $json->{items}->{package}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
-         is $json->{items}->{"package:activity.html"}->{type}, 'package';
-         is $json->{items}->{"package:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
+         is $json->{items}->{'meta:ckan.json'}->{type}, 'meta';
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
+         is $json->{items}->{"meta:activity.html"}->{type}, 'meta';
+         is $json->{items}->{"meta:activity.html"}->{rev}->{sha256}, "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa";
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
@@ -292,10 +296,10 @@ Test {
         url => "https://3.hoge/dataset/$key",
         skip_other_files => 1,
         files => {
-          package => {
+          'meta:ckan.json' => {
             sha256 => "5745be8ff791e482a9ef418ff5532cde3efe4f6039c5a15ea2b963fd17271b49",
           },
-          "package:activity.html" => {},
+          "meta:activity.html" => {},
           "file:index:0" => {
             sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
           },
@@ -313,7 +317,7 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-3.hoge.jsonl' => {
         jsonl => [
-          ["277244747642ee1993dbe86007d6ca3d466f7dc59456ff714ff21979d85e12eb",
+          ["0622f7b69e91a45d477650ea6f52c583ae9b76920e9692bd5d9bd4f3dbf89f01",
            "https://3.hoge/$key/hash1.zip",
            $r->{json}->{sha256}],
         ],
@@ -386,10 +390,10 @@ Test {
         url => "https://4.hoge/dataset/$key",
         skip_other_files => 1,
         files => {
-          package => {
+          'meta:ckan.json' => {
             sha256 => "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a",
           },
-          "package:activity.html" => {},
+          "meta:activity.html" => {},
           "file:index:0" => {
             sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
           },
@@ -407,7 +411,8 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-4.hoge.jsonl' => {
         jsonl => [
-          ["198cfb6fbf394380bf243cd1e2f8b8f38342142bbd9804a88365aee0e20810f0", "https://4.hoge/$key/hash1.zip",
+          ["b4bdac56fe0fd601b76de463831b782a4b86b4a00d8f0d0d5eb7f4f3307ac597",
+           "https://4.hoge/$key/hash1.zip",
            "acde", 123],
         ],
       },

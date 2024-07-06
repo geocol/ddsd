@@ -26,42 +26,47 @@ sub get_repo_by_source ($$%) {
   my $el = $args{error_location} || {path => $args{path}->absolute};
   
   my $type = $source->{type} // '';
+  my $bad_method = $args{allow_bad_repo_type} ? 'message' : 'throw';
   if ($type eq 'ckan') {
     require CKANRepo;
     my $url = Web::URL->parse_string ($source->{url} // '');
-    $logger->throw ({
-      type => 'bad URL',
-      value => $source->{url} // '',
-      %$el,
-    }) if not defined $url or not $url->is_http_s;
+    if (not defined $url or not $url->is_http_s) {
+      $logger->$bad_method ({
+        type => 'bad source url',
+        value => $source->{url} // '',
+        %$el,
+      });
+      return undef;
+    }
     return CKANRepo->new_from_set_and_url ($self, $url);
   } elsif ($type eq 'ckansite') {
     require CKANSiteRepo;
     my $url = Web::URL->parse_string ($source->{url} // '');
-    $logger->throw ({
-      type => 'bad URL',
-      value => $source->{url} // '',
-      %$el,
-    }) if not defined $url or not $url->is_http_s;
+    if (not defined $url or not $url->is_http_s) {
+      $logger->$bad_method ({
+        type => 'bad source url',
+        value => $source->{url} // '',
+        %$el,
+      });
+      return undef;
+    }
     return CKANSiteRepo->new_from_set_and_url ($self, $url);
   } elsif ($type eq 'packref') {
     require PackRefRepo;
     my $url = Web::URL->parse_string ($source->{url} // '');
-    $logger->throw ({
-      type => 'bad URL',
-      value => $source->{url} // '',
-      %$el,
-    }) if not defined $url or not $url->is_http_s;
+    if (not defined $url or not $url->is_http_s) {
+      $logger->$bad_method ({
+        type => 'bad source url',
+        value => $source->{url} // '',
+        %$el,
+      });
+      return undef;
+    }
     return PackRefRepo->new_from_set_and_url ($self, $url);
   } elsif ($type eq 'files' and $args{allow_files}) {
     return '';
   } else {
-    return $logger->throw ({
-      type => 'unknown repo type',
-      value => $type,
-      %$el,
-    }) unless $args{allow_bad_repo_type};
-    $logger->message ({
+    $logger->$bad_method ({
       type => 'unknown repo type',
       value => $type,
       %$el,

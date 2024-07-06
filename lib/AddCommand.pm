@@ -154,7 +154,6 @@ sub run ($$;%) {
         ($def, error_location => {});
     return $repo->_find_mirror ($name, $def)->then (sub {
       return $repo->fetch (
-        force => $args{force},
         cacert => $args{cacert},
         insecure => $args{insecure} || $def->{insecure},
         min => 1, requires_package => 1,
