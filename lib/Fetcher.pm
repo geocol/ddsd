@@ -103,7 +103,7 @@ sub fetch ($$$;%) {
               }
             })->then (sub {
               my $x = $_[0];
-              return $x if $x->{ok} or $x->{not_modified};
+              return $x if $x->{ok} or $x->{not_modified} or $x->{redirect};
 
               if (not $args{insecure}) {
                 $as->message ({

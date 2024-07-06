@@ -55,6 +55,8 @@ sub run ($$;%) {
         $m .= sprintf "  <%s>\x0A", $item->{rev}->{original_url};
       } elsif (defined $item->{package_item}->{page_url}) {
         $m .= sprintf "  <%s>\x0A", $item->{package_item}->{page_url};
+      } elsif (defined $item->{source}->{url}) {
+        $m .= sprintf "  <%s>\x0A", $item->{source}->{url};
       }
       if (defined $item->{path}) {
         $m .= sprintf qq{  "%s"\x0A}, $item->{path}->relative ('.');

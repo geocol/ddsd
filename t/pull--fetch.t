@@ -1889,6 +1889,147 @@ Test {
   });
 } n => 8, name => 'same url by redirect';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "http://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "http://hoge/$key/foo" => {redirect => "https://hoge/$key/bar"},
+      "https://hoge/$key/bar" => {text => "hoge"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is $json->{items}->{'file:id:foo'}, undef;
+       }},
+      {path => 'local/data/foo/files/foo', is_none => 1},
+      {path => 'local/data/foo/files/bar', is_none => 1},
+    ]);
+  });
+} n => 3, name => 'insecure to secure redirect, no --insecure';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+        insecure => 1,
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "http://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "http://hoge/$key/foo" => {redirect => "https://hoge/$key/bar"},
+      "https://hoge/$key/bar" => {text => "hoge"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is $json->{items}->{'file:id:foo'}->{rev}->{url}, "https://hoge/$key/bar";
+         is $json->{items}->{'file:id:foo'}->{rev}->{original_url}, "http://hoge/$key/foo";
+         ok $json->{items}->{'file:id:foo'}->{rev}->{insecure};
+       }},
+      {path => 'local/data/foo/files/foo', is_none => 1},
+      {path => 'local/data/foo/files/bar', text => "hoge"},
+    ]);
+  });
+} n => 6, name => 'insecure to secure redirect, insecure allowed';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+        files => {},
+        insecure => 1,
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {text => ""},
+      "https://hoge/dataset/activity/$key" => {text => ""},
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => 'foo', url => "http://hoge/$key/foo"},
+            ],
+          },
+        },
+      },
+      "https://hoge/$key/foo" => {redirect => "https://hoge/$key/bar"},
+      "https://hoge/$key/bar" => {text => "hoge"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/index.json', json => sub {
+         my $json = shift;
+         is $json->{items}->{'file:id:foo'}->{rev}->{url}, "https://hoge/$key/bar";
+         is $json->{items}->{'file:id:foo'}->{rev}->{original_url}, "http://hoge/$key/foo";
+         ok ! $json->{items}->{'file:id:foo'}->{rev}->{insecure};
+       }},
+      {path => 'local/data/foo/files/foo', is_none => 1},
+      {path => 'local/data/foo/files/bar', text => "hoge"},
+    ]);
+  });
+} n => 6, name => 'insecure to secure redirect, autoupgrade';
+
 Run;
 
 =head1 LICENSE
