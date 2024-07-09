@@ -93,6 +93,9 @@ sub hardlink_from ($$;%) {
   my $file = Promised::File->new_from_path ($path);
   return $file->hardlink_from ($from_path, fallback_to_copy => 1)->then (sub {
     return $file->chmod (0444) if $args{readonly};
+  })->catch (sub {
+    my $e = $_[0];
+    die "$path: $e"; # XXX wrap with error object?
   });
 } # hardlink_from
 
