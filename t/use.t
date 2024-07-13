@@ -253,7 +253,7 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
+         is 0+keys %{$def->{files}}, 5;
          ok ! $def->{files}->{package}->{skip};
          ok ! $def->{files}->{'file:meta:ckan.json'}->{skip};
          ok ! $def->{files}->{"file:id:r1"}->{skip};
@@ -266,7 +266,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
          is $json->{items}->{package}, undef;
-         ok $json->{items}->{'file:meta:ckan.json'};
+         ok $json->{items}->{'meta:ckan.json'};
          ok $json->{items}->{"file:id:r1"};
          is $json->{items}->{"file:id:r1"}->{name}, undef;
        }},
@@ -289,7 +289,7 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
+         is 0+keys %{$def->{files}}, 5;
          ok ! $def->{files}->{package}->{skip};
          ok ! $def->{files}->{'file:meta:ckan.json'}->{skip};
          ok ! $def->{files}->{"file:id:r1"}->{skip};
@@ -532,7 +532,7 @@ Test {
       {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 6, name => 'use file 404';
+} n => 5, name => 'use file 404';
 
 Test {
   my $current = shift;

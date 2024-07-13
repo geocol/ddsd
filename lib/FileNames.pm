@@ -20,7 +20,7 @@ sub is_free_file_name ($) {
   return 0 if $s =~ /[\.\p{InNotNameEndChar}]\z/;
   return 0 if $s =~ /\p{InNotNameEndChar}\.[^.]+\z/;
 
-  if (not $s =~ m{\x2E[0-9A-Za-z_]+\z} or
+  if (not $s =~ m{\x2E[0-9A-Za-z_]+[0-9A-Za-z_-]*\z} or
       $s =~ /\.(?:[Ll][Nn][Kk]|[Uu][Rr][Ll]|[Pp][Ii][Ff]|[Ss][Cc][Ff])\z/) {
     return 0 if $s =~ /\./;
   }
@@ -57,7 +57,7 @@ sub escape_file_name ($) {
   $name = decode_web_utf8 encode_web_utf8 $name;
   $name =~ s{([\x00-\x2C\x2F\x3A-\x40\x5B-\x5E\x60\x7B-\x7F]|\A[\x2D\x2E]|\x2E\z)}{_}g;
   $name =~ s{\p{InNotNameChar}}{_}g;
-  if (not $name =~ m{\x2E[0-9A-Za-z_]+\z} or
+  if (not $name =~ m{\x2E[0-9A-Za-z_]+[0-9A-Za-z_-]*\z} or
       $name =~ /\.(?:[Ll][Nn][Kk]|[Uu][Rr][Ll]|[Pp][Ii][Ff]|[Ss][Cc][Ff])\z/) {
     $name =~ s/\x2E/_/g;
   }
