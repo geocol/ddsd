@@ -111,6 +111,22 @@ Test {
   });
 } n => 5, name => 'ls --help';
 
+for my $sc (qw(add use unuse)) {
+  Test {
+    my $current = shift;
+    return $current->prepare (undef, {})->then (sub {
+      return $current->run ('help', additional => [$sc], stdout => 1);
+    })->then (sub {
+      my $r = $_[0];
+      test {
+        is $r->{exit_code}, 0;
+        like $r->{stdout}, qr{/ddsd};
+        like $r->{stdout}, qr{\Q$sc\E};
+      } $current->c;
+    });
+  } n => 3, name => $sc;
+}
+
 Run;
 
 =head1 LICENSE

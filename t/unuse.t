@@ -6,7 +6,9 @@ use Tests;
 
 Test {
   my $current = shift;
-  return $current->run ('unuse', additional => [])->then (sub {
+  return $current->prepare (undef, {})->then (sub {
+    return $current->run ('unuse', additional => []);
+  })->then (sub {
     my $r = $_[0];
     test {
       isnt $r->{exit_code}, 0;
@@ -25,7 +27,9 @@ for my $args (
 ) {
   Test {
     my $current = shift;
-    return $current->run ('unuse', additional => [@$args])->then (sub {
+    return $current->prepare (undef, {})->then (sub {
+      return $current->run ('unuse', additional => [@$args]);
+    })->then (sub {
       my $r = $_[0];
       test {
         isnt $r->{exit_code}, 0;
@@ -39,65 +43,25 @@ for my $args (
   } n => 3, name => ['bad argument 0', @$args];
 }
 
-for my $args (
-  [""],
-  ["notfound"],
-  ["//foo/bar"],
-  ["javascript:"],
-  ["nothttps://foo/bar"],
-  ["https://fo/bar"],
-  ["hoge", "fiuga"],
-  ["#abc"],
-  [" #foo"],
-) {
-  Test {
-    my $current = shift;
-    return $current->run ('unuse', additional => [@$args])->then (sub {
-      my $r = $_[0];
-      test {
-        isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 12;
-      } $current->c;
-      return $current->check_files ([
-        {path => 'config/ddsd/packages.json', text => @$args == 2 ? "" : undef,
-         is_none => @$args == 1},
-        {path => 'local', is_none => 1},
-      ]);
-    });
-  } n => 3, name => ['bad argument 1', @$args];
-  
-  Test {
-    my $current = shift;
-    return $current->run ('unuse', additional => [@$args, 'hoge'])->then (sub {
-      my $r = $_[0];
-      test {
-        isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 12;
-      } $current->c;
-      return $current->check_files ([
-        {path => 'config/ddsd/packages.json', text => @$args == 1 ? "" : undef,
-         is_none => @$args > 1},
-        {path => 'local', is_none => 1},
-      ]);
-    });
-  } n => 3, name => ['bad argument 2', @$args];
-  
-  Test {
-    my $current = shift;
-    return $current->run ('unuse', additional => ['hoge', @$args])->then (sub {
-      my $r = $_[0];
-      test {
-        isnt $r->{exit_code}, 0;
-        isnt $r->{exit_code}, 12;
-      } $current->c;
-      return $current->check_files ([
-        {path => 'config/ddsd/packages.json', text => @$args == 1 ? "" : undef,
-         is_none => @$args > 1},
-        {path => 'local', is_none => 1},
-      ]);
-    });
-  } n => 3, name => ['bad argument 3', @$args];
-}
+Test {
+  my $current = shift;
+  return $current->prepare (undef, {})->then (sub {
+    return $current->run ('unuse', additional => ['', '']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      isnt $r->{exit_code}, 0;
+      isnt $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'config/ddsd/packages.json', json => sub {
+         my $json = shift;
+         is 0+keys %$json, 0;
+       }},
+      {path => 'local', is_none => 1},
+    ]);
+  });
+} n => 4, name => ['bad argument, empty'];
 
 Test {
   my $current = shift;
@@ -137,10 +101,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
-         ok $json->{items}->{package};
+         ok $json->{items}->{'meta:ckan.json'};
        }},
       {path => "local/data/$key/files/r1", is_none => 1},
       {path => "local/data/$key/files/r2", is_none => 1},
@@ -159,10 +123,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
-         ok $json->{items}->{package};
+         ok $json->{items}->{'meta:ckan.json'};
          ok $json->{items}->{"file:id:r1"};
          is $json->{items}->{"file:id:r1"}->{name}, undef;
        }},
@@ -185,18 +149,19 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
-         ok ! $def->{files}->{packages}->{skip};
+         is 0+keys %{$def->{files}}, 5;
+         ok ! $def->{files}->{package}->{skip};
+         ok ! $def->{files}->{'meta:ckan.json'}->{skip};
          ok $def->{files}->{"file:id:r1"}->{skip};
          ok $def->{files}->{"file:id:r2"}->{skip};
          ok $def->{files}->{"file:id:r3"}->{skip};
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
-         ok $json->{items}->{package};
+         ok $json->{items}->{'meta:ckan.json'};
        }},
       {path => "local/data/$key/files/r1", is_none => 1},
       {path => "local/data/$key/files/r2", is_none => 1},
@@ -217,8 +182,9 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
-         ok ! $def->{files}->{packages}->{skip};
+         is 0+keys %{$def->{files}}, 5;
+         ok ! $def->{files}->{package}->{skip};
+         ok ! $def->{files}->{'meta:ckan.json'}->{skip};
          ok $def->{files}->{"file:id:r1"}->{skip};
          is $def->{files}->{"file:id:r1"}->{name}, undef;
          ok $def->{files}->{"file:id:r2"}->{skip};
@@ -226,17 +192,17 @@ Test {
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
-         ok $json->{items}->{package};
+         ok $json->{items}->{'meta:ckan.json'};
        }},
       {path => "local/data/$key/files/r1", is_none => 1},
       {path => "local/data/$key/files/r2", is_none => 1},
       {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 39, name => 'unuse';
+} n => 42, name => 'unuse';
 
 Test {
   my $current = shift;
@@ -283,8 +249,9 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
-         ok ! $def->{files}->{packages}->{skip};
+         is 0+keys %{$def->{files}}, 6;
+         ok ! $def->{files}->{package}->{skip};
+         ok ! $def->{files}->{'meta:ckan.json'}->{skip};
          ok $def->{files}->{"file:id:r1"}->{skip};
          ok $def->{files}->{"file:id:r2"}->{skip};
          ok $def->{files}->{"file:id:r3"}->{skip};
@@ -292,17 +259,17 @@ Test {
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
-         ok $json->{items}->{package};
+         ok $json->{items}->{'meta:ckan.json'};
        }},
       {path => "local/data/$key/files/r1", is_none => 1},
       {path => "local/data/$key/files/r2", is_none => 1},
       {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 13, name => 'file not found';
+} n => 14, name => 'file not found';
 
 Run;
 

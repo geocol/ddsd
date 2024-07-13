@@ -31,7 +31,7 @@ sub run ($$$$;%) {
     $repo = $self->app->repo_set->get_repo_by_source
         ($def, path => $plist->path);
     $da_repo = $self->app->data_area->get_repo ($da_name);
-    
+
     if ($mode eq 'use') {
       if (defined $file_key) {
         die "Bad --all" if $args{all};
@@ -97,6 +97,7 @@ sub run ($$$$;%) {
           init_key => $file_key, # or undef
           init_no_skip_marking => 1,
           data_area_key => $da_name,
+          def_touch => sub { $plist->touch },
         );
       })->then (sub {
         return $plist->save;

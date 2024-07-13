@@ -911,7 +911,7 @@ sub get_item_list ($;%) {
           {
             my $title = $pi->{title};
             $title =~ tr/A-Z/a-z/;
-            for my $ext (@{$MIMEToExt->{$pi->{mime}} // []}) {
+            for my $ext (@{$MIMEToExt->{$pi->{mime} // ''} // []}) {
               if ($title =~ m{\.\Q$ext\E\z}) {
                 $file->{source}->{file_name} = $pi->{title};
                 last;

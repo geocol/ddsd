@@ -209,8 +209,7 @@ sub construct_file_list_of ($$$;%) {
           my $name0 = $name;
           $name = FileNames::escape_file_name $name if defined $name;
           undef $name unless length $name;
-          undef $name if defined $name and 63 < length $name;
-          undef $name if defined $name and $name =~ /\x{FFFD}/;
+          undef $name if defined $name and 127 < length $name;
           if (defined $name and not $name eq $name0) {
             if ($args{init_by_default}) {
               if (defined $args{init_key}) {
@@ -284,6 +283,7 @@ sub construct_file_list_of ($$$;%) {
           my $n = $i;
           $n = ++$i while $found->{"files/$n"};
           $def->{files}->{$file->{key}}->{name} = '' . $n;
+          ($args{def_touch} or sub { })->();
           $found->{"files/$n"}++;
           $file->{snapshot}->{file_name} = "files/$n";
         } elsif ($found->{lc $file->{snapshot}->{file_name}} > 1) {
@@ -293,17 +293,20 @@ sub construct_file_list_of ($$$;%) {
           $n = $n0 . '-' . ++$i while $found->{"files/$n"};
           $found->{"files/$n"}++;
           $def->{files}->{$file->{key}}->{name} = $n;
+          ($args{def_touch} or sub { })->();
           $file->{snapshot}->{file_name} = "files/$n";
         } elsif ($mod->{$file->{snapshot}->{file_name}}) {
           my $n = $file->{snapshot}->{file_name};
           if ($n =~ s{^files/}{}) {
             $def->{files}->{$file->{key}}->{name} = $n;
+            ($args{def_touch} or sub { })->();
           }
         } elsif (defined $file->{rev} and
                  not $file->{rev}->{url} eq $file->{rev}->{original_url}) {
           my $n = $file->{snapshot}->{file_name};
           if ($n =~ s{^files/}{}) {
             $def->{files}->{$file->{key}}->{name} = $n;
+            ($args{def_touch} or sub { })->();
           }
         }
       } else {
@@ -322,7 +325,7 @@ sub construct_file_list_of ($$$;%) {
               $file->{snapshot}->{dup_file_name} = delete $file->{snapshot}->{file_name};
               next;
             } else {
-              $not_dup = 1;
+              #$not_dup = 1;
             }
           }
 

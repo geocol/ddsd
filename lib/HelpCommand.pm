@@ -8,15 +8,20 @@ push our @ISA, qw(Command);
 use ListWriter;
 
 my $HelpText = {
-  add => qq{%%DDSD%% add <url> [--name=<package>]
+  add => qq{%%DDSD%% add <url> [--name=<package>] [--insecure]
 
 Add a package specified by a URL <url>.
 
-Options
+Arguments
+
+  <url>         The absolute URL of the package.
+
   --name=<package>
                 The key of the data package to be used.  If not
                 specified, determined by the data package's content or
                 URL.
+
+  --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
 }, # XXX exit code
   ls => qq{%%DDSD%% ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
@@ -72,8 +77,44 @@ Output
 #XXX  help    Show usage
 #XXX  freeze  Freeze the version of the files of a package
 #XXX  pull    Update files to the latest version
-#XXX  unuse   Deactivate a file in package
-#XXX  use     Activate a file in package
+  use => qq{%%DDSD%% use <package> {<id>|--all} [--name=<filename>] [--insecure]
+
+Activate a file of ID <id> in package <package>.  If the file is not
+available, it is fetched from the server.
+
+Options
+
+  <package>     The key of a data package.
+
+  <id>          The ID of a file in the data package.  The file is selected.
+
+                  file:id:{id}   A CKAN resource whose |id| is {id}.
+                  file:n:{name}  A file defined in a packref file.
+
+  --all         All the files in the data package is selected.  Either <id>
+                or |--all| is required.
+
+  --name=<filename>
+                Specify the name for the specified file, used in the
+                files directory for the package.
+
+  --insecure    Allow fetches from an insecure source (such as plain HTTP).
+
+}, # XXX exit code
+  unuse => qq{%%DDSD%% unuse <package> <id>
+
+Deactivate a file of ID <id> in package <package>.
+
+Options
+
+  <package>     The key of a data package.
+
+  <id>          The ID of a file in the data package.  The file is selected.
+
+                  file:id:{id}   A CKAN resource whose |id| is {id}.
+                  file:n:{name}  A file defined in a packref file.
+
+},
 #XXX  version Describe about ddsd
 };
 
