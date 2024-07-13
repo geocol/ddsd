@@ -1423,6 +1423,11 @@ sub format_legal ($$$;%) {
   return $cleanup;
 } # format_legal
 
+my $MIMENormalize = {
+  'application/json; charset=utf-8' => 'application/json',
+  'application/x-zip-compressed' => 'application/zip',
+};
+
 sub _set_item_file_info ($$$$$%) {
   my ($self, $url, $fdef, $in, $file, %args) = @_;
 
@@ -1453,6 +1458,10 @@ sub _set_item_file_info ($$$$$%) {
     $pi->{mime} = $args{default_mime} // 'application/octet-stream';
     $pi->{mime} = $file->{rev}->{http_content_type}
         if defined $file->{rev} and defined $file->{rev}->{http_content_type};
+    my $m = $pi->{mime};
+    $pi->{mime} =~ s{\A([^;]+);\s*[Cc][Hh][Aa][Rr][Ss][Ee][Tt]=[Uu][Tt][Ff]-8\z}{$1; charset=utf-8};
+    $pi->{mime} =~ s{^([^;\s]+)}{lc $1}e;
+    $pi->{mime} = $MIMENormalize->{$pi->{mime}} // $pi->{mime};
     delete $pi->{mime} unless length $pi->{mime};
   }
         if ($args{with_props}) {

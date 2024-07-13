@@ -194,7 +194,7 @@ Test {
       }
       { # r6
         my $item = $r->{jsonl}->[8];
-        is $item->{package_item}->{mime}, 'text/csv; charset=UTF-8';
+        is $item->{package_item}->{mime}, 'text/csv; charset=utf-8';
       }
       { # r7
         my $item = $r->{jsonl}->[9];
@@ -471,6 +471,96 @@ Test {
     } $current->c;
   });
 } n => 3, name => 'no mime info but ext 3';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "application/x-zip-compressed",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'application/zip';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'normalization, zip';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "TEXT/csv;Charset=utF-8",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'text/csv; charset=utf-8';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'normalization, case and charset';
 
 Run;
 

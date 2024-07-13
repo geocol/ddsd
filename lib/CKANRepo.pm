@@ -887,7 +887,6 @@ sub get_item_list ($;%) {
             $ckan_format =~ s/^\.//;
             $ckan_format = '' if $ckan_format eq $ckan_mime;
             $proto_mime = '' if $proto_mime eq 'application/octet-stream';
-            $proto_mime = 'application/json' if $proto_mime =~ m{\Aapplication/json\s*;\s*charset=[Uu][Tt][Ff]-8\z};
 
             my $file_name = $res->{url};
             $file_name = $file->{rev}->{url} if defined $file->{rev};
