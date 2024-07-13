@@ -64,7 +64,7 @@ sub run ($$;%) {
     ($args{insecure} ? '--insecure' : ()),
     ((not defined $args{cacert} or $args{cacert}) ? '--cacert=' . $self->{ca_cert_path}->absolute : ()),
     ($args{logs} ? ('--log-file', $log_path) : $self->{show_log} ? ('--log-file', '/dev/stderr') : ()),
-    @{$args{additional} or []},
+    map { encode_web_utf8 $_ } @{$args{additional} or []},
   ]);
   $cmd->wd ($self->app_path ($args{app} || 0));
   my $stdout;

@@ -142,6 +142,12 @@ sub run ($$;%) {
     $name = rand unless length $name;
     $name = FileNames::escape_file_name $name;
     $name = FileNames::truncate_file_name $name;
+    unless (FileNames::is_free_file_name $name) {
+      return $logger->throw ({
+        type => 'bad data package key specified',
+        value => $args{name},
+      });
+    }
     if (defined $args{name}) {
       return $logger->throw ({
         type => 'bad data package key specified',

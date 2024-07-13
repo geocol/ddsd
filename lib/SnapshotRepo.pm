@@ -208,8 +208,7 @@ sub construct_file_list_of ($$$;%) {
           }
           my $name0 = $name;
           $name = FileNames::escape_file_name $name if defined $name;
-          undef $name unless length $name;
-          undef $name if defined $name and 127 < length $name;
+          undef $name unless FileNames::is_free_file_name $name;
           if (defined $name and not $name eq $name0) {
             if ($args{init_by_default}) {
               if (defined $args{init_key}) {

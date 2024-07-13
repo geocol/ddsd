@@ -2,6 +2,7 @@ all:
 
 CURL = curl
 GIT = git
+PERL = ./perl
 
 updatenightly: local/bin/pmbp.pl build
 	$(CURL) -s -S -L -f https://gist.githubusercontent.com/wakaba/34a71d3137a52abb562d/raw/gistfile1.txt | sh
@@ -32,7 +33,7 @@ pmbp-install: pmbp-upgrade
 	    --create-perl-command-shortcut ddsd=perl\ bin/ddsd.pl
 	chmod ugo+x ddsd
 
-build: bin/booter bin/booter.staging
+build: bin/booter bin/booter.staging lib/_CharClasses.pm
 
 bin/booter: bin/booter.src
 	sed s/@@BRANCH@@/master/g $< > local/booter.master
@@ -44,6 +45,17 @@ bin/booter.staging: bin/booter.src
 	perl local/bin/pmbp.pl $(PMBP_OPTIONS) \
 	    --create-bootstrap-script "local/booter.staging $@"
 	chmod ugo+x $@
+
+## <https://wiki.suikawiki.org/n/%E8%AD%98%E5%88%A5%E5%AD%90%E6%96%87%E5%AD%97>
+lib/_CharClasses.pm:
+	echo 'package _CharClasses;use Carp;' > $@;
+	echo 'sub import{my $$from_class = shift;my ($$to_class, $$file, $$line) = caller;no strict 'refs';for (@_ ? @_ : qw(InNotNameStartChar InNotNameEndChar InNotNameChar)) {my $$code = $$from_class->can ($$_) or croak qq{"$$_" is not exported by the $$from_class module at $$file line $$line};*{$$to_class . '::' . $$_} = $$code;}}' >> $@
+	$(CURL) -f -l https://chars.suikawiki.org/set/perlrevars?item=InNotNameStartChar=%24unicode:Mark >> $@
+	$(CURL) -f -l https://chars.suikawiki.org/set/perlrevars?item=InNotNameEndChar=%5B%5Cu%7B035C%7D-%5Cu%7B0362%7D%5Cu%7B1DFC%7D%5D >> $@
+	$(CURL) -f -l https://chars.suikawiki.org/set/perlrevars?item=InNotNameChar=%24unicode%3ACs+%7C+%24unicode%3ANoncharacter_Code_Point+%7C+%24unicode%3Aprivate-use+%7C+%24unicode%3ACc+%7C+%24unicode%3AFormat+%7C+%24unicode%3AWhite_Space+%7C+%5B%5Cu034F%5D+-%24unicode:Prepended_Concatenation_Mark >> $@
+	echo '1;' >> $@
+	echo '## License: Public Domain.' >> $@
+	$(PERL) -c $@
 
 test: test-deps test-main
 

@@ -68,64 +68,6 @@ sub is_new ($$) {
   return $self->{now} - 24*60*60 < $ts;
 } # is_new
 
-sub escape_for_key ($$) {
-  my $key = encode_web_utf8 $_[1];
-  $key =~ s{([^0-9A-Za-z_])}{sprintf '_%02X', ord $1}ge;
-  return $key;
-}
-
-sub escape_for_dir_name ($$) {
-  my $key = encode_web_utf8 $_[1];
-  $key =~ s{([^0-9A-Za-z_.-]|\A[.-]|\.\z)}{sprintf '_%02X', ord $1}ge;
-  return $key;
-}
-
-sub is_short_name ($$) {
-  return $_[1] =~ /\A[0-9A-Za-z_][0-9A-Za-z_.-]*\z(?<!\.)/;
-} # is_short_name
-
-# returns unsafe text
-sub file_name_from_url ($$) {
-  my $name = $_[1];
-  $name =~ s{#.*}{}s;
-  $name =~ s{\?.*}{}s;
-  $name =~ s{^https?://[^/]+/}{};
-  return $name;
-} # file_name_from_url
-
-# returns unsafe text
-sub file_name_with_ext ($$;%) {
-  my ($self, $name, %args) = @_;
-
-  if (not $name =~ /\.([0-9A-Za-z]+)$/ or
-      {
-        dat => 1,
-      }->{lc $1}) {
-
-    if (defined $args{mime}) {
-      my $mime = $args{mime};
-      $mime =~ s{;.*$}{}s;
-      $mime =~ tr{A-Z}{a-z};
-      $mime =~ s{^\s+}{};
-      $mime =~ s{\s+$}{};
-
-      my $ext = {
-        'application/vnd.geo+json' => 'geojson',
-        'application/json' => 'json',
-        'application/vnd.google-earth.kml+xml' => 'kml',
-        'application/zip' => 'zip',
-        'text/csv' => 'csv',
-        'text/html' => 'html',
-        'text/turtle' => 'ttl',
-        'text/xml' => 'xml',
-      }->{$mime};
-      $name .= "." . $ext if defined $ext;
-    }
-  }
-
-  return $name;
-}
-
 sub get_legal_json ($$) {
   my $self = $_[0];
   my $path = $self->ddsd_data_area->storage->{path}->child
@@ -188,7 +130,8 @@ sub main ($$$$$$$) {
       'help|h' => \$opts->{help},
       'version|v' => \$opts->{version},
     );
-
+    $opts->{name} = decode_web_utf8 $opts->{name} if defined $opts->{name};
+    
     if (defined $self->{log_file}) {
       if ($self->{log_file} eq '-') {
         $self->{logger} = JSONLogger->new_from_filehandle ($out);
