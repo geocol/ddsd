@@ -197,6 +197,22 @@ sub fetch ($;%) {
             });
             $logger->count (['add_skipped']);
             next;
+          } else {
+            use utf8;
+            if (defined $item->{description} and
+                $item->{description} =~ m{: ファイルサイズは ([0-9]+\.[0-9]+) MB です。$}) {
+              my $size = $1 * 1024 * 1024;
+              if ($size > 100_000_000) {
+                $logger->info ({
+                  type => 'skipped large file',
+                  url => $item->{url}, # or undef
+                  key => $file->{key},
+                  value => $size,
+                });
+                $logger->count (['add_skipped']);
+                next;
+              }
+            }
           }
           if (not defined $item->{url} or $item->{url} =~ m<\{>) {
             $logger->count (['add_skipped']);
