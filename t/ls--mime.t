@@ -288,6 +288,190 @@ Test {
   });
 } n => 30, name => 'fixed mime types';
 
+Test {
+  use utf8;
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "application/octet-stream",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'no mime info';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1",
+             name => "hoge.xlsx"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "application/octet-stream",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'no mime info but ext 1';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1",
+             name => "hoge.XLSX"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "application/octet-stream",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'no mime info but ext 2';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1",
+             name => "hoge.json"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "application/octet-stream",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'application/json';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'no mime info but ext 3';
+
 Run;
 
 =head1 LICENSE

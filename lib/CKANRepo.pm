@@ -308,7 +308,7 @@ my $ToComputedMIME = {};
     ['text/xml', 'RDF' => 'application/rdf+xml'],
   ) {
     $ToComputedMIME->{$_->[0], lc $_->[1]} = $_->[2];
-    $ToComputedMIME->{lc $_->[1]} = $_->[2];
+    $ToComputedMIME->{lc $_->[1]} = $_->[2] if length $_->[1];
   }
   for (
     ['application/postscript', 'ai', 'ai' => 'application/illustrator'],
@@ -331,38 +331,47 @@ my $ToComputedMIME = {};
   }
 }
 
-my $MIMEToExt = {
-  'image/vnd.dxf' => ['dxf'],
-  'image/gif' => ['gif'],
-  'image/jpeg' => ['jpeg', 'jpg'],
-  'image/png' => ['png'],
-  'image/tiff' => ['tiff', 'tif'],
-  'audio/mpeg' => ['mp3'],
-  'video/mp4' => ['mp4'],
-  'text/csv' => ['csv'],
-  'text/html' => ['html', 'htm'],
-  'text/markdown' => ['md'],
-  'text/plain' => ['txt'],
-  'text/turtle' => ['ttl'],
-  'text/xml' => ['xml'],
-  'application/ai' => ['ai'],
-  'application/vnd.android.package-archive' => ['apk'],
-  'application/vnd.dbf' => ['dbf'],
-  'application/dm' => ['dm'],
-  'application/msword' => ['doc'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['docx'],
-  'application/geo+json' => ['geojson', 'json'],
-  'application/json' => ['json'],
-  'application/vnd.google-earth.kml+xml' => ['kml'],
-  'application/pdf' => ['pdf'],
-  'application/vnd.ms-powerpoint' => ['ppt'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation' => ['pptx'],
-  'application/rdf+xml' => ['rdf', 'xml'],
-  'application/vnd.ms-excel' => ['xls'],
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx'],
-  'application/vnd.ms-excel.sheet.macroEnabled.12' => 'xlsm',
-  'application/zip' => ['zip'],
-};
+my $MIMEToExt = {};
+my $ExtToMIME = {};
+for (
+  ['image/vnd.dxf' => ['dxf']],
+  ['image/gif' => ['gif']],
+  ['image/jpeg' => ['jpeg', 'jpg']],
+  ['image/png' => ['png']],
+  ['image/tiff' => ['tiff', 'tif']],
+  ['audio/mpeg' => ['mp3']],
+  ['video/mp4' => ['mp4']],
+  ['text/csv' => ['csv']],
+  ['text/html' => ['html', 'htm']],
+  ['text/markdown' => ['md']],
+  ['text/plain' => ['txt']],
+  ['text/turtle' => ['ttl']],
+  ['text/xml' => ['xml']],
+  ['application/ai' => ['ai']],
+  ['application/vnd.android.package-archive' => ['apk']],
+  ['application/vnd.dbf' => ['dbf']],
+  ['application/dm' => ['dm']],
+  ['application/msword' => ['doc']],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['docx']],
+  ['application/geo+json' => ['geojson', 'json'], ['geojson']],
+  ['application/json' => ['json']],
+  ['application/vnd.google-earth.kml+xml' => ['kml']],
+  ['application/pdf' => ['pdf']],
+  ['application/vnd.ms-powerpoint' => ['ppt']],
+  ['application/vnd.openxmlformats-officedocument.presentationml.presentation' => ['pptx']],
+  ['application/rdf+xml' => ['rdf', 'xml'], ['rdf']],
+  ['application/vnd.ms-excel' => ['xls']],
+  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx']],
+  ['application/vnd.ms-excel.sheet.macroEnabled.12' => ['xlsm']],
+  ['application/zip' => ['zip']],
+) {
+  my ($mime, $exts) = @{$_};
+  my $exts2 = $_->[2] // $exts;
+  $MIMEToExt->{$mime} = $exts;
+  for my $ext (@$exts2) {
+    $ExtToMIME->{$ext} = $mime;
+  }
+}
 
 sub get_item_list ($;%) {
   my ($self, %args) = @_;
@@ -868,6 +877,7 @@ sub get_item_list ($;%) {
             last;
           }
           } # time
+          $pi->{title} = $res->{name} // '';
           {
             use utf8;
             my $proto_mime = $pi->{mime} // '';
@@ -889,7 +899,7 @@ sub get_item_list ($;%) {
               $file_name =~ s{\?.*}{}s;
               $ext = $1 if $file_name =~ m{\.([^./]+)$};
             }
-            
+
             my $cmime;
             if ($proto_mime eq $ckan_mime or $ckan_mime eq '') {
               $cmime //= $ToComputedMIME->{$proto_mime, $ckan_format, $ext};
@@ -905,9 +915,13 @@ sub get_item_list ($;%) {
             } else {
               $cmime //= $proto_mime if $proto_mime ne ($pi->{mime} // '');
             }
+            if (not defined $cmime and $ckan_mime eq '' and
+                $proto_mime eq '' and $ckan_format eq '' and
+                $pi->{title} =~ /\.([0-9A-Za-z]+)\z/) {
+              $cmime = $ExtToMIME->{lc $1};
+            }
             $pi->{mime} = $cmime if defined $cmime;
           } # mime
-          $pi->{title} = $res->{name} // '';
           {
             my $title = $pi->{title};
             $title =~ tr/A-Z/a-z/;
