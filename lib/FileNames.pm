@@ -2,6 +2,8 @@ package FileNames;
 use strict;
 use warnings;
 use Web::Encoding;
+use Web::Encoding::Normalization;
+
 use _CharClasses;
 
 sub is_free_file_name ($) {
@@ -69,6 +71,10 @@ sub truncate_file_name ($) {
   my $name = shift;
   return substr $name, 0, 120;
 } # truncate_file_name
+
+sub normalize_for_duplicate_check ($) {
+  return to_nfc lc uc lc $_[0];
+} # normalize_for_duplicate_check
 
 1;
 

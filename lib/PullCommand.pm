@@ -9,6 +9,7 @@ use Promised::File;
 use Command;
 push our @ISA, qw(Command);
 
+use FileNames;
 use PackageListFile;
 
 sub run ($;%) {
@@ -24,10 +25,20 @@ sub run ($;%) {
       type => 'pull packages',
     });
     return Promise->resolve->then (sub {
+      my $found = {};
       return promised_for {
         my $key = shift;
         $as->{next}->(undef, undef, {key => $key});
         return if $key =~ /^\s*#/;
+
+        if ($found->{FileNames::normalize_for_duplicate_check $key}++) {
+          $as->message ({
+            type => 'duplicate data package name',
+            value => $key,
+          });
+          $self->has_error (1);
+          return;
+        }
         
         my $def = $list->{$key};
 
@@ -51,6 +62,7 @@ sub run ($;%) {
               value => $key,
               source => $def,
             });
+            $self->has_error (1);
             return;
           }
           

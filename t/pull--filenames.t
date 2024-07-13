@@ -635,6 +635,120 @@ for (
   } n => 2, name => ['dup name', $name1, $name2];
 }
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare ({
+    hoge => {
+      type => 'ckan',
+      url => "https://hoge/dataset/$key.1",
+    },
+    HOGE => {
+      type => 'ckan',
+      url => "https://hoge/dataset/$key.2",
+    },
+  }, {
+    "https://hoge/dataset/$key.1" => {
+      text => q{<meta name="generator" content="ckan 1.2.3">},
+    },
+    "https://hoge/dataset/$key.2" => {
+      text => q{<meta name="generator" content="ckan 1.2.3">},
+    },
+    "https://hoge/api/action/package_show?id=$key.1" => {
+      json => {
+        success => \1,
+        result => {
+          resources => [
+            {id => "r1", url => "https://hoge/" . $key . "/r1"},
+          ],
+        },
+      },
+    },
+    "https://hoge/api/action/package_show?id=$key.2" => {
+      json => {
+        success => \1,
+        result => {
+          resources => [
+            {id => "r1", url => "https://hoge/" . $key . "/r1"},
+          ],
+        },
+      },
+    },
+    "https://hoge/" . $key . "/r1" => {text => "r1"},
+  })->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+         my ($json, $path) = @_;
+         my @c = $path->parent->parent->parent->child ('local/data/')->children;
+         is @c, 1;
+       }},
+    ]);
+  });
+} n => 3, name => "duplicate data package keys 1";
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare ({
+    "hoge\x{03a3}" => {
+      type => 'ckan',
+      url => "https://hoge/dataset/$key.1",
+    },
+    "hoge\x{03c3}" => {
+      type => 'ckan',
+      url => "https://hoge/dataset/$key.2",
+    },
+  }, {
+    "https://hoge/dataset/$key.1" => {
+      text => q{<meta name="generator" content="ckan 1.2.3">},
+    },
+    "https://hoge/dataset/$key.2" => {
+      text => q{<meta name="generator" content="ckan 1.2.3">},
+    },
+    "https://hoge/api/action/package_show?id=$key.1" => {
+      json => {
+        success => \1,
+        result => {
+          resources => [
+            {id => "r1", url => "https://hoge/" . $key . "/r1"},
+          ],
+        },
+      },
+    },
+    "https://hoge/api/action/package_show?id=$key.2" => {
+      json => {
+        success => \1,
+        result => {
+          resources => [
+            {id => "r1", url => "https://hoge/" . $key . "/r1"},
+          ],
+        },
+      },
+    },
+    "https://hoge/" . $key . "/r1" => {text => "r1"},
+  })->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+         my ($json, $path) = @_;
+         my @c = $path->parent->parent->parent->child ('local/data/')->children;
+         is @c, 1;
+       }},
+    ]);
+  });
+} n => 3, name => "duplicate data package keys 2";
+
 Run;
 
 =head1 LICENSE
