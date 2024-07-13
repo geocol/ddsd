@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Web::Encoding;
 use Promised::Flow;
+use Web::Encoding::Normalization;
 
 use Repo;
 push our @ISA, qw(Repo);
@@ -241,8 +242,9 @@ sub construct_file_list_of ($$$;%) {
         die "Bad directory |$file->{file}->{directory}|";
       }
       if (defined $name) {
-        $found->{lc $name}++;
-        $found_n2u->{lc $name} //= $file_u if defined $file_u;
+        my $name_f = to_nfc lc uc lc $name;
+        $found->{$name_f}++;
+        $found_n2u->{$name_f} //= $file_u if defined $file_u;
         $file->{snapshot}->{file_u} = $file_u; # or undef
         $file->{snapshot}->{file_name} = $name;
       }
@@ -285,7 +287,7 @@ sub construct_file_list_of ($$$;%) {
           ($args{def_touch} or sub { })->();
           $found->{"files/$n"}++;
           $file->{snapshot}->{file_name} = "files/$n";
-        } elsif ($found->{lc $file->{snapshot}->{file_name}} > 1) {
+        } elsif ($found->{to_nfc lc uc lc $file->{snapshot}->{file_name}} > 1) {
           my $n0 = $file->{snapshot}->{file_name};
           $n0 =~ s{^files/}{};
           my $n = $n0 . '-' . $i;
@@ -310,10 +312,10 @@ sub construct_file_list_of ($$$;%) {
         }
       } else {
         if (defined $file->{snapshot}->{file_name} and
-            $found->{lc $file->{snapshot}->{file_name}} > 1) {
+            $found->{to_nfc lc uc lc $file->{snapshot}->{file_name}} > 1) {
           my $not_dup = 0;
           if (defined $file->{snapshot}->{file_u}) {
-            my $u = $found_n2u->{lc $file->{snapshot}->{file_name}};
+            my $u = $found_n2u->{to_nfc lc uc lc $file->{snapshot}->{file_name}};
             if (defined $u and $file->{snapshot}->{file_u} eq $u and
                 $found_u2->{$u}++) {
               $logger->info ({

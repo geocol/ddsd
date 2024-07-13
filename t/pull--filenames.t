@@ -572,6 +572,69 @@ for my $in_name (
   } n => 2, name => ['bad name 2', $in_name];
 }
 
+for (
+  ["abc.txt", "ABC.TXT"],
+  #["abc\x{0130}.txt", "abci.txt"],
+  ["abc\x{0131}.txt", "abcI.txt"],
+  #["\x{0131}", "\x{0130}"],
+  ["\x{00D9}.png", "U\x{0300}.png"],
+  ["\x{00D9}.jpg", "\x{00F9}.jpg"],
+  ["\x{304C}\x{304E}.png", "\x{304B}\x{3099}\x{304D}\x{3099}.png"],
+  ["\x{212A}\x{03a9}", "k\x{2126}"],
+  ["\x{212A}\x{03c9}\x{00E5}", "k\x{2126}\x{212b}"],
+  ["\x{01F3}", "\x{01f2}"],
+  ["\x{01F3}", "\x{01f1}"],
+  ["\x{01F1}", "\x{01f2}"],
+  #["\x{01F3}", "dz"],
+  #["\x{00df}", "ss"],
+  ["\x{00df}", "\x{1e9e}"],
+  #["ss", "\x{1e9e}"],
+  ["\x{0345}", "\x{03b9}"],
+  ["\x{0345}", "\x{0399}"],
+  ["\x{03a3}", "\x{03c3}"],
+  ["\x{03a3}", "\x{03c2}"],
+) {
+  my ($name1, $name2) = @$_;
+  Test {
+    my $current = shift;
+    my $key = '' . rand;
+    return $current->prepare ({
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    }, {
+      "https://hoge/dataset/" . $key => {
+        text => q{<meta name="generator" content="ckan 1.2.3">},
+      },
+      "https://hoge/api/action/package_show?id=" . $key => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => "r1", url => "https://hoge/" . $key . "/" . (percent_encode_c $name1)},
+              {id => "r2", url => "https://hoge/" . $key . "/" . (percent_encode_c $name2)},
+            ],
+          },
+        },
+      },
+      "https://hoge/" . $key . "/" . (percent_encode_c $name1) => {text => "r1"},
+      "https://hoge/" . $key . "/" . (percent_encode_c $name2) => {text => "r2"},
+    })->then (sub {
+      return $current->run ('pull');
+    })->then (sub {
+      my $r = $_[0];
+      test {
+        is $r->{exit_code}, 12;
+      } $current->c;
+      return $current->check_files ([
+        {path => "local/data/files/$name1", is_none => 1},
+        {path => "local/data/files/$name2", is_none => 1},
+      ]);
+    });
+  } n => 2, name => ['dup name', $name1, $name2];
+}
+
 Run;
 
 =head1 LICENSE
