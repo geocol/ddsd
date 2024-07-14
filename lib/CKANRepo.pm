@@ -239,9 +239,11 @@ sub fetch ($;%) {
         $as->{next}->(undef, undef, {key => $file->{key}});
         return if $file->{key} eq 'meta:ckan.json';
         return if $file->{type} eq 'dataset';
-        my $res = $file->{ckan_resource} || {};
 
-        if (not defined $res->{url}) {
+        my $res = $file->{ckan_resource} || {};
+        my $u = $file->{source}->{url};
+
+        if (not defined $u) {
           $args{has_error}->();
           $as->message ({
             type => 'broken file', format => 'CKAN resource',
@@ -251,21 +253,21 @@ sub fetch ($;%) {
           });
           return;
         }
-        my $url = Web::URL->parse_string ($res->{url});
+        my $url = Web::URL->parse_string ($u);
         if (not defined $url or not $url->is_http_s) {
           $args{has_error}->();
           $as->message ({
             type => 'bad URL',
-            value => $res->{url},
+            value => $u,
             ckan_resource => $res,
             key => 'url',
             file => $file,
           });
           return;
-        } elsif ($res->{url} =~ m<\{>) {
+        } elsif ($u =~ m<\{>) {
           $as->info ({
             type => 'URL template skipped',
-            value => $res->{url},
+            value => $u,
           });
           return;
         }
@@ -526,7 +528,7 @@ sub get_item_list ($;%) {
             $file->{file}->{directory} = 'files';
             $file->{file}->{name} = $file_defs->{$file_key}->{name};
           }
-          $file->{ckan_resource}->{url} = $self->{$url_key};
+          $file->{source}->{url} = $self->{$url_key};
           push @$files, $pack_files->{$file_key} = $file;
 
           if (defined $pack_items->{$file_key}) {
@@ -818,10 +820,14 @@ sub get_item_list ($;%) {
         $i++;
         my $file = {};
         $file->{ckan_resource} = $res if $args{with_source_meta};
-        $file->{source}->{url} = $res->{url}
-            if $args{with_source_meta} and
-               defined $res->{url} and length $res->{url};
-
+        my $url;
+        if (defined $res->{url} and length $res->{url}) {
+          my $u = $res->{url};
+          $u =~ s{^(https?://[^/]+/)admin/(gkan/)}{$1$2};
+          $url = Web::URL->parse_string ($u);
+          $file->{source}->{url} = $url->stringify if defined $url;
+        }
+        
         if (defined $res->{id} and length $res->{id} and
             not $found->{$res->{id}}++) {
           $file->{key} = 'file:id:' . $res->{id};
@@ -863,7 +869,6 @@ sub get_item_list ($;%) {
           next;
         }
         
-        my $url = Web::URL->parse_string ($res->{url});
         my $item = $self->_set_item_file_info
             ($url, $file_defs->{$file->{key}}, $in, $file, %args);
         if ($args{with_props}) {

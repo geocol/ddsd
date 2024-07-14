@@ -937,7 +937,7 @@ Test {
          my $json = shift;
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
-         is 0+keys %{$json->{items}}, 2;
+         is 0+keys %{$json->{items}}, 3;
          ok $json->{items}->{"file:id:abc"};
        }},
       {path => 'local/data/foo/files/hoge', is_none => 1},
@@ -1241,6 +1241,53 @@ Test {
     ]);
   });
 } n => 3, name => 'bad MIME type, 4';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/admin/gkan/$key/hoge"},
+          ],
+        }},
+      },
+      "https://hoge/gkan/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', text => "ab"},
+    ]);
+  })->then (sub {
+    return $current->run ('ls', additional => ['foo', '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{rev}->{url}, "https://hoge/gkan/$key/hoge";
+        is $item->{source}->{url}, "https://hoge/gkan/$key/hoge";
+      }
+    } $current->c;
+  });
+} n => 6, name => 'gkan bad url';
 
 Run;
 

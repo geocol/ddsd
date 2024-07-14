@@ -39,9 +39,11 @@ Arguments
                 data package is shown.
 
   --jsonl       Output the list in JSON Lines format.
+
   --with-item-meta
                 Output the computed metadata for items.  Only applicable
                 when <package> is specified.
+
   --with-source-meta
                 Output the metadata from the package source file (e.g.
                 CKAN package file), if any.  Only applicable when
