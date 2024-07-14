@@ -31,7 +31,7 @@ perl local/bin/pmbp.pl --install-commands "make git wget"
 
 mkdir -p local/ddsd
 (git clone -b master --depth 1 https://github.com/geocol/ddsd local/ddsd/app) || \
-(cd local/ddsd/app && git pull --depth 1 && (git checkout -b master || git checkout master) && git pull --depth 1)
+(cd local/ddsd/app && git pull --depth 1 --rebase && (git checkout -b master || git checkout master) && git pull --depth 1 --rebase)
 
 cd local/ddsd/app
 make deps-booter
