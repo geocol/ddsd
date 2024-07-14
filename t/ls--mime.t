@@ -562,6 +562,51 @@ Test {
   });
 } n => 3, name => 'normalization, case and charset';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckan',
+        url => "https://hoge/dataset/$key",
+      },
+    },
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{abc},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => "r1", url => "https://hoge/$key/r1"},
+          ],
+        }},
+      },
+      "https://hoge/$key/r1" => {
+        text => "a", mime => "TEXT/TurTle;Charset=utF-8",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      { # r1
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{mime}, 'text/turtle; charset=UTF-8';
+      }
+    } $current->c;
+  });
+} n => 3, name => 'normalization, text/turtle';
+
 Run;
 
 =head1 LICENSE
