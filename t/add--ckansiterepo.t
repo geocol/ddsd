@@ -204,6 +204,120 @@ Test {
   });
 } n => 4, name => 'page url';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key/ckan/" => {
+        text => qq{
+          <meta name="generator" content="ckan 1.2.3" />
+          </head>
+          <body data-site-root="https://hoge/$key/ckan/" data-locale-root="https://hoge/$key/ckan/" >
+          hoge
+        },
+      },
+      "https://hoge/$key/ckan/api/action/package_list" => {
+        json => {
+          success => \1,
+          result => ["abc", "def"],
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key/ckan/"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/hoge/index.json", json => sub {
+         my $json = shift;
+         is 0+keys %{$json->{items}}, 2;
+         ok $json->{items}->{'file:package_list.json'};
+       }},
+    ]);
+  });
+} n => 4, name => 'ckan url';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key/ckan/" => {
+        text => qq{
+          <link rel="shortcut icon" href="/base/images/ckan.ico" />
+          </head>
+          <body data-site-root="https://hoge/$key/ckan/" data-locale-root="https://hoge/$key/ckan/" >
+          hoge
+        },
+      },
+      "https://hoge/$key/ckan/api/action/package_list" => {
+        json => {
+          success => \1,
+          result => ["abc", "def"],
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key/ckan/"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/hoge/index.json", json => sub {
+         my $json = shift;
+         is 0+keys %{$json->{items}}, 2;
+         ok $json->{items}->{'file:package_list.json'};
+       }},
+    ]);
+  });
+} n => 4, name => 'ckan url, no meta generator but icon';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key/gkan/" => {
+        text => qq{
+          <meta name="generator" content="ckan " />
+          </head>
+          <body id="pagetop" data-site-root="/$key/gkan/" data-locale-root="/$key/gkan/" >
+          hoge
+        },
+      },
+      "https://hoge/$key/gkan/api/action/package_list" => {
+        json => {
+          success => \1,
+          result => ["abc", "def"],
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key/gkan/"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/hoge/index.json", json => sub {
+         my $json = shift;
+         is 0+keys %{$json->{items}}, 2;
+         ok $json->{items}->{'file:package_list.json'};
+       }},
+    ]);
+  });
+} n => 4, name => 'gkan url';
+
 Run;
 
 =head1 LICENSE

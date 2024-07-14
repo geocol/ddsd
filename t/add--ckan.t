@@ -39,10 +39,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -89,10 +89,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -139,10 +139,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -158,7 +158,7 @@ Test {
   my $current = shift;
   my $key = '%00%5E' . rand;
   my $key2 = $key;
-  $key2 =~ s/%/_/g;
+  $key2 =~ s/%../_/g;
   return $current->prepare (
     undef,
     {
@@ -191,10 +191,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key2/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -241,10 +241,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};
@@ -259,22 +259,28 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
+      is 0+@{$r->{jsonl}}, 5;
       {
         my $item = $r->{jsonl}->[0];
-        is $item->{type}, 'package';
-        is $item->{key}, 'package';
-        is $item->{file}->{directory}, '';
-        is $item->{file}->{name}, 'package-ckan.json';
-        like $item->{path}, qr{/local/data/$key/package-ckan.json$};
-        is $item->{package_item}->{title}, '';
-        ok $item->{package_item}->{file_time};
         ok $item->{package_item}->{legal};
         is 0+@{$item->{package_item}->{legal}}, 0;
         ok $item->{package_item}->{snapshot_hash};
-        is $item->{package_item}->{mime}, 'application/json';
         is $item->{package_item}->{page_url}, "https://search.ckan.jp/datasets/$key";
         is $item->{package_item}->{ckan_api_url}, "https://search.ckan.jp/backend/api/package_show?id=$key";
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:ckan.json';
+        is $item->{file}->{directory}, 'package';
+        is $item->{file}->{name}, 'package.ckan.json';
+        like $item->{path}, qr{/local/data/$key/package/package.ckan.json$};
+        is $item->{package_item}->{title}, '';
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{mime}, 'application/json';
         ok $item->{rev}->{timestamp};
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
@@ -282,13 +288,10 @@ Test {
         is $item->{rev}->{original_url}, "https://search.ckan.jp/backend/api/package_show?id=$key";
         ok $item->{rev}->{sha256};
         ok ! $item->{rev}->{insecure};
-        is $item->{package_item}->{lang}, '';
-        is $item->{package_item}->{dir}, 'auto';
-        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
       }
-      is $r->{jsonl}->[1]->{type}, 'file';
       is $r->{jsonl}->[2]->{type}, 'file';
       is $r->{jsonl}->[3]->{type}, 'file';
+      is $r->{jsonl}->[4]->{type}, 'file';
     } $current->c;
   });
 } n => 40, name => 'search.ckan.jp';
@@ -331,10 +334,10 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 5;
-         ok ! $json->{items}->{package}->{rev}->{insecure};
+         ok ! $json->{items}->{'meta:ckan.json'}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r1"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r2"}->{rev}->{insecure};
          ok ! $json->{items}->{"file:id:r3"}->{rev}->{insecure};

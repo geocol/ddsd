@@ -69,22 +69,22 @@ sub run ($$;%) {
                }
              }) {
       $logger->info ({
-        type => 'CKAN generated page',
+        type => 'ckan generated page detected',
         value => $1,
         url => $r->{url}->stringify,
       });
 
       my $root_url;
-      if ($r->{body_bytes} =~ m{<body data-site-root="([^"&]+)"}) {
-        $root_url = $1;
+      if ($r->{body_bytes} =~ m{<body[^<>]*?data-site-root="([^"&]+)"}) {
+        $root_url = Web::URL->parse_string ($1, $r->{url})->stringify;
         $logger->info ({
-          type => 'CKAN site root URL detected',
+          type => 'ckan data-site-root detected',
           value => $root_url,
           url => $r->{url}->stringify,
         });
       } else {
         $logger->info ({
-          type => 'CKAN site root URL missing',
+          type => 'ckan data-site-root missing',
           url => $r->{url}->stringify,
         });
         if ($r->{url}->path =~ m{^/(.+/)dataset/}) {
