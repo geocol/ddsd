@@ -14,8 +14,12 @@ updatenightly: local/bin/pmbp.pl build
 
 deps: git-submodules pmbp-install
 
+deps-booter: git-submodules-min pmbp-install
+
 git-submodules:
 	$(GIT) submodule update --init
+git-submodules-min:
+	$(GIT) submodule update --init --depth 1 modules/
 
 PMBP_OPTIONS=
 
