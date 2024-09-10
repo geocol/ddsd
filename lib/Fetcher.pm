@@ -239,7 +239,7 @@ sub fetch ($$$;%) {
 
     my $need_bytes = 0;
     if ($args{sniffing}) {
-      $need_bytes = 1445 if $is_html;
+      $need_bytes = 10240 if $is_html;
       $need_bytes = 0+"Inf" if $is_json or $args{sniffing} eq 'full';
       if (not $is_html and not $is_json) {
         $res->body_stream->cancel;
