@@ -323,6 +323,76 @@ Test {
   });
 } n => 7, name => 'packref_license';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {type => 'packref', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/dataset/$key" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+          terms_url => "https://hoge/$key/terms",
+        },
+      },
+      $current->legal_url_prefix . 'websites.json' => {
+        json => [{
+          terms_url => "https://hoge/$key/terms",
+          source => {type => 'packref', url => "https://hoge/$key/license.json"},
+          legal_key => "a-x",
+        }],
+      },
+      "https://hoge/$key/license.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+        },
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          "a-x" => {
+            is_free => "free",
+            notice => {
+              template => "\x{7000}{title}, {holder}, {url}, {modified_by}.{foo}",
+              template_not_modified => "\x{8000}",
+              "need_holder" => 1,
+              need_title => 1,
+              need_url => 1,
+              need_modified_flag => 1,
+            },
+            lang => "en",
+            dir => "ltr",
+            writing_mode => "vertical-rl",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => "neutral",
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo'], stdout => 'text');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        like $r->{stdout}, qr{\x{7000}\{title\}, \{holder\}, \Qhttps://hoge/$key/dataset/$key\E, \{modified_by\}\.\{foo\}};
+        unlike $r->{stdout}, qr{Web::URL};
+      }
+    } $current->c;
+  });
+} n => 4, name => 'template url';
+
 Run;
 
 =head1 LICENSE

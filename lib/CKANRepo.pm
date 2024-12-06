@@ -57,7 +57,7 @@ sub new_from_set_and_url ($$$) {
   $self->{api_url} = sprintf $p,
       $self->{scheme}, $self->{host}, $self->{prefix},
       percent_encode_c $self->{id};
-  $self->{url} = sprintf $q,
+  $self->{page_url} = sprintf $q,
       $self->{scheme}, $self->{host}, $self->{prefix},
       percent_encode_c $self->{id};
   $self->{activity_url} = sprintf $r,
@@ -66,7 +66,8 @@ sub new_from_set_and_url ($$$) {
       if defined $r;
   $self->{root_url} = sprintf $s,
       $self->{scheme}, $self->{host}, $self->{prefix};
-  $self->_set_key ($self->{url});
+  $self->{url} = Web::URL->parse_string ($self->{page_url});
+  $self->_set_key ($self->{url}->stringify);
   
   return $self;
 } # new_from_set_and_url
@@ -418,7 +419,7 @@ sub get_item_list ($;%) {
           lang => '',
           dir => 'auto',
           writing_mode => 'horizontal-tb',
-          page_url => $self->{url},
+          page_url => $self->{page_url},
           ckan_api_url => $self->{api_url},
         },
       };

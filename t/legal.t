@@ -3430,10 +3430,11 @@ Test {
       is $r->{exit_code}, 0;
       {
         like $r->{stdout}, qr{\x{7000}\x{5000}, \x{4000}, \Qhttps://hoge/$key/dataset/$key\E, \{modified_by\}\.\{foo\}};
+        unlike $r->{stdout}, qr{Web::URL};
       }
     } $current->c;
   });
-} n => 3, name => 'template';
+} n => 4, name => 'template';
 
 Test {
   my $current = shift;

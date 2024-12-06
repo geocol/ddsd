@@ -994,6 +994,7 @@ sub get_legal ($;%) {
           if (defined $in->{notice} and ref $in->{notice} eq 'HASH') {
             $inn = $in->{notice};
           }
+        # XXX packref meta
           for my $key (qw(holder template template_not_modified)) {
             $l->{notice}->{$key} = {
               lang => $l->{lang},
@@ -1065,7 +1066,7 @@ sub get_legal ($;%) {
 
           if ($inn->{need_url} or $subn->{need_url}) {
             if (defined $repo->{url}) {
-              $l->{notice}->{url} = $repo->{url};
+              $l->{notice}->{url} = $repo->{url}->stringify;
             }
           }
 
