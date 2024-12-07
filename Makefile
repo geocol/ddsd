@@ -19,7 +19,8 @@ deps-booter: git-submodules-min pmbp-install
 git-submodules:
 	$(GIT) submodule update --init
 git-submodules-min:
-	$(GIT) submodule update --init --depth 1 modules/
+	$(GIT) submodule update --init --depth 1 modules/ || \
+	GIT_CONFIG_GLOBAL=/tmp/pmbpbootergitconfig $(GIT) submodule update --init --depth 1 modules/
 
 PMBP_OPTIONS=
 

@@ -3,11 +3,13 @@ set -eo pipefail
 
 {{INSTALL}}
 
-perl local/bin/pmbp.pl --install-commands "make git wget"
+perl local/bin/pmbp.pl --install-commands "make git wget" \
+    --add-to-gitignore /ddsd
 
 mkdir -p local/ddsd
 (git clone -b @@BRANCH@@ --depth 1 https://github.com/geocol/ddsd local/ddsd/app) || \
-(cd local/ddsd/app && git pull --depth 1 --rebase && (git checkout -b @@BRANCH@@ || git checkout @@BRANCH@@) && git pull --depth 1 --rebase)
+(GIT_CONFIG_GLOBAL=/tmp/pmbpbootergitconfig git clone -b @@BRANCH@@ --depth 1 https://github.com/geocol/ddsd local/ddsd/app) || \
+(cd local/ddsd/app && (git pull --depth 1 --rebase || GIT_CONFIG_GLOBAL=/tmp/pmbpbootergitconfig git pull --depth 1 --rebase) && (git checkout -b @@BRANCH@@ || git checkout @@BRANCH@@) && (git pull --depth 1 --rebase || GIT_CONFIG_GLOBAL=/tmp/pmbpbootergitconfig git pull --depth 1 --rebase))
 
 cd local/ddsd/app
 make deps-booter
