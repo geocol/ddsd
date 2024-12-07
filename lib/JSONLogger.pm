@@ -178,13 +178,14 @@ sub start ($$$;%) {
         my $v = $err->{value} // $err->{key} // (defined $err->{url} and ref $err->{url} ? $err->{url}->stringify : $err->{url}) // $err->{type} // '';
         $current->{label} = $v if length $v;
         if ($max) {
-          $upstream_up->($current->{value}, $current->{label}, 0);
+          # XXX upstream's value need to be recomputed if $max is updated
+          $upstream_up->($current->{value} * $current->{p}, $current->{label}, 0);
         } else {
           $this_up->($current->{value}, $current->{label}, 0);
         }
+        $prev_time = $now;
       }
       $n += $delta;
-      $prev_time = $now;
     },
     ok => sub {
       my $v = $_[0];
