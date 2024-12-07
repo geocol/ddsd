@@ -1427,6 +1427,7 @@ sub format_legal ($$$;%) {
 my $MIMENormalize = {
   'application/json; charset=utf-8' => 'application/json',
   'application/x-zip-compressed' => 'application/zip',
+  'binary/octet-stream' => 'application/octet-stream',
   'text/turtle; charset=utf-8' => 'text/turtle; charset=UTF-8',
 };
 
