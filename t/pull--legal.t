@@ -17,6 +17,9 @@ Test {
             'file:r:ckan.json' => {
               url => 'abc',
             },
+            'file:r:info.json' => {
+              url => 'info.json',
+            },
           },
         },
       },
@@ -36,7 +39,7 @@ Test {
       {path => 'local/data', is_none => 1},
       {path => 'local/ddsd/data/legal/index.json', json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 1;
+         is 0+keys %{$json->{items}}, 3;
          is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
        }},
       {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
@@ -67,7 +70,7 @@ Test {
       {path => 'local/data', is_none => 1},
       {path => 'local/ddsd/data/legal/index.json', json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 1;
+         is 0+keys %{$json->{items}}, 3;
          is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
        }},
       {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
@@ -138,6 +141,9 @@ Test {
           files => {
             'file:r:ckan.json' => {
               url => 'abc',
+            },
+            'file:r:info.json' => {
+              url => 'info.json',
             },
           },
         },

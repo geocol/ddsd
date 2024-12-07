@@ -21,6 +21,12 @@ Test {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
             },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
+            },
           },
         },
       },
@@ -139,21 +145,21 @@ Test {
            my $v = json_bytes2perl $lines->[0];
            is $v->{timestamp}, $current->o ('log1')->{timestamp};
            is $v->{legal_key}, "$key-license";
-           is $v->{legal_source_key}, "package:activity.html";
+           is $v->{legal_source_key}, "meta:activity.html";
            is $v->{legal_source_url}, "https://hoge/$key/license";
          }
          {
            my $v = json_bytes2perl $lines->[1];
            is $v->{timestamp}, $current->o ('log2')->{timestamp};
            is $v->{legal_key}, "$key-license";
-           is $v->{legal_source_key}, "package:activity.html";
+           is $v->{legal_source_key}, "meta:activity.html";
            is $v->{legal_source_url}, "https://hoge/$key/license";
          }
          {
            my $v = json_bytes2perl $lines->[2];
            is $v->{timestamp}, $current->o ('log2')->{timestamp};
            is $v->{legal_key}, "$key-license";
-           is $v->{legal_source_key}, "package:activity.html";
+           is $v->{legal_source_key}, "meta:activity.html";
            is $v->{legal_source_url}, "https://hoge/$key/license";
          }
        }},
@@ -206,6 +212,12 @@ Test {
           files => {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
+            },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
             },
           },
         },
@@ -285,7 +297,7 @@ Test {
            is $v->{legal_key}, "$key-license";
          }
        }},
-      {path => "local/data/hoge/package-ckan.json",
+      {path => "local/data/hoge/package/package.ckan.json",
        text => q{ {"success": true, "result": {}} }},
     ]);
   });
@@ -298,7 +310,7 @@ Test {
     hoge => {
       type => 'ckan', url => "https://hoge/$key/dataset/$key",
       files => {
-        package => {
+        'meta:ckan.json' => {
           sha256 => 'd5850b8046f03d3ede10a30f1c9bff25fd12ad0f303ba6dcbf21b0b1534db0e4',
         },
       },
@@ -312,6 +324,12 @@ Test {
           files => {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
+            },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
             },
           },
         },
@@ -372,7 +390,7 @@ Test {
            $current->set_o (v1 => $v);
          }
        }},
-      {path => "local/data/hoge/package-ckan.json",
+      {path => "local/data/hoge/package/package.ckan.json",
        text => q{ {"success": true, "result": {}} }},
     ]);
   });
@@ -399,6 +417,12 @@ Test {
           files => {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
+            },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
             },
           },
         },
@@ -492,6 +516,12 @@ Test {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
             },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
+            },
           },
         },
       },
@@ -576,6 +606,12 @@ Test {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
             },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
+            },
           },
         },
       },
@@ -622,7 +658,7 @@ Test {
            is $v->{legal_key}, "-ddsd-unknown";
          }
        }},
-      {path => "local/data/hoge/package-ckan.json",
+      {path => "local/data/hoge/package/package.ckan.json",
        text => q{ {"success": true, "result": {}} }},
     ]);
   });
@@ -643,6 +679,12 @@ Test {
           files => {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
+            },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
             },
           },
         },
@@ -863,6 +905,12 @@ Test {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
             },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
+            },
           },
         },
       },
@@ -901,7 +949,7 @@ Test {
          my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
          is $json->{items}->{$file_key}->{files}->{log}, undef;
        }},
-      {path => "local/data/hoge/package-ckan.json",
+      {path => "local/data/hoge/package/package.ckan.json",
        text => q{ {"success": true, "result": {}} }},
     ]);
   });
@@ -921,6 +969,12 @@ Test {
           files => {
             'file:r:websites.json' => {
               url => "https://hoge/websites.json",
+            },
+            'file:r:info.json' => {
+              url => "info.json",
+            },
+            'file:r:ckan.json' => {
+              url => "ckan.json",
             },
           },
         },
@@ -960,7 +1014,7 @@ Test {
          my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
          is $json->{items}->{$file_key}->{files}->{log}, undef;
        }},
-      {path => "local/data/hoge/package-ckan.json",
+      {path => "local/data/hoge/package/package.ckan.json",
        text => q{ {"success": true, "result": {}} }},
     ]);
   });

@@ -53,7 +53,7 @@ Test {
          is 0+keys %{$json->{items}}, 2;
          {
            my $item = $json->{items}->{package};
-           is $item->{files}->{data}, 'package-ckan.json';
+           is $item->{files}->{data}, 'package.ckan.json';
            is $item->{type}, 'package';
          }
          {
@@ -64,7 +64,7 @@ Test {
          is $json->{source}->{type}, 'ckan';
          is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
-      {path => "local/data/$key/package-ckan.json", json => sub {
+      {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
         is 0+@{$json->{result}->{resources}}, 1;
       }},

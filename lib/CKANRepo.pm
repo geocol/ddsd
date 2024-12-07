@@ -259,6 +259,7 @@ sub fetch ($;%) {
           $args{has_error}->();
           $as->message ({
             type => 'bad URL',
+            format => 'CKAN resource',
             value => $u,
             ckan_resource => $res,
             key => 'url',
@@ -493,7 +494,7 @@ sub get_item_list ($;%) {
     my $pack_files = {};
     for (
       ['activity.html', 'activity_url'],
-      ($self->{host} eq 'data.bodik.jp' ? ['index.html', 'url'] : ()),
+      ($self->{host} eq 'data.bodik.jp' ? ['index.html', 'page_url'] : ()),
     ) {
       my ($file_name, $url_key) = @$_;
       my $file_key = 'meta:' . $file_name;

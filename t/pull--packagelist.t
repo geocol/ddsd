@@ -517,7 +517,7 @@ Test {
          ok $json->{foo};
        }},
       {path => 'local/data/foo/files/r1', text => "r1"},
-      {path => 'local/data/foo/package-ckan.json', is_none => 1},
+      {path => 'local/data/foo/package/package.ckan.json', is_none => 1},
     ]);
   });
 } n => 6, name => 'package rename';

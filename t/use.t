@@ -311,7 +311,7 @@ Test {
       {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 44, name => 'use';
+} n => 48, name => 'use';
 
 Test {
   my $current = shift;
@@ -641,7 +641,7 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
+         is 0+keys %{$def->{files}}, 5;
          ok ! $def->{files}->{package}->{skip};
          ok ! $def->{files}->{'file:meta:ckan.json'}->{skip};
          ok ! $def->{files}->{"file:id:r1"}->{skip};
