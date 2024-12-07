@@ -74,10 +74,10 @@ Test {
          my $json = shift;
          is $json->{type}, 'mirrorzip';
          is 0+keys %{$json->{items}}, 3;
-         is $json->{items}->{package}->{files}->{data}, "data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat";
-         like $json->{items}->{package}->{files}->{meta}, qr{^meta/.+\.json$};
-         is $json->{items}->{"package:activity.html"}->{files}->{data}, "data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat";
-         like $json->{items}->{"package:activity.html"}->{files}->{meta}, qr{^meta/.+\.json$};
+         is $json->{items}->{'meta:ckan.json'}->{files}->{data}, "data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat";
+         like $json->{items}->{'meta:ckan.json'}->{files}->{meta}, qr{^meta/.+\.json$};
+         is $json->{items}->{"meta:activity.html"}->{files}->{data}, "data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat";
+         like $json->{items}->{"meta:activity.html"}->{files}->{meta}, qr{^meta/.+\.json$};
          is $json->{items}->{"file:index:0"}->{files}->{data}, "data/ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.dat";
          like $json->{items}->{"file:index:0"}->{files}->{meta}, qr{^meta/.+\.json$};
          is $json->{items}->{"file:index:0"}->{rev}->{url}, "https://hoge/$key/abc.txt";
@@ -141,7 +141,7 @@ Test {
        }},
     ]);
   });
-} n => 10, name => 'zip created, --json';
+} n => 13, name => 'zip created, --json';
 
 Test {
   my $current = shift;
