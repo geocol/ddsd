@@ -41,40 +41,44 @@ sub write_by_readable ($$$;%) {
     
     my $reader = $rs->get_reader ('byob');
     my $last_error;
-    return promised_until {
-      if (defined $last_error) {
-        $dest_w->abort;
-        die $last_error;
-      }
-      
-      my $ab = ArrayBuffer->new (100*1024);
-      my $dv = DataView->new ($ab);
-      return $reader->read ($dv)->then (sub {
-        if ($_[0]->{done}) {
-          return $dest_w->close->then (sub {
-            return 'done';
-          });
-        }
-
-        if ($args{sha256}) {
-          $d->add ($_[0]->{value}->manakai_to_string);
-        }
-        if (defined $r->{body_bytes}) {
-          unless ($need <= length $r->{body_bytes}) {
-            $r->{body_bytes} .= $_[0]->{value}->manakai_to_string;
+    return Promise->resolve->then (sub {
+      return promised_until {
+        die $last_error if defined $last_error;
+        
+        my $ab = ArrayBuffer->new (100*1024);
+        my $dv = DataView->new ($ab);
+        return $reader->read ($dv)->then (sub {
+          if ($_[0]->{done}) {
+            return $dest_w->close->then (sub {
+              return 'done';
+            });
           }
-        }
-        $dest_w->write ($_[0]->{value})->catch (sub {
-          $last_error = $_[0];
-        });
-        $length += $_[0]->{value}->byte_length;
-        $logger->{next}->($_[0]->{value}->byte_length);
 
-        return $dest_w->ready->then (sub {
-          return not 'done';
+          if ($args{sha256}) {
+            $d->add ($_[0]->{value}->manakai_to_string);
+          }
+          if (defined $r->{body_bytes}) {
+            unless ($need <= length $r->{body_bytes}) {
+              $r->{body_bytes} .= $_[0]->{value}->manakai_to_string;
+            }
+          }
+          $dest_w->write ($_[0]->{value})->catch (sub {
+            $last_error = $_[0];
+          });
+          $length += $_[0]->{value}->byte_length;
+          $logger->{next}->($_[0]->{value}->byte_length);
+
+          return $dest_w->ready->then (sub {
+            return not 'done';
+          });
         });
-      });
-    };
+      };
+    })->catch (sub {
+      my $e = $_[0];
+      $dest_w->abort;
+      $reader->cancel;
+      die $_[0];
+    });
   })->then (sub {
     $r->{path} = $dest_path;
     $r->{sha256} = $d->hexdigest if $args{sha256};

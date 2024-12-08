@@ -274,7 +274,7 @@ sub fetch ($$$;%) {
       }
       return $r;
     })->finally (sub {
-      $res->body_stream->cancel;
+      $res->body_stream->cancel unless $res->body_stream->locked;
     });
   })->catch (sub {
     my $e = $_[0];
