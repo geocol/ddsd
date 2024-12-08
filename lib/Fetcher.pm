@@ -273,6 +273,8 @@ sub fetch ($$$;%) {
         }
       }
       return $r;
+    })->finally (sub {
+      $res->body_stream->cancel;
     });
   })->catch (sub {
     my $e = $_[0];
@@ -283,7 +285,10 @@ sub fetch ($$$;%) {
     }) unless $error_reported;
     return {error => 1, url => $used_url, insecure => $insecure};
   })->finally (sub {
-    return $client->close if defined $client;
+    if (defined $client) {
+      $client->abort;
+      return $client->close;
+    }
   })->then ($as->{ok}, $as->{ng});
 } # fetch
 

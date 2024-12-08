@@ -40,8 +40,14 @@ sub write_by_readable ($$$;%) {
     my $dest_w = $dest_ws->get_writer;
     
     my $reader = $rs->get_reader ('byob');
+    my $last_error;
     return promised_until {
-      my $ab = ArrayBuffer->new (1024*10);
+      if (defined $last_error) {
+        $dest_w->abort;
+        die $last_error;
+      }
+      
+      my $ab = ArrayBuffer->new (100*1024);
       my $dv = DataView->new ($ab);
       return $reader->read ($dv)->then (sub {
         if ($_[0]->{done}) {
@@ -58,11 +64,15 @@ sub write_by_readable ($$$;%) {
             $r->{body_bytes} .= $_[0]->{value}->manakai_to_string;
           }
         }
-        $dest_w->write ($_[0]->{value}); # XXX catch
+        $dest_w->write ($_[0]->{value})->catch (sub {
+          $last_error = $_[0];
+        });
         $length += $_[0]->{value}->byte_length;
         $logger->{next}->($_[0]->{value}->byte_length);
-        
-        return not 'done';
+
+        return $dest_w->ready->then (sub {
+          return not 'done';
+        });
       });
     };
   })->then (sub {

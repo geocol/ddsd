@@ -126,7 +126,7 @@ sub start ($$$;%) {
   
   my $prev_time = time;
   my $current = {
-    delta => 1,
+    delta => 0,
     p => ($max ? 1 / $max : 1),
     q => ($max ? 100 : 1),
     value => 0,
@@ -164,14 +164,14 @@ sub start ($$$;%) {
       my $args = $_[2] || {};
       my $now = time;
       my $elapsed = $now - $prev_time;
-      if ($elapsed > 0.5) {
+      $current->{delta} += $delta;
+      if ($elapsed > 1) {
         my $err = {%$opts, %$args};
         $self->_error ({level => 'info', time => $now, error => $err,
                         action => 'progress',
                         n => $n, delta => $delta,
                         max => $max, # or undef
                         progress_id => $progress_id});
-        $current->{delta} = $delta;
         $current->{q} = $max ? 100 : 1;
         $current->{p} = $max ? 1 / $max : 1;
         $current->{value} = $n;
@@ -184,6 +184,7 @@ sub start ($$$;%) {
           $this_up->($current->{value}, $current->{label}, 0);
         }
         $prev_time = $now;
+        $current->{delta} = 0;
       }
       $n += $delta;
     },
