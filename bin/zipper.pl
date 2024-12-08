@@ -127,6 +127,7 @@ sub main ($) {
   return $return->{exit_code};
 } # main
 
+$| = 1;
 exit main (do {
   local $/ = undef;
   scalar <>;
