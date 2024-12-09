@@ -25,6 +25,7 @@ sub create ($) {
   for my $file (@{$in->{files}}) {
     print_info {type => 'add file to archive', format => 'zip',
                 path => $file->{input_file_name},
+                input_size => (-s $file->{input_file_name}),
                 path_in_archive => $file->{file_name}};
     $zip->addFile ($file->{input_file_name}, $file->{file_name})
         or die "$file->{input_file_name}: $!";
