@@ -176,6 +176,7 @@ sub get_item_list ($;%) {
       if ($args{with_source_meta}) {
         $file->{source}->{url} = $url;
       }
+      # XXX skipped
       my $item = $self->_set_item_file_info
           ($url, $file_defs->{$file_key}, $in, $file, %args);
       $items->{$file_key} = $item; # or undef

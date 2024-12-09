@@ -534,7 +534,9 @@ sub get_item_list ($;%) {
           push @$files, $pack_files->{$file_key} = $file;
 
           if (defined $pack_items->{$file_key}) {
-            $file->{rev} = $pack_items->{$file_key}->{rev};
+            my $skipped = $file_defs->{$file_key}->{skip};
+            $file->{rev} = $pack_items->{$file_key}->{rev}
+                unless $skipped; # XXX tests for skipped
             if (defined $file->{rev}) {
               if (defined $file->{rev}->{http_content_type}) {
                 $file->{package_item}->{mime} = $file->{rev}->{http_content_type};
@@ -848,8 +850,10 @@ sub get_item_list ($;%) {
         } else {
           $file->{type} = 'file';
         }
+        my $skipped;
         if (defined $file_defs->{$file->{key}} and
             $file_defs->{$file->{key}}->{skip}) {
+          $skipped = 1;
           if ($args{with_skipped}) {
             #
           } else {
@@ -871,8 +875,9 @@ sub get_item_list ($;%) {
           next;
         }
         
-        my $item = $self->_set_item_file_info
-            ($url, $file_defs->{$file->{key}}, $in, $file, %args);
+        $self->_set_item_file_info
+            ($url, $file_defs->{$file->{key}}, $in, $file, %args)
+            unless $skipped; # XXX tests for skipped
         if ($args{with_props}) {
           my $pi = $file->{package_item};
           {

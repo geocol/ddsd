@@ -137,7 +137,7 @@ sub run ($$;%) {
           with_source_meta => $args{with_source_meta},
           with_props => 1,
           with_snapshot_hash => 1,
-          with_skipped => 1,
+          with_skipped => 1, # XXX only locally-skipped
           has_error => sub { },
           data_area_key => $args{data_repo_name},
         );

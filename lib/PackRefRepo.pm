@@ -429,7 +429,9 @@ sub get_item_list ($;%) {
           } else {
             $file->{type} = 'file';
           }
+          my $skipped;
           if (defined $fdef and $fdef->{skip}) {
+            $skipped = 1;
             if ($args{with_skipped}) {
               #
             } else {
@@ -447,7 +449,8 @@ sub get_item_list ($;%) {
               if ($args{with_source_meta} or
                   ($file->{type} eq 'dataset' and $file->{set_type} eq 'sparql')) and
                  defined $url;
-          $self->_set_item_file_info ($url, $fdef, $in, $file, %args);
+          $self->_set_item_file_info ($url, $fdef, $in, $file, %args)
+              unless $skipped; # XXX tests for skipped
 
           if (defined $file->{package_item}->{file_time}) {
             $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
