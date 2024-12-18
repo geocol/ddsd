@@ -1032,6 +1032,9 @@ sub get_legal ($;%) {
                   ref $ckan->{organization} eq 'HASH' and
                   defined $ckan->{organization}->{title} and
                   length $ckan->{organization}->{title} and
+                  not {
+                    '--' => 1,
+                  }->{$ckan->{organization}->{title}} and
                   not $l->{notice}->{holder}->{value} =~ m{\Q$ckan->{organization}->{title}\E}) {
                 $l->{notice}->{holder}->{value} .= sprintf ' (%s)',
                     $ckan->{organization}->{title};
@@ -1040,7 +1043,10 @@ sub get_legal ($;%) {
             } elsif (defined $ckan->{organization} and
                      ref $ckan->{organization} eq 'HASH' and
                      defined $ckan->{organization}->{title} and
-                     length $ckan->{organization}->{title}) {
+                     length $ckan->{organization}->{title} and
+                     not {
+                       '--' => 1,
+                     }->{$ckan->{organization}->{title}}) {
               $l->{notice}->{holder} = {
                 lang => $pi->{lang},
                 dir => $pi->{dir},

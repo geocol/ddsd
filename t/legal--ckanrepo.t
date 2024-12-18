@@ -511,6 +511,123 @@ Test {
   });
 } n => 17, name => 'non-free in CKAN notes 3';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "--"},
+          resources => [],
+          license_id => "foo",
+          license_url => "bar",
+          license_title => "abc",
+          notes => qq{abc\x0D\x0Aファイルライセンス：CC BY-NC-ND 4.0?\x0D\x0Adef},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {id => "foo", url => "bar", title => "abc", is => "bbb"},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+            notice => {
+              need_holder => 1,
+            },
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{notice}->{holder}->{value}, undef;
+        }
+      }
+    } $current->c;
+  });
+} n => 3, name => 'organization -- 1';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          author => "hoge",
+          organization => {"title" => "--"},
+          resources => [],
+          license_id => "foo",
+          license_url => "bar",
+          license_title => "abc",
+          notes => qq{abc\x0D\x0Aファイルライセンス：CC BY-NC-ND 4.0?\x0D\x0Adef},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {id => "foo", url => "bar", title => "abc", is => "bbb"},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+            notice => {
+              need_holder => 1,
+            },
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{notice}->{holder}->{value}, 'hoge';
+        }
+      }
+    } $current->c;
+  });
+} n => 3, name => 'organization -- 2';
+
 Run;
 
 =head1 LICENSE
