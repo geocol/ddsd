@@ -46,7 +46,9 @@ sub is_free_file_name ($) {
     "lpt\xB3" => 1,
   }->{$t};
 
-  $s = decode_web_utf8 encode_web_utf8 $s;
+  my $u = encode_web_utf8 $s;
+  return 0 if 240 < length $u;
+  $s = decode_web_utf8 $u;
   return 0 if not $s eq $_[0];
 
   return 1;
@@ -69,7 +71,7 @@ sub escape_file_name ($) {
 
 sub truncate_file_name ($) {
   my $name = shift;
-  return substr $name, 0, 120;
+  return substr $name, 0, 50;
 } # truncate_file_name
 
 sub normalize_for_duplicate_check ($) {

@@ -207,7 +207,10 @@ sub construct_file_list_of ($$$;%) {
             $name = $file->{id}; # or undef
           }
           my $name0 = $name;
-          $name = FileNames::escape_file_name $name if defined $name;
+          if (defined $name) {
+            $name = FileNames::escape_file_name $name;
+            $name = FileNames::truncate_file_name $name;
+          }
           undef $name unless FileNames::is_free_file_name $name;
           if (defined $name and not $name eq $name0) {
             if ($args{init_by_default}) {
