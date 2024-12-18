@@ -250,6 +250,60 @@ Test {
 } n => 6, name => 'filename in ckan title';
 
 for (
+  "d3fe55f0952921dab2a88163b8a2e8a2fe5dcce59831b2746d072670e4b5aa45",
+) {
+  my ($in_name) = $_;
+  Test {
+    my $current = shift;
+    my $key = '' . rand;
+    return $current->prepare ({
+      $key => {
+        type => 'packref',
+        url => "https://hoge/$key.json",
+      },
+    }, {
+      "https://hoge/$key.json" => {
+        json => {
+          type => 'packref',
+          source => {
+            type => 'ckan',
+            url => "https://hoge/dataset/$key",
+          },
+        },
+      },
+      "https://hoge/dataset/" . $key => {
+        text => q{<meta name="generator" content="ckan 1.2.3">},
+      },
+      "https://hoge/api/action/package_show?id=" . $key => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => "r1", url => "https://hoge/" . $key . "/" . percent_encode_c $in_name},
+            ],
+          },
+        },
+      },
+      "https://hoge/" . $key . "/" . (percent_encode_c $in_name) => {text => "r1", mime => 'text/plain'},
+    })->then (sub {
+      return $current->run ('pull');
+    })->then (sub {
+      my $r = $_[0];
+      test {
+        is $r->{exit_code}, 0;
+      } $current->c;
+      return $current->check_files ([
+        {path => "config/ddsd/packages.json", json => sub {
+           my $json = shift;
+           is $json->{$key}->{files}->{"file:id:r1"}->{name}, undef;
+         }},
+        {path => "local/data/$key/files/$in_name", text => "r1"},
+      ]);
+    });
+  } n => 4, name => ['good name', $in_name];
+}
+
+for (
   ['hoge fuga.txt' => 'hoge_fuga.txt'],
   ['hoge/fu$ga.txt' => 'fu_ga.txt'],
   ['hoge fuga.TXT' => 'hoge_fuga.TXT'],

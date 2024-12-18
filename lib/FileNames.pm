@@ -71,6 +71,8 @@ sub escape_file_name ($) {
 
 sub truncate_file_name ($) {
   my $name = shift;
+  my $s = substr $name, 0, 150;
+  return $s unless $s =~ /[^\x00-\x7F]/;
   return substr $name, 0, 50;
 } # truncate_file_name
 
