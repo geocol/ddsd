@@ -285,6 +285,213 @@ Test {
         json => {success => \1, result => {
           organization => {"title" => "\x{5000}"},
           resources => [],
+          notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {extracted_url => "https://host/path/terms", is => "bbb"},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => 'neutral',
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        is 0+@{$item->{legal}}, 2;
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{type}, 'license';
+          is $l->{key}, "bbb";
+          is $l->{is_free}, 'free';
+          is $l->{extracted_url}, "https://host/path/terms";
+          is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[1];
+          is $l->{type}, 'disclaimer';
+          is $l->{key}, "-ddsd-disclaimer";
+          is $l->{is_free}, 'neutral';
+        }
+        is $item->{is_free}, 'free';
+        ok ! $item->{insecure};
+      }
+    } $current->c;
+  });
+} n => 14, name => 'linked in notes extracted, def found';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "\x{5000}"},
+          resources => [],
+          notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {extracted_url => "https://host/path/terms", is => "bbb", db => 1},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => 'neutral',
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        is 0+@{$item->{legal}}, 2;
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{type}, 'db_license';
+          is $l->{key}, "bbb";
+          is $l->{is_free}, 'free';
+          is $l->{extracted_url}, "https://host/path/terms";
+          is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[1];
+          is $l->{type}, 'disclaimer';
+          is $l->{key}, "-ddsd-disclaimer";
+          is $l->{is_free}, 'neutral';
+        }
+        is $item->{is_free}, 'free';
+        ok ! $item->{insecure};
+      }
+    } $current->c;
+  });
+} n => 14, name => 'linked in notes extracted, db def found';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "\x{5000}"},
+          resources => [],
+          notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {is => "bbb"},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => 'neutral',
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        is 0+@{$item->{legal}}, 2;
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{type}, 'license';
+          is $l->{key}, "-ddsd-ckan-package";
+          is $l->{is_free}, 'unknown';
+          is $l->{extracted_url}, "https://host/path/terms";
+          is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[1];
+          is $l->{type}, 'disclaimer';
+          is $l->{key}, "-ddsd-disclaimer";
+          is $l->{is_free}, 'neutral';
+        }
+        is $item->{is_free}, 'unknown';
+        ok ! $item->{insecure};
+      }
+    } $current->c;
+  });
+} n => 14, name => 'linked in notes extracted, def not found';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "\x{5000}"},
+          resources => [],
           license_id => "foo",
           license_url => "bar",
           license_title => "abc",

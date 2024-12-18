@@ -674,12 +674,13 @@ sub get_item_list ($;%) {
           $legal = [] unless defined $legal and ref $legal eq 'ARRAY';
           for my $l (@$legal) {
             next unless defined $l and ref $l eq 'HASH';
-
+            my $has_some = 0;
+            
             if (not defined $l->{id} and not defined $pack->{license_id}) {
               #
             } elsif (defined $l->{id} and defined $pack->{license_id} and
                      $l->{id} eq $pack->{license_id}) {
-              #
+              $has_some = 1;
             } else {
               next;
             }
@@ -689,7 +690,7 @@ sub get_item_list ($;%) {
               #
             } elsif (defined $l->{title} and defined $pack->{license_title} and
                      $l->{title} eq $pack->{license_title}) {
-              #
+              $has_some = 1;
             } else {
               next;
             }
@@ -698,7 +699,7 @@ sub get_item_list ($;%) {
               #
             } elsif (defined $l->{url} and defined $pack->{license_url} and
                      $l->{url} eq $pack->{license_url}) {
-              #
+              $has_some = 1;
             } else {
               next;
             }
@@ -709,7 +710,7 @@ sub get_item_list ($;%) {
             } elsif (defined $l->{agreement} and
                      defined $pack->{license_agreement} and
                      $l->{agreement} eq $pack->{license_agreement}) {
-              #
+              $has_some = 1;
             } else {
               next;
             }
@@ -720,20 +721,22 @@ sub get_item_list ($;%) {
             } elsif (defined $l->{extras_copyright} and
                      defined $extras_copyright and
                      $l->{extras_copyright} eq $extras_copyright) {
-              #
+              $has_some = 1;
             } else {
               next;
             }
 
             if (defined $l->{tag}) {
               if ($tags->{$l->{tag}}) {
-                #
+                $has_some = 1;
               } else {
                 next;
               }
             }
 
+            next if defined $l->{extracted_url};
             next if defined $l->{licenses};
+            next unless $has_some;
 
             if (defined $l->{is}) {
               if ($l->{db}) {
@@ -768,8 +771,36 @@ sub get_item_list ($;%) {
         my $has_sokuryouhou = 0;
         if (defined $pack->{notes}) {
           use utf8;
-          ## <https://data.bodik.jp/dataset/260002_douga-jitensyatou>
-          if ($pack->{notes} =~ /利用規約のほか/) {
+          if ($pack->{notes} =~ m{\[[^\[\]]+利用規約\]\((https://[^()]+)\)}) {
+            ## <https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-073229_g2-000011>
+            my $u = $1;
+            push @{$pi0->{legal}}, {type => 'license',
+                                    key => '-ddsd-ckan-package',
+                                    source_type => 'package',
+                                    source_url => $self->{api_url},
+                                    extracted_url => $u,
+                                    notes => $pack->{notes}};
+            
+            for my $l (@$legal) {
+              next unless defined $l and ref $l eq 'HASH';
+              next if defined $l->{licenses};
+              next unless defined $l->{is};
+              
+              if (defined $l->{extracted_url} and
+                  $l->{extracted_url} eq $u) {
+
+                if ($l->{db}) {
+                  $pi0->{legal}->[-1]->{type} = 'db_license';
+                } else {
+                  $pi0->{legal}->[-1]->{type} = 'license';
+                }
+                $pi0->{legal}->[-1]->{key} = $l->{is};
+                $pi0->{legal}->[-1]->{insecure} = 1 if $package_insecure;
+                last;
+              }
+            }
+          } elsif ($pack->{notes} =~ /利用規約/) {
+            ## <https://data.bodik.jp/dataset/260002_douga-jitensyatou>
             push @{$pi0->{legal}}, {type => 'license',
                                    key => '-ddsd-ckan-package',
                                    source_type => 'package',
