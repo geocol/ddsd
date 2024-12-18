@@ -423,6 +423,88 @@ Test {
         json => {success => \1, result => {
           organization => {"title" => "\x{5000}"},
           resources => [],
+          notes => q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。},
+        }},
+      },
+      $current->legal_url_prefix . 'ckan.json' => {
+        json => [
+          {extracted_url => "https://www.digital.go.jp/path/terms", is => "bbb"},
+          {extracted_url => "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5", is => "bbb2"},
+        ],
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+          },
+          bbb2 => {
+            is_free => "non-free",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => 'neutral',
+          },
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        is 0+@{$item->{legal}}, 3;
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{type}, 'license';
+          is $l->{key}, "bbb";
+          is $l->{is_free}, 'free';
+          is $l->{extracted_url}, "https://www.digital.go.jp/path/terms";
+          is $l->{notes}, q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[1];
+          is $l->{type}, 'license';
+          is $l->{key}, "bbb2";
+          is $l->{is_free}, 'non-free';
+          is $l->{extracted_url}, "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5";
+          is $l->{notes}, q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[2];
+          is $l->{type}, 'disclaimer';
+          is $l->{key}, "-ddsd-disclaimer";
+          is $l->{is_free}, 'neutral';
+        }
+        is $item->{is_free}, 'non-free';
+        ok ! $item->{insecure};
+      }
+    } $current->c;
+  });
+} n => 20, name => 'linked in notes extracted, chiban';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "\x{5000}"},
+          resources => [],
           notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
         }},
       },

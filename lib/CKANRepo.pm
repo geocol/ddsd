@@ -780,24 +780,15 @@ sub get_item_list ($;%) {
                                     source_url => $self->{api_url},
                                     extracted_url => $u,
                                     notes => $pack->{notes}};
-            
-            for my $l (@$legal) {
-              next unless defined $l and ref $l eq 'HASH';
-              next if defined $l->{licenses};
-              next unless defined $l->{is};
-              
-              if (defined $l->{extracted_url} and
-                  $l->{extracted_url} eq $u) {
 
-                if ($l->{db}) {
-                  $pi0->{legal}->[-1]->{type} = 'db_license';
-                } else {
-                  $pi0->{legal}->[-1]->{type} = 'license';
-                }
-                $pi0->{legal}->[-1]->{key} = $l->{is};
-                $pi0->{legal}->[-1]->{insecure} = 1 if $package_insecure;
-                last;
-              }
+            ## <https://www.digital.go.jp/policies/base_registry_address_tos>
+            if ($u =~ /digital.go.jp/ and $pack->{notes} =~ /地番マスター/) {
+              push @{$pi0->{legal}}, {type => 'license',
+                                      key => '-ddsd-ckan-package',
+                                      source_type => 'package',
+                                      source_url => $self->{api_url},
+                                      extracted_url => "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5",
+                                      notes => $pack->{notes}};
             }
           } elsif ($pack->{notes} =~ /利用規約/) {
             ## <https://data.bodik.jp/dataset/260002_douga-jitensyatou>
@@ -841,6 +832,29 @@ sub get_item_list ($;%) {
                                    source_url => $self->{api_url}};
           }
         }
+
+        for my $pl (@{$pi0->{legal}}) {
+          next unless $pl->{extracted_url};
+          
+          for my $l (@$legal) {
+            next unless defined $l and ref $l eq 'HASH';
+            next if defined $l->{licenses};
+            next unless defined $l->{is};
+            
+            if (defined $l->{extracted_url} and
+                $l->{extracted_url} eq $pl->{extracted_url}) {
+
+              if ($l->{db}) {
+                $pl->{type} = 'db_license';
+              } else {
+                $pl->{type} = 'license';
+              }
+              $pl->{key} = $l->{is};
+              $pl->{insecure} = 1 if $package_insecure;
+              last;
+            }
+          }
+        } # $pl
 
         if (defined $log_bytes) {
           $self->_parse_log_legal ($log_bytes => $pi0->{legal});
