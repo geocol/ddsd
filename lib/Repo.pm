@@ -628,6 +628,8 @@ sub _fetch_post_legal ($%) {
     'meta:packref.json' => {}, # PackRefRepo
   };
   my $terms_url;
+  my $written = 0;
+  my $additionals = [];
   my $logger = $args{logger} // $self->set->app->logger;
   return $self->get_item_list (
     file_defs => $file_defs,
@@ -635,45 +637,82 @@ sub _fetch_post_legal ($%) {
     skip_other_files => 1,
     requires_legal => 1,
     data_area_key => undef,
+    _ => 'post_legal',
   )->then (sub {
     my $all_files = shift;
+    return unless @$all_files; # unlikely
 
-    my $terms_source_key;
-    for my $file (@$all_files) {
-      if ($file_defs->{$file->{key}} and
-          defined $file->{parsed}->{site_terms_url}) {
-        $terms_url = $file->{parsed}->{site_terms_url};
-        $terms_source_key = $file->{key};
-        last;
+    return Promise->resolve->then (sub {
+      return promised_for {
+        my $l = shift;
+        return unless defined $l->{extracted_url};
+        my $terms_url = Web::URL->parse_string ($l->{extracted_url});
+        unless (defined $terms_url) {
+          $logger->info ({
+            type => 'bad URL',
+            value => $l->{extracted_url},
+          });
+        }
+
+        $logger->info ({
+          type => 'terms url detected',
+          value => $terms_url,
+        });
+        
+        return $self->_fetch_legal (
+          $terms_url,
+          is_terms_url => 1,
+          cacert => $args{cacert}, insecure => $args{insecure},
+          has_error => $args{has_error},
+          logger => $logger,
+        )->then (sub {
+          my $x = $_[0];
+
+          #$x->{legal_source_key} = 'package';
+          $x->{legal_source_url} = $terms_url->stringify;
+          push @$additionals, $x;
+        });
+      } $all_files->[0]->{package_item}->{legal};
+    })->then (sub {
+      my $terms_source_key;
+      for my $file (@$all_files) {
+        if ($file_defs->{$file->{key}} and
+            defined $file->{parsed}->{site_terms_url}) {
+          $terms_url = $file->{parsed}->{site_terms_url};
+          $terms_source_key = $file->{key};
+          last;
+        }
       }
-    }
-    return if not defined $terms_url;
-    $logger->info ({
-      type => 'terms url detected',
-      value => $terms_url,
-    });
+      return if not defined $terms_url;
+      $logger->info ({
+        type => 'terms url detected',
+        value => $terms_url,
+      });
 
-    return $self->_fetch_legal (
-      $terms_url,
-      is_terms_url => 1,
-      cacert => $args{cacert}, insecure => $args{insecure},
-      has_error => $args{has_error},
-      logger => $logger,
-    )->then (sub {
-      my $x = $_[0];
+      return $self->_fetch_legal (
+        $terms_url,
+        is_terms_url => 1,
+        cacert => $args{cacert}, insecure => $args{insecure},
+        has_error => $args{has_error},
+        logger => $logger,
+      )->then (sub {
+        my $x = $_[0];
 
-      $x->{_} = 'legal';
-      $x->{legal_source_key} = $terms_source_key;
-      $x->{legal_source_url} = $terms_url->stringify;
-      if (defined $args{packref_url}) {
-        $x->{legal_packref_url} = $args{packref_url}->stringify;
-      }
-      return $self->lock_index->then (sub {
-        my $ix = $_[0];
-        return $ix->put_fetch_log_by_item_key (
-          $args{dest_item_key},
-          fetch_log => $x,
-        )->then (sub { $ix->save });
+        $x->{_} = 'legal';
+        $x->{legal_source_key} = $terms_source_key;
+        $x->{legal_source_url} = $terms_url->stringify;
+        if (defined $args{packref_url}) {
+          $x->{legal_packref_url} = $args{packref_url}->stringify;
+        }
+        $x->{additionals} = $additionals if @$additionals;
+        $written = 1;
+        return $self->lock_index->then (sub {
+          my $ix = $_[0];
+          return $ix->put_fetch_log_by_item_key (
+            $args{dest_item_key},
+            fetch_log => $x,
+          )->then (sub { $ix->save });
+        });
       });
     });
   })->then (sub {
@@ -737,6 +776,8 @@ sub _fetch_post_legal ($%) {
         if (defined $args{packref_url}) {
           $x->{legal_packref_url} = $args{packref_url}->stringify;
         }
+        $x->{additionals} = $additionals if @$additionals;
+        $written = 1;
         return $self->lock_index->then (sub {
           my $ix = $_[0];
           return $ix->put_fetch_log_by_item_key (
@@ -760,6 +801,8 @@ sub _fetch_post_legal ($%) {
     )->then (sub {
       my $x = $_[0];
       return unless defined $x;
+      $x->{additionals} = $additionals if @$additionals;
+      $written = 1;
       return $self->lock_index->then (sub {
         my $ix = $_[0];
         return $ix->put_fetch_log_by_item_key (
@@ -767,6 +810,21 @@ sub _fetch_post_legal ($%) {
           fetch_log => $x,
         )->then (sub { $ix->save });
       });
+    });
+  })->then (sub {
+    return if $written;
+    return if not @$additionals;
+
+    my $x = shift @$additionals;
+    $x->{_} = 'additionals';
+    $x->{additionals} = $additionals if @$additionals;
+    $written = 1;
+    return $self->lock_index->then (sub {
+      my $ix = $_[0];
+      return $ix->put_fetch_log_by_item_key (
+        $args{dest_item_key},
+        fetch_log => $x,
+      )->then (sub { $ix->save });
     });
   });
 } # _fetch_post_legal
@@ -848,21 +906,30 @@ sub _parse_log_legal ($$$) {
   my $ll = {};
   for (split /\x0A/, $_[1]) {
     my $line = json_bytes2perl $_;
+    my @line;
     if (defined $line->{legal_key}) {
-                if (defined $prev_legal_key and
-                    $prev_legal_key eq $line->{legal_key}) {
-                  my $delta = abs ($line->{timestamp} - $prev_time);
-                  if ($delta < 1) {
-                    #
-                  } else {
-                    $prev_time = $line->{timestamp};
-                    $ll->{$prev_legal_key}->{timestamps}->{$prev_time} = 1;
-                  }
-                } else {
-                  $prev_legal_key = $line->{legal_key};
-                  $prev_time = $line->{timestamp};
-                  $ll->{$prev_legal_key}->{timestamps}->{$prev_time} = 1;
-                }
+      push @line, $line;
+      if (defined $line->{additionals} and ref $line->{additionals} eq 'ARRAY') {
+        for (@{$line->{additionals}}) {
+          push @line, $_ if defined $_ and ref $_ eq 'HASH' and defined $_->{legal_key};
+        }
+      }
+    }
+    for my $line (@line) {
+      if (defined $prev_legal_key and
+          $prev_legal_key eq $line->{legal_key}) {
+        my $delta = abs ($line->{timestamp} - $prev_time);
+        if ($delta < 1) {
+          #
+        } else {
+          $prev_time = $line->{timestamp};
+          $ll->{$prev_legal_key}->{timestamps}->{$prev_time} = 1;
+        }
+      } else {
+        $prev_legal_key = $line->{legal_key};
+        $prev_time = $line->{timestamp};
+        $ll->{$prev_legal_key}->{timestamps}->{$prev_time} = 1;
+      }
       if (defined $line->{legal_source_url}) {
         $ll->{$prev_legal_key}->{source_url}->{$line->{legal_source_url}} = 1;
       }
@@ -874,8 +941,9 @@ sub _parse_log_legal ($$$) {
       } else {
         $ll->{$prev_legal_key}->{has_non_insecure} = 1;
       }
-    }
+    } # $line
   }
+  my $new = [];
   for my $legal_key (sort { $a cmp $b } keys %$ll) {
     my $x = {
       type => 'site_terms',
@@ -892,8 +960,19 @@ sub _parse_log_legal ($$$) {
       $x->{source_type} = 'packref';
     }
     $x->{insecure} = 1 unless $ll->{$legal_key}->{has_non_insecure};
-    push @{$dest}, $x;
+    my $merged;
+    for my $d (@$dest) {
+      if (defined $d->{extracted_url} and $urls->{$d->{extracted_url}}) {
+        for my $key (keys %$x) {
+          $d->{$key} = $x->{$key} if defined $x->{$key} or defined $d->{$key};
+        }
+        $merged = 1;
+        last;
+      }
+    }
+    push @$new, $x unless $merged;
   } # $legal_key
+  push @$dest, @$new;
 } # _parse_log_legal
 
 sub get_legal ($;%) {

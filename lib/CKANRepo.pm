@@ -589,35 +589,35 @@ sub get_item_list ($;%) {
         my $pi0 = $files->[0]->{package_item};
         my $pi = $files->[1]->{package_item};
 
-        if ($args{with_props}) {
-        if (not defined $pi->{file_time} and
-            defined $pack->{metadata_modified}) {
-          my $dtp = Web::DateTime::Parser->new;
-          $dtp->onerror (sub { });
-          my $dt = $dtp->parse_local_date_and_time_string
-              ($pack->{metadata_modified});
-          if (defined $dt) {
-            $pi->{file_time} = $dt->to_unix_number;
+        if ($args{with_props} or $args{requires_legal}) {
+          if (not defined $pi->{file_time} and
+              defined $pack->{metadata_modified}) {
+            my $dtp = Web::DateTime::Parser->new;
+            $dtp->onerror (sub { });
+            my $dt = $dtp->parse_local_date_and_time_string
+                ($pack->{metadata_modified});
+            if (defined $dt) {
+              $pi->{file_time} = $dt->to_unix_number;
+            }
           }
-        }
-        if (not defined $pi->{file_time} and
-            defined $pack->{metadata_created}) {
-          my $dtp = Web::DateTime::Parser->new;
-          $dtp->onerror (sub { });
-          my $dt = $dtp->parse_local_date_and_time_string ($pack->{metadata_created});
-          if (defined $dt) {
-            $pi->{file_time} = $dt->to_unix_number;
+          if (not defined $pi->{file_time} and
+              defined $pack->{metadata_created}) {
+            my $dtp = Web::DateTime::Parser->new;
+            $dtp->onerror (sub { });
+            my $dt = $dtp->parse_local_date_and_time_string ($pack->{metadata_created});
+            if (defined $dt) {
+              $pi->{file_time} = $dt->to_unix_number;
+            }
           }
-        }
-        if (not defined $pi->{file_time} and defined $files->[1]->{rev}) {
-          $pi->{file_time} = $files->[1]->{rev}->{http_date} //
-                             $files->[1]->{rev}->{timestamp};
-        }
+          if (not defined $pi->{file_time} and defined $files->[1]->{rev}) {
+            $pi->{file_time} = $files->[1]->{rev}->{http_date} //
+                               $files->[1]->{rev}->{timestamp};
+          }
 
-        $pi->{title} = $pack->{title} // '';
-        $pi->{title} = $pack->{name} // '' unless length $pi->{title};
-        $pi0->{title} = $pi->{title};
-        $pi0->{legal} = [];
+          $pi->{title} = $pack->{title} // '';
+          $pi->{title} = $pack->{name} // '' unless length $pi->{title};
+          $pi0->{title} = $pi->{title};
+          $pi0->{legal} = [];
 
         if (defined $acts_bytes) {
           if ($acts_bytes =~ m{<html lang="([^"&]+)">}) {

@@ -331,6 +331,35 @@ sub put_fetch_log_by_item_key ($$;%) {
   print $log_file "\x0A";
   
   return Promise->resolve;
+
+  ## Fetch logs.
+  ##
+  ## An |objects/{key}-log.jsonl| file is a JSON Lines of log JSON
+  ## objects.
+  ##
+  ## A log JSON object is a fetch log JSON object.
+  ##
+  ## A fetch log JSON object has:
+  ##
+  ##   |legal_key| : Legal key     The detected legal.
+  ##   |timestamp| : Timestamp     The time of the detection, i.e. the fetch.
+  ##   |insecure| : Boolean        Whether the fetch is insecure.
+  ##   |legal_source_key| : Item key?
+  ##       If the legal is specified by a file as a legal URL or
+  ##       detected by a sniffing of a file, the file's item key in
+  ##       the package repository.
+  ##   |legal_packref_url| : URL?
+  ##       If the legal is specified by a packref as a legal URL, the
+  ##       packref's URL.
+  ##   |legal_source_url| : URL?
+  ##       If the legal is specified by a file as a legal URL or
+  ##       detected by a sniffing, the file's item key in the package
+  ##       repository.
+  ##   |additionals| : Array?
+  ##       If the fetch log JSON object is the topmost log JSON object
+  ##       and there are more legals detected, the detected legals as
+  ##       fetch log JSON objects.
+  ##   |_|                         Informative notes for debugging.
 } # put_fetch_log_by_item_key
 
 sub put_from_mirrorzip ($$$;%) {

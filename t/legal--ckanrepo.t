@@ -67,8 +67,28 @@ Test {
         ok ! $item->{insecure};
       }
     } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key") . '/index.json', json => sub {
+         my $json = shift;
+         my $path = shift;
+         my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
+         my $log_path = $path->parent->child
+             ($json->{items}->{$file_key}->{files}->{log});
+         my $lines = [split /\x0A/, $log_path->slurp];
+         is 0+@$lines, 1;
+         {
+           my $v = json_bytes2perl $lines->[0];
+           ok $v->{timestamp};
+           is $v->{legal_key}, "$key-license";
+           is $v->{legal_source_key}, "file:index.html";
+           is $v->{legal_source_url}, "https://foo/$key/license";
+           is $v->{legal_packref_url}, undef;
+           is $v->{additionals}, undef;
+         }
+       }},
+    ]);
   });
-} n => 13, name => 'has root data';
+} n => 21, name => 'has root data';
 
 Test {
   my $current = shift;
@@ -321,12 +341,15 @@ Test {
         is 0+@{$item->{legal}}, 2;
         {
           my $l = $item->{legal}->[0];
-          is $l->{type}, 'license';
-          is $l->{key}, "bbb";
-          is $l->{is_free}, 'free';
+          is $l->{type}, 'site_terms';
+          is $l->{key}, "-ddsd-unknown";
+          is $l->{is_free}, 'unknown';
           is $l->{extracted_url}, "https://host/path/terms";
           is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
           ok ! $l->{insecure};
+          ok $l->{timestamps}->[0];
+          is $l->{source_type}, 'site';
+          is $l->{source_url}, "https://host/path/terms";
         }
         {
           my $l = $item->{legal}->[1];
@@ -334,12 +357,32 @@ Test {
           is $l->{key}, "-ddsd-disclaimer";
           is $l->{is_free}, 'neutral';
         }
-        is $item->{is_free}, 'free';
+        is $item->{is_free}, 'unknown';
         ok ! $item->{insecure};
       }
     } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key") . '/index.json', json => sub {
+         my $json = shift;
+         my $path = shift;
+         my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
+         my $log_path = $path->parent->child
+             ($json->{items}->{$file_key}->{files}->{log});
+         my $lines = [split /\x0A/, $log_path->slurp];
+         is 0+@$lines, 1;
+         {
+           my $v = json_bytes2perl $lines->[0];
+           ok $v->{timestamp};
+           is $v->{legal_key}, "-ddsd-unknown";
+           is $v->{legal_source_key}, undef;
+           is $v->{legal_source_url}, "https://host/path/terms";
+           is $v->{legal_packref_url}, undef;
+           is $v->{additionals}, undef;
+         }
+       }},
+    ]);
   });
-} n => 14, name => 'linked in notes extracted, def found';
+} n => 25, name => 'linked in notes extracted, def found but failed';
 
 Test {
   my $current = shift;
@@ -354,22 +397,32 @@ Test {
         json => {success => \1, result => {
           organization => {"title" => "\x{5000}"},
           resources => [],
-          notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
+          notes => qq{コンテンツ利用に当たっては、[また別の利用規約](https://foo/$key/license)に同意したものとみなします。},
         }},
-      },
-      $current->legal_url_prefix . 'ckan.json' => {
-        json => [
-          {extracted_url => "https://host/path/terms", is => "bbb", db => 1},
-        ],
       },
       $current->legal_url_prefix . 'info.json' => {
         json => {
-          bbb => {
+          "$key-license" => {
             is_free => "free",
           },
           "-ddsd-disclaimer" => {
             is_free => 'neutral',
           },
+        },
+      },
+      $current->legal_url_prefix . 'websites.json' => {
+        json => [
+          {
+            terms_url => "https://foo/$key/license",
+            source => {type => 'packref', url => "https://hoge/$key/license.json"},
+            legal_key => "$key-license",
+          },
+        ],
+      },
+      "https://hoge/$key/license.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
         },
       },
     },
@@ -390,12 +443,15 @@ Test {
         is 0+@{$item->{legal}}, 2;
         {
           my $l = $item->{legal}->[0];
-          is $l->{type}, 'db_license';
-          is $l->{key}, "bbb";
+          is $l->{type}, 'site_terms';
+          is $l->{key}, "$key-license";
           is $l->{is_free}, 'free';
-          is $l->{extracted_url}, "https://host/path/terms";
-          is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
+          is $l->{extracted_url}, "https://foo/$key/license";
+          is $l->{notes}, qq{コンテンツ利用に当たっては、[また別の利用規約](https://foo/$key/license)に同意したものとみなします。};
           ok ! $l->{insecure};
+          ok $l->{timestamps}->[0];
+          is $l->{source_type}, 'site';
+          is $l->{source_url}, "https://foo/$key/license";
         }
         {
           my $l = $item->{legal}->[1];
@@ -407,8 +463,28 @@ Test {
         ok ! $item->{insecure};
       }
     } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key") . '/index.json', json => sub {
+         my $json = shift;
+         my $path = shift;
+         my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
+         my $log_path = $path->parent->child
+             ($json->{items}->{$file_key}->{files}->{log});
+         my $lines = [split /\x0A/, $log_path->slurp];
+         is 0+@$lines, 1;
+         {
+           my $v = json_bytes2perl $lines->[0];
+           ok $v->{timestamp};
+           is $v->{legal_key}, "$key-license";
+           is $v->{legal_source_key}, undef;
+           is $v->{legal_source_url}, "https://foo/$key/license";
+           is $v->{legal_packref_url}, undef;
+           is $v->{additionals}, undef;
+         }
+       }},
+    ]);
   });
-} n => 14, name => 'linked in notes extracted, db def found';
+} n => 25, name => 'linked in notes extracted, def found and licensed';
 
 Test {
   my $current = shift;
@@ -426,12 +502,6 @@ Test {
           notes => q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。},
         }},
       },
-      $current->legal_url_prefix . 'ckan.json' => {
-        json => [
-          {extracted_url => "https://www.digital.go.jp/path/terms", is => "bbb"},
-          {extracted_url => "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5", is => "bbb2"},
-        ],
-      },
       $current->legal_url_prefix . 'info.json' => {
         json => {
           bbb => {
@@ -443,6 +513,32 @@ Test {
           "-ddsd-disclaimer" => {
             is_free => 'neutral',
           },
+        },
+      },
+      $current->legal_url_prefix . 'websites.json' => {
+        json => [
+          {
+            terms_url => "https://www.digital.go.jp/path/terms",
+            source => {type => 'packref', url => "https://hoge/$key/license.json"},
+            legal_key => "bbb",
+          },
+          {
+            terms_url => "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5",
+            source => {type => 'packref', url => "https://hoge/$key/license2.json"},
+            legal_key => "bbb2",
+          },
+        ],
+      },
+      "https://hoge/$key/license.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+        },
+      },
+      "https://hoge/$key/license2.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
         },
       },
     },
@@ -463,7 +559,7 @@ Test {
         is 0+@{$item->{legal}}, 3;
         {
           my $l = $item->{legal}->[0];
-          is $l->{type}, 'license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "bbb";
           is $l->{is_free}, 'free';
           is $l->{extracted_url}, "https://www.digital.go.jp/path/terms";
@@ -472,7 +568,7 @@ Test {
         }
         {
           my $l = $item->{legal}->[1];
-          is $l->{type}, 'license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "bbb2";
           is $l->{is_free}, 'non-free';
           is $l->{extracted_url}, "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5";
@@ -489,8 +585,37 @@ Test {
         ok ! $item->{insecure};
       }
     } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key") . '/index.json', json => sub {
+         my $json = shift;
+         my $path = shift;
+         my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
+         my $log_path = $path->parent->child
+             ($json->{items}->{$file_key}->{files}->{log});
+         my $lines = [split /\x0A/, $log_path->slurp];
+         is 0+@$lines, 1;
+         {
+           my $v = json_bytes2perl $lines->[0];
+           ok $v->{timestamp};
+           is $v->{legal_key}, "bbb";
+           is $v->{legal_source_key}, undef;
+           is $v->{legal_source_url}, "https://www.digital.go.jp/path/terms";
+           is $v->{legal_packref_url}, undef;
+           is 0+@{$v->{additionals}}, 1;
+           {
+             my $v = $v->{additionals}->[0];
+             ok $v->{timestamp};
+             is $v->{legal_key}, "bbb2";
+             is $v->{legal_source_key}, undef;
+             is $v->{legal_source_url}, "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5";
+             is $v->{legal_packref_url}, undef;
+             is $v->{additionals}, undef;
+           }
+         }
+       }},
+    ]);
   });
-} n => 20, name => 'linked in notes extracted, chiban';
+} n => 34, name => 'linked in notes extracted, chiban';
 
 Test {
   my $current = shift;
@@ -507,11 +632,6 @@ Test {
           resources => [],
           notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
         }},
-      },
-      $current->legal_url_prefix . 'ckan.json' => {
-        json => [
-          {is => "bbb"},
-        ],
       },
       $current->legal_url_prefix . 'info.json' => {
         json => {
@@ -541,8 +661,8 @@ Test {
         is 0+@{$item->{legal}}, 2;
         {
           my $l = $item->{legal}->[0];
-          is $l->{type}, 'license';
-          is $l->{key}, "-ddsd-ckan-package";
+          is $l->{type}, 'site_terms';
+          is $l->{key}, "-ddsd-unknown";
           is $l->{is_free}, 'unknown';
           is $l->{extracted_url}, "https://host/path/terms";
           is $l->{notes}, q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。};
