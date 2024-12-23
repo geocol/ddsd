@@ -630,6 +630,132 @@ Test {
         json => {success => \1, result => {
           organization => {"title" => "\x{5000}"},
           resources => [],
+          notes => q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。},
+        }},
+      },
+      $current->legal_url_prefix . 'info.json' => {
+        json => {
+          bbb => {
+            is_free => "free",
+          },
+          bbb2 => {
+            is_free => "non-free",
+          },
+          "-ddsd-disclaimer" => {
+            is_free => 'neutral',
+          },
+        },
+      },
+      $current->legal_url_prefix . 'websites.json' => {
+        json => [
+          {
+            terms_url => "https://www.digital.go.jp/path/terms",
+            source => {type => 'packref', url => "https://hoge/$key/license.json"},
+            legal_key => "bbb",
+          },
+        ],
+      },
+      "https://hoge/$key/license.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+        },
+      },
+      "https://hoge/$key/license2.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => ['foo', '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      {
+        my $item = $r->{jsonl}->[0];
+        is 0+@{$item->{legal}}, 3;
+        {
+          my $l = $item->{legal}->[0];
+          is $l->{type}, 'site_terms';
+          is $l->{key}, "bbb";
+          is $l->{is_free}, 'free';
+          is $l->{extracted_url}, "https://www.digital.go.jp/path/terms";
+          is $l->{notes}, q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[1];
+          is $l->{type}, 'site_terms';
+          is $l->{key}, "-ddsd-unknown";
+          is $l->{is_free}, 'unknown';
+          is $l->{extracted_url}, "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5";
+          is $l->{notes}, q{地番マスターコンテンツ利用に当たっては、[また別の利用規約](https://www.digital.go.jp/path/terms)に同意したものとみなします。};
+          ok ! $l->{insecure};
+        }
+        {
+          my $l = $item->{legal}->[2];
+          is $l->{type}, 'disclaimer';
+          is $l->{key}, "-ddsd-disclaimer";
+          is $l->{is_free}, 'neutral';
+        }
+        is $item->{is_free}, 'unknown';
+        ok ! $item->{insecure};
+      }
+    } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('ckan', "https://hoge/$key/dataset/$key") . '/index.json', json => sub {
+         my $json = shift;
+         my $path = shift;
+         my $file_key = $json->{urls}->{"https://hoge/$key/api/action/package_show?id=$key"};
+         my $log_path = $path->parent->child
+             ($json->{items}->{$file_key}->{files}->{log});
+         my $lines = [split /\x0A/, $log_path->slurp];
+         is 0+@$lines, 1;
+         {
+           my $v = json_bytes2perl $lines->[0];
+           ok $v->{timestamp};
+           is $v->{legal_key}, "bbb";
+           is $v->{legal_source_key}, undef;
+           is $v->{legal_source_url}, "https://www.digital.go.jp/path/terms";
+           is $v->{legal_packref_url}, undef;
+           is 0+@{$v->{additionals}}, 1;
+           {
+             my $v = $v->{additionals}->[0];
+             ok $v->{timestamp};
+             is $v->{legal_key}, "-ddsd-unknown";
+             is $v->{legal_source_key}, undef;
+             is $v->{legal_source_url}, "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5";
+             is $v->{legal_packref_url}, undef;
+             is $v->{additionals}, undef;
+           }
+         }
+       }},
+    ]);
+  });
+} n => 34, name => 'linked in notes extracted, chiban, no data';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    {
+      foo => {type => 'ckan', url => "https://hoge/$key/dataset/$key"},
+    },
+    {
+      "https://hoge/$key/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          organization => {"title" => "\x{5000}"},
+          resources => [],
           notes => q{コンテンツ利用に当たっては、[また別の利用規約](https://host/path/terms)に同意したものとみなします。},
         }},
       },

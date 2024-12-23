@@ -1018,20 +1018,20 @@ sub get_legal ($;%) {
       if (@$items >= 1 and $items->[0]->{type} eq 'package') {
         $pi = $items->[0]->{package_item};
         $json->{legal} = $items->[0]->{package_item}->{legal};
-        my $has_known_terms;
+        my $has_known_terms = {};
         for (@{$json->{legal}}) {
           if ($_->{type} eq 'site_terms') {
             if ($_->{key} eq '-ddsd-unknown') {
               #
             } else {
-              $has_known_terms = 1;
+              $has_known_terms->{$_->{extracted_url} // ''} = 1;
               last;
             }
           }
         }
         $json->{legal} = [grep {
-          if ($has_known_terms and
-              $_->{type} eq 'site_terms' and $_->{key} eq '-ddsd-unknown') {
+          if ($_->{type} eq 'site_terms' and $_->{key} eq '-ddsd-unknown' and
+              $has_known_terms->{$_->{extracted_url} // ''}) {
             0;
           } else {
             1;
