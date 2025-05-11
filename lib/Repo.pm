@@ -132,7 +132,9 @@ sub _find_mirror ($$$) {
       $ss->{$def->{type}}->{$def->{url}}->{mirror_url} = $self->{mirror_url}; # or undef
       $ss->{$def->{type}}->{$def->{url}}->{mirror_sha256} = $self->{mirror_sha256}; # or undef
       $states->touch;
-      return $states->save;
+      return $states->save->finally (sub {
+        return $states->close;
+      });
     }) if defined $def->{url};
   });
 } # _find_mirror
@@ -285,7 +287,7 @@ sub _fetch_file_from_mirrorzip ($$$%) {
             $ix->index->{zip_file_name} = $ret->{data_path}->relative
                 ($self->storage->{path});
             $zip_path = $ret->{data_path};
-          })->then (sub { $ix->save });
+          })->then (sub { $ix->save })->finally (sub { $ix->close });
         })->then (sub {
           return Zipper->read_json ($self->set->app, $zip_path, 'index.json')->then (sub {
             my $json = $_[0];
@@ -321,7 +323,7 @@ sub _fetch_file_from_mirrorzip ($$$%) {
               my $ix = $_[0];
               $zip_index = $ix->index->{zip_index} = $json;
               $ix->touch;
-              return $ix->save;
+              return $ix->save->finally (sub { $ix->close });
             });
           }, sub {
             my $e = $_[0];
@@ -374,7 +376,7 @@ sub _fetch_file_from_mirrorzip ($$$%) {
                   #XXX insecure => not signed,
                   error_location => $error_location,
                 );
-              })->then (sub { $ix->save });
+              })->then (sub { $ix->save })->finally (sub { $ix->close });
             });
           });
         }
@@ -485,7 +487,7 @@ sub _fetch_file ($$$%) {
             return $ix->put_fetch_log_by_item_key (
               $item_key,
               fetch_log => $args{fetch_log},
-            )->then (sub { $ix->save })->then (sub {
+            )->then (sub { $ix->save })->finally (sub { $ix->close })->then (sub {
               return $r;
             });
           });
@@ -521,7 +523,7 @@ sub _fetch_file ($$$%) {
               });
               $r->{error} = 1;
             }
-          })->then (sub { $ix->save });
+          })->then (sub { $ix->save })->finally (sub { $ix->close });
         })->then (sub {
           $self->{fetched}->{$url->stringify_without_fragment} = 1;
           return $r;
@@ -711,7 +713,7 @@ sub _fetch_post_legal ($%) {
           return $ix->put_fetch_log_by_item_key (
             $args{dest_item_key},
             fetch_log => $x,
-          )->then (sub { $ix->save });
+          )->then (sub { $ix->save })->finally (sub { $ix->close });
         });
       });
     });
@@ -783,7 +785,7 @@ sub _fetch_post_legal ($%) {
           return $ix->put_fetch_log_by_item_key (
             $args{dest_item_key},
             fetch_log => $x,
-          )->then (sub { $ix->save });
+          )->then (sub { $ix->save })->finally (sub { $ix->close });
         });
       });
     })->finally (sub {
@@ -808,7 +810,7 @@ sub _fetch_post_legal ($%) {
         return $ix->put_fetch_log_by_item_key (
           $args{dest_item_key},
           fetch_log => $x,
-        )->then (sub { $ix->save });
+        )->then (sub { $ix->save })->finally (sub { $ix->close });
       });
     });
   })->then (sub {
@@ -824,7 +826,7 @@ sub _fetch_post_legal ($%) {
       return $ix->put_fetch_log_by_item_key (
         $args{dest_item_key},
         fetch_log => $x,
-      )->then (sub { $ix->save });
+      )->then (sub { $ix->save })->finally (sub { $ix->close });
     });
   });
 } # _fetch_post_legal
@@ -1654,7 +1656,7 @@ sub DESTROY ($) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

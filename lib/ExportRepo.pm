@@ -118,7 +118,7 @@ sub prepare_files ($$$;%) {
         };
       }
     } $files;
-  })->then (sub { $ix->save })->then (sub {
+  })->then (sub { $ix->save })->finally (sub { $ix->close })->then (sub {
     return $map;
   });
 } # prepare_files
@@ -127,7 +127,7 @@ sub prepare_files ($$$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

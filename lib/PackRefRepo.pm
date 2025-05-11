@@ -258,7 +258,7 @@ sub fetch ($;%) {
       return $ix->put_fetch_log_by_item_key (
         $r_item_key,
         fetch_log => $x,
-      )->then (sub { $ix->save });
+      )->then (sub { $ix->save })->finally (sub { $ix->close });
     });
   })->then (sub {
     return $ret;
@@ -490,7 +490,7 @@ sub get_item_list ($;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -385,7 +385,7 @@ sub sync ($$$;%) {
         return unless defined $file->{snapshot}->{file_name};
         return $storage->hardlink_from ($name, $file->{path});
       } $files;
-    })->then (sub { return $ix->save (readonly => 1) })->then (sub {
+    })->then (sub { return $ix->save (readonly => 1) })->finally (sub { $ix->close })->then (sub {
       my $legal_path = $storage->{path}->child ('LICENSE');
       my $outer = ListWriter->new_from_filehandle ($legal_path->openw);
       my $cleanup = sub { };
@@ -407,7 +407,7 @@ sub sync ($$$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

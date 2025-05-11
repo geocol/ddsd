@@ -158,16 +158,23 @@ sub save ($;%) {
 
 sub close ($) {
   my $self = $_[0];
-  return $self->{done}->then (sub {
+  return $self->{done}->finally (sub {
     $self->{lock}->abort if defined $self->{lock};
+    delete $self->{lock};
   });
 } # close
+
+sub DESTROY ($) {
+  if (defined $_[0]->{lock}) {
+    die "$0: JSONFile: |$_[0]->{path}| is not unlocked";
+  }
+} # DESTROY
 
 1;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
