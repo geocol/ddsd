@@ -63,6 +63,43 @@ sub get_repo_by_source ($$%) {
       return undef;
     }
     return PackRefRepo->new_from_set_and_url ($self, $url);
+  } elsif ($type eq 'single') {
+    require SingleRepo;
+    my $url = Web::URL->parse_string ($source->{url} // '');
+    if (not defined $url or not $url->is_http_s) {
+      $logger->$bad_method ({
+        type => 'bad source url',
+        value => $source->{url} // '',
+        %$el,
+      });
+      return undef;
+    }
+    return SingleRepo->new_from_set_and_url ($self, $url);
+  } elsif ($type eq 'zip') {
+    unless (defined $source->{source} and ref $source->{source} eq 'HASH') {
+      $logger->$bad_method ({
+        type => 'bad source',
+        %$el,
+        source => $source,
+      });
+      return undef;
+    }
+    my $upstream_repo = $self->get_repo_by_source ($source->{source}, %args);
+    require ZipRepo;
+    if (defined $source->{file_key}) {
+      return ZipRepo->new_from_upstream_and_file_key
+          ($upstream_repo, $source->{file_key});
+    } elsif (defined $source->{file_name}) {
+      return ZipRepo->new_from_upstream_and_file_name
+          ($upstream_repo, $source->{file_name});
+    } else {
+      $logger->$bad_method ({
+        type => 'bad source',
+        %$el,
+        source => $source,
+      });
+      return undef;
+    }
   } elsif ($type eq 'files' and $args{allow_files}) {
     return '';
   } else {
@@ -79,7 +116,7 @@ sub get_repo_by_source ($$%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

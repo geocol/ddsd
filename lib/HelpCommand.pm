@@ -8,27 +8,34 @@ push our @ISA, qw(Command);
 use ListWriter;
 
 my $HelpText = {
-  add => qq{%%DDSD%% add <url> [--name=<package>] [--insecure]
+  add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure]
 
 Add a package specified by a URL <url>.
 
 Arguments
 
+  <options>     Zero or more common options.  See |ddsd help|.
+
   <url>         The absolute URL of the package.
+
+  --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
   --name=<package>
                 The key of the data package to be used.  If not
                 specified, determined by the data package's content or
                 URL.
 
-  --insecure    Allow fetches from an insecure source (such as plain HTTP).
+  --single-file Add the URL as a single file (as oppose to as a package
+                manifest).
 
 }, # XXX exit code
-  ls => qq{%%DDSD%% ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
+  ls => qq{%%DDSD%% [<options>] ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
 
 Show list of data packages or files.
 
 Arguments
+
+  <options>     Zero or more common options.  See |ddsd help|.
 
   <package>     The key of a data package.
 
@@ -79,12 +86,14 @@ Output
 #XXX  help    Show usage
 #XXX  freeze  Freeze the version of the files of a package
 #XXX  pull    Update files to the latest version
-  use => qq{%%DDSD%% use <package> {<id>|--all} [--name=<filename>] [--insecure]
+  use => qq{%%DDSD%% [<options>] use <package> {<id>|--all} [--name=<filename>] [--insecure]
 
 Activate a file of ID <id> in package <package>.  If the file is not
 available, it is fetched from the server.
 
 Options
+
+  <options>     Zero or more common options.  See |ddsd help|.
 
   <package>     The key of a data package.
 
@@ -103,11 +112,13 @@ Options
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
 }, # XXX exit code
-  unuse => qq{%%DDSD%% unuse <package> <id>
+  unuse => qq{%%DDSD%% [<options>] unuse <package> <id>
 
 Deactivate a file of ID <id> in package <package>.
 
 Options
+
+  <options>     Zero or more common options.  See |ddsd help|.
 
   <package>     The key of a data package.
 

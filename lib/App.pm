@@ -124,6 +124,7 @@ sub main ($$$$$$$) {
       'with-item-meta' => \$opts->{with_item_meta},
       'min' => \$opts->{min},
       'all' => \$opts->{all},
+      'single-file' => \$opts->{single_file},
       'name=s' => \$opts->{name},
       'now=s' => sub { $self->{now} = 0+$_[1] },
       'log-file=s' => sub { $self->{log_file} = $_[1] },
@@ -200,6 +201,7 @@ sub main ($$$$$$$) {
        return $cmd->run (
          $args->[0],
          min => $opts->{min},
+         single_file => $opts->{single_file},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
        )->then (sub {

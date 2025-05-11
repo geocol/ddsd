@@ -14,6 +14,7 @@ sub run ($$;%) {
   my ($self, $input, %args) = @_;
   my $logger = $self->app->logger;
 
+  $input =~ s{#.*}{}s;
   my $url = Web::URL->parse_string ($input);
   if (not defined $url or not $url->is_http_s) {
     $logger->throw ({
@@ -24,6 +25,7 @@ sub run ($$;%) {
 
   my $name;
   return $self->_pull_ddsd_data (%args)->then (sub {
+    return {} if $args{single_file};
     return Fetcher->fetch (
       $self->app, $url,
       sha256 => 1,
@@ -41,6 +43,16 @@ sub run ($$;%) {
     }
     
     my $def;
+    DEF: {
+      if ($args{single_file}) {
+        $def = {
+          type => 'single',
+          url => $url->stringify,
+        };
+        my $p = [grep { length } split m{/}, $url->path]->[-1];
+        $name = percent_decode_c ($p // '');
+        last DEF;
+      }
 
     if (defined $r->{json}) {
       if (ref $r->{json} eq 'HASH' and
@@ -130,7 +142,10 @@ sub run ($$;%) {
         $name = $r->{url}->host->to_ascii,
       }
     }
+      last DEF if (defined $def and defined $name);
 
+      ## And more to come!
+    } # DEF
     unless (defined $def and defined $name) {
       return $logger->throw ({
         type => 'package type not detected',
@@ -222,7 +237,7 @@ sub run ($$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

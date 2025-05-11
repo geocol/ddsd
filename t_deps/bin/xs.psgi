@@ -97,12 +97,15 @@ return sub {
       }
       $http->set_status ($meta->{status});
       if (defined $meta->{etag}) {
+        $meta->{etag} = qq{"$meta->{etag}"} unless $meta->{etag} =~ /^"/;
         $http->add_response_header (etag => $meta->{etag});
       }
       for my $h (@{$meta->{headers} or []}) {
         $http->add_response_header ($h->[0], $h->[1]);
       }
-      if (defined $FilePaths->{$url}) {
+      if ($meta->{status} == 304 or $meta->{status} == 204) {
+        #
+      } elsif (defined $FilePaths->{$url}) {
         $http->send_response_body_as_ref (\$FilePaths->{$url}->slurp);
       } elsif (length $Files->{$url}) {
         $http->send_response_body_as_ref (\$Files->{$url});
