@@ -146,6 +146,7 @@ sub run ($$;%) {
         for my $item (@$items) {
           $item->{path} = $da_items->{$item->{key}};
           delete $item->{path} unless defined $item->{path};
+          delete $item->{file};
           $outer->item ($item);
         }
         if (not $args{jsonl} and @$items and
@@ -207,7 +208,7 @@ sub run_data_area_list ($$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

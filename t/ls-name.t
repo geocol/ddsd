@@ -247,7 +247,7 @@ Test {
         ok $f->{rev}->{http_date};
         is $f->{rev}->{http_last_modified}, undef;
         is $f->{rev}->{http_etag}, undef;
-        is $f->{key}, 'package';
+        is $f->{key}, 'meta:ckan.json';
         is $f->{package_item}->{mime}, 'application/json';
         is $f->{package_item}->{title}, '';
         is $f->{ckan_package}, undef;
@@ -306,9 +306,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
         is $f->{rev}->{original_url}, 'http://hoge/api/action/package_show?id=package-name-' . $key;
@@ -318,7 +318,7 @@ Test {
         ok $f->{rev}->{http_date};
         is $f->{rev}->{http_last_modified}, undef;
         is $f->{rev}->{http_etag}, undef;
-        is $f->{key}, 'package';
+        is $f->{key}, 'meta:ckan.json';
         is $f->{package_item}->{mime}, 'application/json';
         is $f->{package_item}->{title}, '';
         ok $f->{ckan_package}->{hogA};
@@ -326,7 +326,7 @@ Test {
         is $f->{ckan_resource}, undef;
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         like $f->{path}, qr{^/.+}; # XXX If Windows,
         is $f->{rev}->{url}, 'http://hoge/file1/' . $key,
         is $f->{rev}->{original_url}, 'http://hoge/file1/' .  $key;
@@ -385,12 +385,12 @@ Test {
     test {
       is $r->{exit_code}, 0;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         is $f->{package_item}->{file_time}, 665244566;
         is $f->{package_item}->{mime}, 'text/plain';
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         is $f->{package_item}->{file_time}, 4224456;
         is $f->{package_item}->{mime}, 'text/csv';
       }
@@ -443,21 +443,22 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         is $f->{package_item}->{file_time}, 665244566;
         is $f->{package_item}->{mime}, 'text/plain';
         is $f->{package_item}->{title}, 'ABC';
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         is $f->{package_item}->{file_time}, 4224456;
         is $f->{package_item}->{mime}, 'text/csv';
         is $f->{package_item}->{title}, 'xyz';
       }
     } $current->c;
   });
-} n => 8, name => 'package file metadata from package, 1';
+} n => 9, name => 'package file metadata from package, 1';
 
 Test {
   my $current = shift;
@@ -501,13 +502,13 @@ Test {
     test {
       is $r->{exit_code}, 0;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         is $f->{package_item}->{file_time}, 665244566;
         is $f->{package_item}->{mime}, 'text/plain';
         is $f->{package_item}->{title}, 'abc';
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         is $f->{package_item}->{file_time}, 4224456;
         is $f->{package_item}->{mime}, 'text/csv';
         is $f->{package_item}->{title}, '';
@@ -555,13 +556,13 @@ Test {
     test {
       is $r->{exit_code}, 0;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         is $f->{package_item}->{file_time}, 665244566;
         is $f->{package_item}->{mime}, 'application/json';
         is $f->{package_item}->{title}, '';
       }
       {
-        my $f = $r->{jsonl}->[1];
+        my $f = $r->{jsonl}->[3];
         is $f->{package_item}->{file_time}, 4224456;
         is $f->{package_item}->{mime}, 'application/octet-stream';
         is $f->{package_item}->{title}, '';
@@ -606,9 +607,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 3;
       {
-        my $f = $r->{jsonl}->[0];
+        my $f = $r->{jsonl}->[1];
         is $f->{path}, undef;
         is $f->{rev}, undef;
         is $f->{package_item}->{mime}, 'application/json';
@@ -661,7 +662,7 @@ Test {
         my $f = $r->{jsonl}->[0];
         is $f->{path}, undef;
         is $f->{rev}, undef;
-        is $f->{package_item}->{mime}, 'application/json';
+        is $f->{package_item}->{mime}, undef;
         is $f->{package_item}->{title}, '';
         is $f->{ckan_package}, undef;
         is $f->{ckan_resource}, undef;
@@ -706,25 +707,38 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 4;
       {
         my $f = $r->{jsonl}->[0];
+        is $f->{type}, 'package';
         is $f->{path}, undef;
         is $f->{rev}, undef;
         is $f->{package_item}->{mime}, undef;
         is $f->{package_item}->{title}, '';
         is $f->{ckan_package}, undef;
         is $f->{ckan_resource}, undef;
+        is $f->{file}, undef;
+      }
+      {
+        my $f = $r->{jsonl}->[1];
+        is $f->{type}, 'file';
+        is $f->{key}, 'file:index.html';
+        is $f->{rev}, undef;
+        is $f->{package_item}->{mime}, 'application/octet-stream';
+        is $f->{package_item}->{title}, '';
+        is $f->{ckan_package}, undef;
+        is $f->{ckan_resource}, undef;
+        is $f->{file}, undef;
       }
     } $current->c;
   });
-} n => 11, name => 'non pulled, ckansiterepo';
+} n => 21, name => 'non pulled, ckansiterepo';
 
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

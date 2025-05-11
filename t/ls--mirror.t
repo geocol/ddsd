@@ -40,10 +40,10 @@ Test {
         url => "https://1.hoge/dataset/$key",
         skip_other_files => 1,
         files => {
-          package => {
+          'meta:ckan.json' => {
             sha256 => "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a",
           },
-          "package:activity.html" => {},
+          "meta:activity.html" => {},
           "file:index:0" => {
             sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
           },
@@ -61,7 +61,8 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-1.hoge.jsonl' => {
         jsonl => [
-          ["198cfb6fbf394380bf243cd1e2f8b8f38342142bbd9804a88365aee0e20810f0", "https://1.hoge/$key/hash1.zip",
+          ["b4bdac56fe0fd601b76de463831b782a4b86b4a00d8f0d0d5eb7f4f3307ac597",
+           "https://1.hoge/$key/hash1.zip",
            $r->{json}->{sha256}],
         ],
       },
@@ -89,13 +90,13 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 3;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $item = $r->{jsonl}->[0];
+        my $item = $r->{jsonl}->[1];
         is $item->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
       }
       {
-        my $item = $r->{jsonl}->[2];
+        my $item = $r->{jsonl}->[3];
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
       }
     } $current->c;
@@ -216,19 +217,20 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 3;
+      is 0+@{$r->{jsonl}}, 4;
       {
-        my $item = $r->{jsonl}->[0];
+        my $item = $r->{jsonl}->[1];
         is $item->{rev}->{sha256}, "dbb997f2c34c915e733551336ba8a01e01a1265d1ddddb50181af37caca72246";
       }
       {
-        my $item = $r->{jsonl}->[2];
+        my $item = $r->{jsonl}->[3];
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
       }
     } $current->c;
     return $current->check_files ([
       {path => "local/ddsd/states/packages.json", json => sub {
         my $json = shift;
+        use Data::Dumper;warn Dumper $json;
         is $json->{foo}->{ckan}->{"https://2.hoge/dataset/$key"}->{mirror_url}, "https://2.hoge/$key/hash1.zip";
       }},
     ], app => 1);
@@ -252,7 +254,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

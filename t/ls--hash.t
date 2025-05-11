@@ -31,11 +31,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '9319ede5d2cc93438aae538ffed46623f8d875de03eaf0edbfbc8ac74b08c5d7';
+           'd9a99d0df763959cc1f09f963cf319f858666cd439212eab4f5728c34684a7e1';
       }
     } $current->c;
     return $current->run ('ls', additional => [$key], stdout => 1);
@@ -43,7 +43,7 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      like $r->{stdout}, qr{9319ede5d2cc93438aae538ffed46623f8d875de03eaf0edbfbc8ac74b08c5d7};
+      like $r->{stdout}, qr{d9a99d0df763959cc1f09f963cf319f858666cd439212eab4f5728c34684a7e1};
     } $current->c;
     return $current->run ('pull');
   })->then (sub {
@@ -56,11 +56,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '9319ede5d2cc93438aae538ffed46623f8d875de03eaf0edbfbc8ac74b08c5d7';
+           'd9a99d0df763959cc1f09f963cf319f858666cd439212eab4f5728c34684a7e1';
       }
     } $current->c;
     return $current->prepare (
@@ -88,11 +88,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '04154ea5284641fbf42bbf2d5a118ab4ddc1ebbacb01e3c09e1178d84c37ce42';
+           'd5fbe691954fa5dc2e43600990283268dcb51f7632f69f90f3e9ce896727a044';
       }
     } $current->c;
     return $current->prepare (
@@ -113,11 +113,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '04154ea5284641fbf42bbf2d5a118ab4ddc1ebbacb01e3c09e1178d84c37ce42';
+           'd5fbe691954fa5dc2e43600990283268dcb51f7632f69f90f3e9ce896727a044';
       }
     } $current->c;
     return $current->run ('unuse', additional => [$key, 'file:index:0']);
@@ -131,11 +131,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 4;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '04154ea5284641fbf42bbf2d5a118ab4ddc1ebbacb01e3c09e1178d84c37ce42';
+           '79de22405251b49ae854f488220069b8d68ae0c081ded8d6c23472c4e41d9230';
       }
     } $current->c;
     return $current->prepare (undef, {
@@ -157,11 +157,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '9319ede5d2cc93438aae538ffed46623f8d875de03eaf0edbfbc8ac74b08c5d7';
+           'd9a99d0df763959cc1f09f963cf319f858666cd439212eab4f5728c34684a7e1';
       }
     } $current->c;
   });
@@ -197,22 +197,18 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 1;
+      is 0+@{$r->{jsonl}}, 2;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+           'abbc47bda7962ec96bfab7cbebd9730368f1e637216af3a15c9db560ff74f597';
         is $item->{type}, 'package';
         is $item->{key}, 'package';
-        is $item->{lang}, '';
-        is $item->{dir}, 'auto';
-        is $item->{writing_mode}, 'horizontal-tb';
         is $item->{rev}, undef;
         is $item->{path}, undef;
         is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, undef;
-        is $item->{url}, "https://hoge/$key/index.json";
       }
     } $current->c;
     return $current->prepare (undef, {
@@ -239,11 +235,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+           '6362ecb0c9fc59ccc70b9f30a5d195cfaacbd087d633947e01d6444ebf6f2f27';
       }
     } $current->c;
     return $current->prepare (undef, {
@@ -263,11 +259,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           '25ed921b4fd74af727275dc83a02590cfe605e2876dae9ec4b9db6dc33dc183d';
+           '231ee48135777b3246e5f1e3fc2a6836689168eadc740fb992a79815889f93e5';
       }
     } $current->c;
     return $current->run ('unuse', additional => [$key, 'file:r:a']);
@@ -281,15 +277,15 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
+      is 0+@{$r->{jsonl}}, 3;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+           '6362ecb0c9fc59ccc70b9f30a5d195cfaacbd087d633947e01d6444ebf6f2f27';
       }
     } $current->c;
   });
-} n => 27, name => 'packrefrepo';
+} n => 23, name => 'packrefrepo';
 
 Test {
   my $current = shift;
@@ -330,11 +326,11 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 3;
+      is 0+@{$r->{jsonl}}, 4;
       {
         my $item = $r->{jsonl}->[0];
         is $item->{package_item}->{snapshot_hash},
-           'c12ea051243993a7a5ee10ba3bbcb13dfc01e8836b8f6ccd9a93fc850403d85b';
+           'c9ca9c78fc7c9f6a90caadb4a5d32151cc195c214bcfed5d6cc31331f35bc95e';
       }
     } $current->c;
   });
@@ -344,7 +340,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

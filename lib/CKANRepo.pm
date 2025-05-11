@@ -544,7 +544,8 @@ sub get_item_list ($;%) {
               $file->{package_item}->{file_time} = $file->{rev}->{http_last_modified} // $file->{rev}->{http_date} // $file->{rev}->{timestamp};
               $package_insecure = 1 if $file->{rev}->{insecure};
             }
-            if ($args{with_path}) {
+            if ($args{with_path} and
+                defined $item and defined $item->{files}) {
               $file->{path} = $storage_path->child
                   ($pack_items->{$file_key}->{files}->{data})
                   if defined $item->{files}->{data};
@@ -926,29 +927,24 @@ sub get_item_list ($;%) {
         if ($args{with_props}) {
           my $pi = $file->{package_item};
           {
-            last if defined $pi->{file_time};
-          if (defined $res->{last_modified}) {
-            my $dtp = Web::DateTime::Parser->new;
-            $dtp->onerror (sub { });
-            my $dt = $dtp->parse_local_date_and_time_string ($res->{last_modified});
-            if (defined $dt) {
-              $pi->{file_time} = $dt->to_unix_number;
-              last;
+            if (defined $res->{last_modified}) {
+              my $dtp = Web::DateTime::Parser->new;
+              $dtp->onerror (sub { });
+              my $dt = $dtp->parse_local_date_and_time_string ($res->{last_modified});
+              if (defined $dt) {
+                $pi->{file_time} = $dt->to_unix_number;
+                last;
+              }
             }
-          }
-          if (defined $res->{created}) {
-            my $dtp = Web::DateTime::Parser->new;
-            $dtp->onerror (sub { });
-            my $dt = $dtp->parse_local_date_and_time_string ($res->{created});
-            if (defined $dt) {
-              $pi->{file_time} = $dt->to_unix_number;
-              last;
+            if (defined $res->{created}) {
+              my $dtp = Web::DateTime::Parser->new;
+              $dtp->onerror (sub { });
+              my $dt = $dtp->parse_local_date_and_time_string ($res->{created});
+              if (defined $dt) {
+                $pi->{file_time} = $dt->to_unix_number;
+                last;
+              }
             }
-          }
-          if (defined $file->{rev}) {
-            $pi->{file_time} = $file->{rev}->{http_date} // $file->{rev}->{timestamp};
-            last;
-          }
           } # time
           $pi->{title} = $res->{name} // '';
           {
@@ -1033,7 +1029,7 @@ sub get_item_list ($;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

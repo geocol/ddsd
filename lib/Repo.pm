@@ -1554,18 +1554,14 @@ sub _set_item_file_info ($$$$$%) {
     $pi->{mime} = $MIMENormalize->{$pi->{mime}} // $pi->{mime};
     delete $pi->{mime} unless length $pi->{mime};
   }
-        if ($args{with_props}) {
-        {
-          if (defined $file->{rev} and
-              defined $file->{rev}->{http_last_modified}) {
-            $pi->{file_time} = $file->{rev}->{http_last_modified};
-          }
-          if (defined $file->{rev}) {
-            $pi->{file_time} = $file->{rev}->{http_date} // $file->{rev}->{timestamp};
-          }
-        }
-          $pi->{title} = '';
-        } # with_props
+  if ($args{with_props}) {
+    if (defined $file->{rev}) {
+      $pi->{file_time} = $file->{rev}->{http_last_modified} //
+                         $file->{rev}->{http_date} //
+                         $file->{rev}->{timestamp};
+    }
+    $pi->{title} = '';
+  } # with_props
 
   if (defined $fdef and defined $fdef->{name}) {
     $file->{file}->{directory} = 'files';

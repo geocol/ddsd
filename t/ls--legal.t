@@ -185,7 +185,7 @@ Test {
         {
           my $l = $item->{package_item}->{legal}->[0];
           is $l->{type}, 'license';
-          is $l->{key}, undef;
+          is $l->{key}, '-ddsd-ckan-package';
           is $l->{license_id}, "foo";
           is $l->{license_url}, "bar";
           is $l->{license_title}, "abc";
@@ -407,7 +407,7 @@ Test {
         is 0+@{$item->{package_item}->{legal}}, 1;
         {
           my $l = $item->{package_item}->{legal}->[0];
-          is $l->{type}, 'license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "$key-license";
           is $l->{source_type}, 'site_legal';
           is $l->{source_url}, undef;
@@ -453,7 +453,7 @@ Test {
         is 0+@{$item->{package_item}->{legal}}, 2;
         {
           my $l = $item->{package_item}->{legal}->[0];
-          is $l->{type}, 'site_license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "$key-license";
           is $l->{source_type}, 'site_legal';
           is $l->{source_url}, undef;
@@ -465,7 +465,7 @@ Test {
         }
         {
           my $l = $item->{package_item}->{legal}->[1];
-          is $l->{type}, 'site_license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "$key-license-2";
           is $l->{source_type}, 'site_legal';
           is $l->{source_url}, undef;
@@ -541,7 +541,7 @@ Test {
         }
         {
           my $l = $item->{package_item}->{legal}->[1];
-          is $l->{type}, 'site_license';
+          is $l->{type}, 'site_terms';
           is $l->{key}, "$key-license";
           is $l->{source_type}, 'site_legal';
           is $l->{source_url}, undef;
@@ -558,7 +558,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
