@@ -52,8 +52,8 @@ sub _pull_ddsd_data ($;%) {
         $self->has_error (1);
         return;
       }
-      return $da_repo->construct_file_list_of (
-        $repo, $def,
+      return $repo->construct_file_list (
+        $def,
         has_error => sub { $self->has_error (1) },
         skip_other_files => $def->{skip_other_files},
         data_area_key => undef,

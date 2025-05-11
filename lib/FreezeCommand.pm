@@ -22,9 +22,8 @@ sub run ($$;%) {
     
     my $repo = $self->app->repo_set->get_repo_by_source
         ($def, path => $plist->path);
-    my $da_repo = $self->app->data_area->get_repo ($da_name);
-    return $da_repo->construct_file_list_of (
-      $repo, $def,
+    return $repo->construct_file_list (
+      $def,
       has_error => sub { },
       data_area_key => $da_name,
     )->then (sub {
@@ -59,8 +58,6 @@ sub run ($$;%) {
       return $plist->close;
     })->finally (sub {
       return $repo->close;
-    })->finally (sub {
-      return $da_repo->close;
     });
   });
 } # run
@@ -69,7 +66,7 @@ sub run ($$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

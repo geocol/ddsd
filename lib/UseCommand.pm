@@ -90,8 +90,8 @@ sub run ($$$$;%) {
           type => 'reassign file name if necessary',
           key => $file_key, # or undef
         });
-        return $da_repo->construct_file_list_of (
-          $repo, $def,
+        return $repo->construct_file_list (
+          $def,
           has_error => sub { },
           init_by_default => $mode eq 'use',
           init_key => $file_key, # or undef
@@ -106,8 +106,8 @@ sub run ($$$$;%) {
       });
     }
   })->then (sub {
-    return $da_repo->construct_file_list_of (
-      $repo, $def,
+    return $repo->construct_file_list (
+      $def,
       has_error => sub { },
       data_area_key => $da_name,
     );

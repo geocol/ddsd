@@ -59,8 +59,7 @@ Test {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
         is $item->{key}, 'file:index.html';
-        is $item->{file}->{directory}, 'files';
-        is $item->{file}->{name}, 'index.html';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'text/html';
         like $item->{path}, qr{^/.+/local/data/hoge/files/index.html$}; # XXX platform
@@ -79,8 +78,7 @@ Test {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'file';
         is $item->{key}, 'file:about.html';
-        is $item->{file}->{directory}, 'files';
-        is $item->{file}->{name}, 'about.html';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'text/css';
         like $item->{path}, qr{^/.+/local/data/hoge/files/about.html$}; # XXX platform
@@ -99,8 +97,7 @@ Test {
         my $item = $r->{jsonl}->[3];
         is $item->{type}, 'file';
         is $item->{key}, 'file:package_list.json';
-        is $item->{file}->{directory}, 'files';
-        is $item->{file}->{name}, 'package_list.json';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'application/octet-stream';
         like $item->{path}, qr{^/.+/local/data/hoge/files/package_list.json$}; # XXX platform
@@ -117,7 +114,7 @@ Test {
       }
     } $current->c;
   });
-} n => 68, name => 'ls --jsonl';
+} n => 65, name => 'ls --jsonl';
 
 Test {
   my $current = shift;

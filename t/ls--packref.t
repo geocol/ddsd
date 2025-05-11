@@ -78,8 +78,7 @@ Test {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:ckan.json';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'package.ckan.json';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'application/json';
         like $item->{path}, qr{^/.+/local/data/foo/package/package.ckan.json$}; # XXX platform
@@ -94,8 +93,7 @@ Test {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:activity.html';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'activity.html';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'text/html;charset=utf-8';
         is $item->{path}, undef;
@@ -119,7 +117,7 @@ Test {
       }
     } $current->c;
   });
-} n => 51, name => 'ls --jsonl';
+} n => 49, name => 'ls --jsonl';
 
 Test {
   my $current = shift;
@@ -196,8 +194,7 @@ Test {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:packref.json';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'packref.json';
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'application/json';
         like $item->{path}, qr{^/.+/local/data/foo/package/packref.json$}; # XXX platform
@@ -212,8 +209,7 @@ Test {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'file';
         is $item->{key}, 'file:r:123';
-        is $item->{file}->{directory}, undef;
-        is $item->{file}->{name}, undef;
+        is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'application/octet-stream';
         like $item->{path}, qr{^/.+/local/data/foo/files/bar$}; # XXX platform
@@ -226,7 +222,7 @@ Test {
       }
     } $current->c;
   });
-} n => 44, name => 'files only';
+} n => 42, name => 'files only';
 
 Test {
   my $current = shift;

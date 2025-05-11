@@ -55,8 +55,7 @@ Test {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:ckan.json';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'package.ckan.json';
+        is $item->{file}, undef;
         like $item->{path}, qr{/local/data/package-name-$key/package/package.ckan.json$};
         is $item->{package_item}->{title}, '';
         ok $item->{package_item}->{file_time};
@@ -73,8 +72,7 @@ Test {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:activity.html';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'activity.html';
+        is $item->{file}, undef;
         like $item->{path}, qr{/local/data/package-name-$key/package/activity.html$};
         is $item->{package_item}->{title}, '';
         ok $item->{package_item}->{file_time};
@@ -89,7 +87,7 @@ Test {
       }
     } $current->c;
   });
-} n => 46, name => 'lang not known';
+} n => 44, name => 'lang not known';
 
 Test {
   my $current = shift;

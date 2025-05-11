@@ -184,8 +184,8 @@ sub run ($$;%) {
         my $da_repo = $self->app->data_area->get_repo ($name);
         die "Bad data package key |$name|" unless defined $da_repo;
         my $files;
-        return $da_repo->construct_file_list_of (
-          $repo, $def,
+        return $repo->construct_file_list (
+          $def,
           skip_all => $args{min},
           init_by_default => 1, has_error => sub { },
           data_area_key => $name,
