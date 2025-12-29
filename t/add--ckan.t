@@ -275,8 +275,7 @@ Test {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'meta';
         is $item->{key}, 'meta:ckan.json';
-        is $item->{file}->{directory}, 'package';
-        is $item->{file}->{name}, 'package.ckan.json';
+        is $item->{file}, undef;
         like $item->{path}, qr{/local/data/$key/package/package.ckan.json$};
         is $item->{package_item}->{title}, '';
         ok $item->{package_item}->{file_time};
@@ -294,7 +293,7 @@ Test {
       is $r->{jsonl}->[4]->{type}, 'file';
     } $current->c;
   });
-} n => 40, name => 'search.ckan.jp';
+} n => 39, name => 'search.ckan.jp';
 
 Test {
   my $current = shift;

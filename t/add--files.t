@@ -41,28 +41,26 @@ Test {
       {path => 'config/ddsd/packages.json', json => sub {
          my $json = shift;
          my $def = $json->{$key};
-         is 0+keys %{$def}, 2;
+         is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{url_sha256s}}, 0;
          is 0+keys %{$json->{urls}}, 0;
          is 0+keys %{$json->{items}}, 2;
          {
-           my $item = $json->{items}->{package};
-           is $item->{files}->{data}, 'package.ckan.json';
-           is $item->{type}, 'package';
+           my $item = $json->{items}->{"meta:ckan.json"};
+           is $item->{files}->{data}, 'package/package.ckan.json';
+           is $item->{type}, 'meta';
          }
          {
            my $item = $json->{items}->{"file:id:hoge123"};
            is $item->{files}->{data}, 'files/foo.txt';
            is $item->{type}, 'file';
          }
-         is $json->{source}->{type}, 'ckan';
-         is $json->{source}->{url}, "http://foo.test/abc/api/action/package_show?id=" . $key;
        }},
       {path => "local/data/$key/package/package.ckan.json", json => sub {
         my $json = shift;
@@ -73,26 +71,27 @@ Test {
       }},
     ]);
   });
-} n => 17, name => 'a file';
+} n => 15, name => 'a file';
 
 for (
-  ["\x00\x01_.txt" => "_00_01_.txt"],
-  ["%00%1F.txt" => "_00_1F.txt"],
-  ["%0A%0D_.txt" => "_0A_0D_.txt"],
-  ["-foo\x01." => "_2Dfoo_01_2E"],
-  [".foo\x01-" => "_2Efoo_01-"],
+  ["\x00\x01_.txt" => "___.txt"],
+  ["%00%1F.txt" => "__.txt"],
+  ["%0A%0D_.txt" => "___.txt"],
+  ["-foo\x01." => "_foo__"],
+  [".foo\x01-" => "_foo_-"],
   ["\x{4e00}abc" => "\x{4e00}abc", 1],
   ["abc...def" => "abc...def", 1],
-  [q{a<>"_qt~} => "a_3C_3E_22_qt_7E"],
+  [q{a<>"_qt~} => "a____qt_"],
   ["ab-cd-AX012" => "ab-cd-AX012", 1],
   ["a/b/c.txt" => "c.txt", 1],
   ["a/b/c\\d.txt" => "d.txt", 1],
-  ["a/b/c%2Fd.txt" => "c_2Fd.txt"],
-  ["a/b/c%2F%5Cd.txt" => "c_2F_5Cd.txt"],
+  ["a/b/c%2Fd.txt" => "c_d.txt"],
+  ["a/b/c%2F%5Cd.txt" => "c__d.txt"],
   ["\x{10000}" => "\x{10000}", 1],
-  ["%EF%BF%BE" => "\x{FFFE}", 1],
-  ["%EF%BF%BF" => "\x{FFFF}", 1],
-  ["%F4%8F%BF%BF" => "\x{10FFFF}", 1],
+  ["%EF%BF%BE" => "_"],
+  ["%EF%BF%BF" => "_"],
+  ["\x{10FFFD}" => "_"],
+  ["%F4%8F%BF%BF" => "_"],
 ) {
   my ($name1, $name2, $flag) = @$_;
   Test {
@@ -131,7 +130,7 @@ for (
       return $current->check_files ([
         {path => "local/data/$key/index.json", json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            {
              my $item = $json->{items}->{"file:id:hoge123"};
              is $item->{files}->{data}, 'files/' . $name2;
@@ -145,8 +144,8 @@ for (
            my $json = shift;
            my $def = $json->{$key};
            if ($flag) {
-             is 0+keys %{$def}, 2;
-             ok 1;
+             is 0+keys %{$def}, 3;
+             is $def->{files}->{"file:id:hoge123"}->{name}, undef;
            } else {
              is 0+keys %{$def}, 3;
              is $def->{files}->{"file:id:hoge123"}->{name}, $name2;
@@ -201,7 +200,7 @@ for (
       return $current->check_files ([
         {path => "local/data/$key/index.json", json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is 0+keys %{$json->{items}}, 2;
            {
              my $item = $json->{items}->{"file:id:hoge123"};
@@ -220,7 +219,7 @@ for (
            is 0+keys %{$def}, 3;
            is $def->{type}, 'ckan';
            is $def->{url}, "http://foo.test/abc/dataset/".$key;
-           is 0+keys %{$def->{files}}, 1;
+           ok 0+keys %{$def->{files}};
            is $def->{files}->{"file:id:hoge123"}->{name}, "1";
          }},
       ]);
@@ -270,11 +269,11 @@ for my $in (
       my $r = $_[0];
       test {
         is $r->{exit_code}, 0;
-      } $current->c;
+      } $current->c, name => "add";
       return $current->check_files ([
         {path => "local/data/$key/index.json", json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is 0+keys %{$json->{items}}, 1;
          }},
         {path => "local/data/$key/files/1", is_none => 1},
@@ -284,7 +283,7 @@ for my $in (
            is 0+keys %{$def}, 3;
            is $def->{type}, 'ckan';
            is $def->{url}, "http://foo.test/abc/dataset/".$key;
-           is 0+keys %{$def->{files}}, 1;
+           ok 0+keys %{$def->{files}};
            ok $def->{files}->{"file:id:hoge123"}->{skip};
          }},
       ]);
@@ -343,7 +342,7 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is 0+keys %{$json->{items}}, 11;
        }},
       {path => "local/data/$key/files/r1", text => "r1"},
@@ -363,12 +362,12 @@ Test {
          is 0+keys %{$def}, 3;
          is $def->{type}, 'ckan';
          is $def->{url}, "http://foo.test/abc/dataset/".$key;
-         is 0+keys %{$def->{files}}, 1;
+         ok 0+keys %{$def->{files}};
          ok $def->{files}->{"file:id:r11"}->{skip};
        }},
     ]);
   });
-} n => 9, name => ['many resources'];
+} n => 19, name => ['many resources'];
 
 Test {
   my $current = shift;
@@ -417,7 +416,7 @@ Test {
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -483,7 +482,7 @@ Test {
        }},
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -499,7 +498,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -52,7 +52,7 @@ Test {
       {path => "local/data/$key/files/r3", text => "r3"},
     ]);
   });
-} n => 9, name => 'ok';
+} n => 12, name => 'ok';
 
 Test {
   my $current = shift;
@@ -103,7 +103,7 @@ Test {
        }},
     ]);
   });
-} n => 6, name => 'has 404';
+} n => 8, name => 'has 404';
 
 Test {
   my $current = shift;
@@ -153,7 +153,7 @@ Test {
        }},
     ]);
   });
-} n => 6, name => 'has network error';
+} n => 8, name => 'has network error';
 
 Test {
   my $current = shift;
@@ -203,7 +203,7 @@ Test {
        }},
     ]);
   });
-} n => 6, name => 'has network error, HTTPS';
+} n => 8, name => 'has network error, HTTPS';
 
 Test {
   my $current = shift;
@@ -253,7 +253,7 @@ Test {
       {path => "local/data/$key/files/r3", text => "r3"},
     ]);
   });
-} n => 9, name => 'ok HTTPS';
+} n => 12, name => 'ok HTTPS';
 
 Test {
   my $current = shift;
@@ -301,7 +301,7 @@ Test {
       {path => "local/data/$key/files/r2", text => "r2"},
     ]);
   });
-} n => 8, name => 'has insecure, no --insecure';
+} n => 10, name => 'has insecure, no --insecure';
 
 Test {
   my $current = shift;
@@ -413,8 +413,8 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{items}->{'meta:ckan.json'}->{rev}->{url}, "https://hoge/abc/api/action/package_show?id=0.449629843409525";
-         is $json->{items}->{'meta:ckan.json'}->{rev}->{original_url}, "https://hoge/abc/api/action/package_show?id=0.449629843409525";
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{url}, "https://hoge/abc/api/action/package_show?id=$key";
+         is $json->{items}->{'meta:ckan.json'}->{rev}->{original_url}, "https://hoge/abc/api/action/package_show?id=$key";
        }},
       {path => "local/data/$key/files/r1", text => "r1"},
       {path => "local/data/$key/files/r2", text => "r2"},
@@ -459,7 +459,7 @@ Test {
          is $json->{items}->{'meta:packref.json'}->{rev}->{url},
             "https://hoge/$key.json";
          is $json->{items}->{'meta:packref.json'}->{rev}->{original_url},
-            "https://hoge/$key.json#hoge";
+            "https://hoge/$key.json";
        }},
       {path => "local/data/$key/files/r1", text => "r1"},
       {path => "local/data/$key/files/r2", text => "r2"},
@@ -472,7 +472,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

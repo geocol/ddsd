@@ -41,7 +41,7 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
        }},
@@ -58,7 +58,7 @@ Test {
       {path => "local/data/$key/files/r4", text => "r4"},
     ]);
   });
-} n => 8, name => 'redirected';
+} n => 11, name => 'redirected';
 
 Test {
   my $current = shift;
@@ -97,7 +97,7 @@ Test {
     return $current->check_files ([
       {path => "local/data/$key/index.json", json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
        }},
@@ -113,13 +113,13 @@ Test {
       {path => "local/data/$key/files/r2-2", text => "r4"},
     ]);
   });
-} n => 8, name => 'redirected with conflicting name';
+} n => 11, name => 'redirected with conflicting name';
 
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

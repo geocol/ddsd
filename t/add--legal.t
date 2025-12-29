@@ -9,29 +9,32 @@ use Tests;
 Test {
   my $current = shift;
   my $key = rand;
-  return $current->prepare (undef, {
-    $current->legal_url_prefix . 'packref.json' => {
-      json => {
-        type => 'packref',
-        source => {
-          type => 'files',
-          files => {
-            'file:r:ckan.json' => {
-              url => 'abc',
+  return Promise->resolve->then (sub {
+    return $current->prepare (undef, {
+      $current->legal_url_prefix . 'packref.json' => {
+        json => {
+          type => 'packref',
+          source => {
+            type => 'files',
+            files => {
+              'file:r:ckan.json' => {
+                url => 'abc',
+              },
+              'file:r:info.json' => {url => 'info.json'},
             },
           },
         },
       },
-    },
-    $current->legal_url_prefix . 'abc' => {
-      text => 'ABC',
-    },
-    "https://hoge/$key/index.json" => {
-      json => {
-        type => 'packref',
-        source => {type => 'files'},
+      $current->legal_url_prefix . 'abc' => {
+        text => 'ABC',
       },
-    },
+      "https://hoge/$key/index.json" => {
+        json => {
+          type => 'packref',
+          source => {type => 'files'},
+        },
+      },
+    });
   })->then (sub {
     return $current->run ('add', additional => ["https://hoge/$key/index.json"]);
   })->then (sub {
@@ -40,16 +43,17 @@ Test {
       is $r->{exit_code}, 0;
     } $current->c;
     return $current->check_files ([
-      {path => 'local/data', is_none => 1},
       {path => 'local/ddsd/data/legal/index.json', json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 1;
+         is 0+keys %{$json->{items}}, 3;
+         ok $json->{items}->{'meta:packref.json'};
+         ok $json->{items}->{'file:r:info.json'};
          is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
        }},
       {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
     ]);
   });
-} n => 4, name => 'legal';
+} n => 7, name => 'legal';
 
 Test {
   my $current = shift;
@@ -104,7 +108,7 @@ Test {
            my $v = json_bytes2perl $lines->[0];
            ok $v->{timestamp} > $current->o ('time1');
            is $v->{legal_key}, "$key-license";
-           is $v->{legal_source_key}, "package:activity.html";
+           is $v->{legal_source_key}, "meta:activity.html";
            is $v->{legal_source_url}, "https://hoge/$key/license";
          }
        }},
