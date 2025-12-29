@@ -19,6 +19,10 @@ sub _run ($$) {
   ]);
   my $in = perl2json_bytes $args;
   $cmd->stdin (\$in);
+  $logger->info ({
+    type => 'invoke zipper',
+    args => $args,
+  });
   my $out = '';
   my $final;
   my $process_output = sub {
@@ -30,7 +34,7 @@ sub _run ($$) {
           value => (substr $1, 0, 100),
         }) unless defined $json;
         if ($json->{type} eq 'final') {
-          $final = $json
+          $final = $json;
         } else {
           $logger->propagate ($json);
         }
@@ -71,6 +75,18 @@ sub create ($$$) {
   }); # {length, sha256}
 } # create
 
+sub list ($$;%) {
+  my ($class, $app, $zip_path, %args) = @_;
+  my $logger = $app->logger;
+
+  return _run ($logger, {
+    command => 'list',
+    input_file_name => $zip_path->absolute,
+    url => (defined $args{url_string} ? $args{url_string} : undef),
+    path_encoding => $args{path_encoding},
+  }); # {files}
+} # list
+
 sub extract ($$$$) {
   my ($class, $app, $zip_path, $file_name, $out_path) = @_;
   my $logger = $app->logger;
@@ -107,7 +123,7 @@ sub read_json ($$$) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

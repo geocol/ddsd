@@ -3,13 +3,13 @@ use strict;
 use warnings;
 use Time::HiRes qw(time);
 use JSON::PS;
+use Promised::File;
 
 use JSONFile;
 push our @ISA, qw(JSONFile);
 
-sub open_by_repo ($$;%) {
-  my ($class, $repo, %args) = @_;
-  my $storage = $repo->storage;
+sub open_by_app_and_storage ($$$;%) {
+  my ($class, $app, $storage, %args) = @_;
 
   my $init = sub {
     my ($self, $logger, $path, $index, %args) = @_;
@@ -66,26 +66,34 @@ sub open_by_repo ($$;%) {
     $self->{storage} = $storage;
   };
 
-  my $path = $repo->storage->{path}->child ('index.json');
+  my $path = $storage->child_path ('index.json');
   return $class->_open_by_app_and_path
-      ($repo->set->app, $path,
+      ($app, $path,
        allow_missing => $args{allow_missing}, lock => $args{lock},
        format => 'ddsd repo index',
        init => $init, init_empty => $init_empty);
-} # open_by_repo
+} # open_by_app_and_storage
 
 sub index ($) { $_[0]->{json} }
 sub items ($) { $_[0]->{json}->{items} }
 
-sub get_item ($$;%) {
-  my ($self, $url_string, %args) = @_;
+sub get_item ($%) {
+  my ($self, %args) = @_;
   my $index = $self->{json};
 
   my $ref;
-  if (defined $args{file_def}->{sha256}) {
-    $ref = $index->{url_sha256s}->{$url_string, $args{file_def}->{sha256}};
+  if (defined $args{url_string}) {
+    if (defined $args{file_def}->{sha256}) {
+      $ref = $index->{url_sha256s}->{$args{url_string}, $args{file_def}->{sha256}};
+    } else {
+      $ref = $index->{urls}->{$args{url_string}};
+    }
+  } elsif (defined $args{raw_path_string}) {
+    $ref = $index->{raw_paths}->{$args{raw_path_string}};
+  } elsif ($args{allow_no_item}) {
+    #
   } else {
-    $ref = $index->{urls}->{$url_string};
+    die "No item key";
   }
   return (undef, undef) unless defined $ref;
   
@@ -98,6 +106,58 @@ sub get_item ($$;%) {
 
   return ($ref, $item);
 } # get_item
+
+## Return the path object for the file with the specified $key in the
+## $item listed in the repository index.
+sub get_path_of ($$$;%) {
+  my ($self, $item, $key, %args) = @_;
+
+  my $name = $item->{files}->{$key};
+  if (not defined $name) {
+    if ($args{create_if_missing}) {
+      my $path = $self->{storage}->create_child_path (prefix => $args{prefix});
+      $item->{files}->{$key} = $path->relative ($self->path);
+      $self->touch;
+      return $path;
+    } elsif ($args{allow_missing}) {
+      return undef;
+    } else {
+      return $self->app->logger->throw ({
+        type => 'referenced file not found',
+        item => $item,
+        key => $key,
+        path => $self->path->absolute,
+      });
+    }
+  } # $name
+  
+  return $self->{storage}->child_path ($name);
+} # get_path_of
+#
+sub get_storage_of ($$$;%) {
+  my ($self, $item, $key, %args) = @_;
+
+  my $name = $item->{files}->{$key};
+  if (not defined $name) {
+    if ($args{create_if_missing}) {
+      my $storage = $self->{storage}->create_child_storage (prefix => $args{prefix});
+      $item->{files}->{$key} = $storage->{path}->relative ($self->{storage}->{path});
+      $self->touch;
+      return $storage;
+    } elsif ($args{allow_missing}) {
+      return undef;
+    } else {
+      return $self->app->logger->throw ({
+        type => 'referenced file not found',
+        item => $item,
+        key => $key,
+        path => $self->path->absolute,
+      });
+    }
+  } # $name
+  
+  return $self->{storage}->child_storage ($name);
+} # get_storage_of
 
 sub get_timestamp_of ($$) {
   my ($self, $path_string) = @_;
@@ -291,8 +351,10 @@ sub put_response ($$$) {
     path => $log_path->absolute,
   }) if defined $fl;
   return Promise->all ([
-    $self->{storage}->write_json ("objects/$key-meta.json", $meta),
-    (defined $old_data ? undef : $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path}, readonly => 1)),
+    $self->{storage}->write_json ("objects/$key-meta.json", $meta, readonly => 1),
+    (defined $old_data ? undef : $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path})->then (sub {
+      return Promised::File->new_from_path ($r->{path})->chmod (04444);      
+    })),
     (defined $fl ? $self->{storage}->write_jsonl ("objects/$key-log.jsonl", [$fl]) : undef),
   ])->then (sub {
     return $return;
@@ -416,14 +478,22 @@ sub put_from_mirrorzip ($$$;%) {
     my $name = $return->{item}->{files}->{$f} = "objects/$key-$f." . ({
       meta => 'json',
       log => 'jsonl',
-    }->{$key} // 'dat');
+    }->{$f} // 'dat');
     $p = $p->then (sub {
       return $self->{storage}->hardlink_from ($name, $files->{$f}->{path});
+    })->then (sub {
+      return Promised::File->new_from_path ($files->{$f}->{path})->chmod (0444)
+          unless $f eq 'log';
     });
   }
+  return $logger->throw ({
+    type => 'broken file', format => 'mirrorzip index.json',
+    value => 'files.data',
+    %{$args{error_location}},
+  }) unless defined $return->{item}->{files}->{data};
   
   my $data_path = $storage_path->child ("objects/$key-data.dat");
-  $return->{data_path} = $data_path;
+  $return->{data_path} = $self->{storage}->child_path ($return->{item}->{files}->{data});
   $return->{key} = $key;
   $return->{new} = 1;
 
@@ -432,11 +502,56 @@ sub put_from_mirrorzip ($$$;%) {
   });
 } # put_from_mirrorzip
 
+sub put_zip_item ($$$$;%) {
+  my ($self, $file, $zipped, $zip_temp_path, %args) = @_;
+
+  my $return = {};
+  
+  my $rev = {
+    raw_path => $file->{archive_item}->{raw_path},
+    path => $file->{archive_item}->{path},
+    timestamp => $file->{archive_item}->{time},
+    sha256 => $zipped->{sha256},
+    length => $zipped->{length},
+  };
+  $rev->{insecure} = 1 if $args{insecure};
+  $rev->{path_encoding} = $file->{archive_item}->{path_encoding}
+      if defined $file->{archive_item}->{path_encoding};
+
+  my $logger = $self->app->logger;
+
+  my $index = $self->index;
+  $self->touch;
+  my $item = $return->{item} = $index->{items}->{$file->{key}} = {
+    type => $args{type} // 'file',
+    rev => $rev,
+    files => {},
+  };
+
+  my $data_path = $self->{storage}->create_child_path
+      (dir_name => 'objects', ext => 'dat');
+  $return->{data_path} = $data_path;
+  my $name = $item->{files}->{data} = $data_path->relative ($self->{storage}->{path});
+  my $p = $self->{storage}->hardlink_from ($name, $zip_temp_path)->then (sub {
+    return Promised::File->new_from_path ($zip_temp_path)->chmod (0444);
+  });
+  
+  $return->{key} = $file->{key};
+  $return->{new} = 1;
+
+  $index->{raw_paths}->{$file->{archive_item}->{raw_path}} = $file->{key};
+  $index->{paths}->{$file->{archive_item}->{path}} = $file->{key};
+
+  return $p->then (sub {
+    return $return;
+  });
+} # put_zip_item
+
 1;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

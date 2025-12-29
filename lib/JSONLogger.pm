@@ -2,6 +2,7 @@ package JSONLogger;
 use strict;
 use warnings;
 use Path::Tiny;
+use Carp;
 use Time::HiRes qw(time);
 use ArrayBuffer;
 use DataView;
@@ -47,6 +48,8 @@ sub _write ($$) {
 
 sub _error ($$) {
   my ($self, $error) = @_;
+  $error->{location}->{short} = Carp::shortmess;
+  $error->{location}->{long} = Carp::longmess if $ENV{DDSD_DEBUG};
   return $self->_write ((perl2json_bytes $error) . "\x0A")->then (sub {
     return $error;
   });

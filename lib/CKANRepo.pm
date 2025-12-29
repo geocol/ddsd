@@ -220,7 +220,7 @@ sub fetch ($;%) {
             next;
           }
           my $u = Web::URL->parse_string ($item->{url});
-          if (not defined $u and not $u->is_http_s) {
+          if (not defined $u or not $u->is_http_s) {
             $logger->count (['add_skipped']);
             next;
           }
@@ -456,12 +456,14 @@ sub get_item_list ($;%) {
       });
     } else {
       ($item_key, $item) = $in->get_item
-          ($self->{api_url}, file_def => $file_defs->{'meta:ckan.json'});
+          (url_string => $self->{api_url},
+           file_def => $file_defs->{'meta:ckan.json'});
     }
     if (not defined $item) {
       $logger->message ({
         type => 'no local copy available',
         url => $self->{api_url},
+        key => 'meta:ckan.json',
       });
       $args{has_error}->();
     }
@@ -509,7 +511,8 @@ sub get_item_list ($;%) {
           });
         } else {
           (undef, $pack_items->{$file_key}) = $in->get_item
-              ($self->{$url_key}, file_def => $file_defs->{$file_key});
+              (url_string => $self->{$url_key},
+               file_def => $file_defs->{$file_key});
         }
 
         if ($with_package) {
@@ -922,7 +925,8 @@ sub get_item_list ($;%) {
         }
         
         $self->_set_item_file_info
-            ($url, $file_defs->{$file->{key}}, $in, $file, %args)
+            ((defined $url ? [url_string => $url->stringify] : undef),
+             $file_defs->{$file->{key}}, $in, $file, %args)
             unless $skipped; # XXX tests for skipped
         if ($args{with_props}) {
           my $pi = $file->{package_item};

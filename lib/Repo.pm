@@ -15,6 +15,7 @@ use Zipper;
 use Fetcher;
 use RepoIndexFile;
 use FileNames;
+use FileTypes;
 
 sub set ($) { $_[0]->{set} // die }
 sub type ($) { die }
@@ -34,15 +35,19 @@ sub _set_key ($$) {
 
 sub storage ($) {
   my $self = $_[0];
-  return $self->{storage} //= $self->set->storage->child (@{$self->{key}});
+  return $self->{storage} //= $self->set->storage->child_storage (@{$self->{key}});
 } # storage
 
 sub read_index ($) {
-  return RepoIndexFile->open_by_repo ($_[0], allow_missing => 1);
+  my $self = $_[0];
+  return RepoIndexFile->open_by_app_and_storage
+      ($self->set->app, $self->storage, allow_missing => 1);
 } # read_index
 
 sub lock_index ($) {
-  return RepoIndexFile->open_by_repo ($_[0], allow_missing => 1, lock => 1);
+  my $self = $_[0];
+  return RepoIndexFile->open_by_app_and_storage
+      ($self->set->app, $self->storage, allow_missing => 1, lock => 1);
 } # lock_index
 
 ## ------ Fetch ------
@@ -172,10 +177,12 @@ sub _use_mirror ($$$) {
       $logger->message ({
         type => 'mirrorzip selected using states',
         url => $mirror_url->stringify,
+        key => $key,
       });
     } else {
       $logger->info ({
         type => 'mirror not selected using states',
+        key => $key,
       });
     }
   });
@@ -233,7 +240,8 @@ sub _fetch_file_from_mirrorzip ($$$%) {
     $zip_path = $in->path->parent->child ($in->index->{zip_file_name})
         if defined $in->index->{zip_file_name};
     $zip_index = $in->index->{zip_index};
-    return [$in->get_item ($url->stringify, file_def => $file_def)];
+    return [$in->get_item (url_string => $url->stringify,
+                           file_def => $file_def)];
   })->then (sub {
     my ($item_key, $item) = @{$_[0]};
     return {
@@ -356,12 +364,12 @@ sub _fetch_file_from_mirrorzip ($$$%) {
             defined $it->{rev}->{url} and
             defined $it->{rev}->{original_url} and
             $it->{rev}->{original_url} eq $u) {
-          my $temp_path = $self->set->app->temp_storage->{path};
+          my $temp_storage = $self->set->app->temp_storage;
           my $files = {};
           return Promise->resolve->then (sub {
             return promised_for {
               my $key = shift;
-              my $dest_path = $temp_path->child (rand);
+              my $dest_path = $temp_storage->create_child_path;
               return Zipper->extract
                   ($self->set->app, $zip_path, $it->{files}->{$key}, $dest_path)->then (sub {
                 $files->{$key} = $_[0];
@@ -408,7 +416,8 @@ sub _fetch_file ($$$%) {
     
     return $self->read_index->then (sub {
       my $in = $_[0];
-      return [$in, $in->get_item ($url->stringify, file_def => $file_def)];
+      return [$in, $in->get_item (url_string => $url->stringify,
+                                  file_def => $file_def)];
     });
   })->then (sub {
     my ($in, $item_key, $item) = @{$_[0]};
@@ -491,6 +500,7 @@ sub _fetch_file ($$$%) {
               $item_key,
               fetch_log => $args{fetch_log},
             )->then (sub { $ix->save })->finally (sub { $ix->close })->then (sub {
+              $r->{has_new_fetch} = 1;
               return $r;
             });
           });
@@ -501,6 +511,7 @@ sub _fetch_file ($$$%) {
         return $self->lock_index->then (sub {
           my $ix = $_[0];
           $ix->ensure_type ($self->type) if $args{set_repo_type};
+          $r->{has_new_fetch} = 1;
           return $ix->put_response (
             $r,
             type => $args{dest_type},
@@ -641,6 +652,7 @@ sub _fetch_post_legal ($%) {
     has_error => $args{has_error},
     skip_other_files => 1,
     requires_legal => 1,
+    not_from_source => 1, # for PackRefRepo
     data_area_key => undef,
     _ => 'post_legal',
   )->then (sub {
@@ -874,6 +886,12 @@ sub _get_source_snapshot_hash ($$) {
   return $self->_get_snapshot_hash_of (\@item);
 } # _get_source_snapshot_hash
 
+## ------ Local copies ------
+
+sub _extract_files ($$;%) {
+  return Promise->resolve;
+} # _extract_files
+
 ## ------ Legal ------
 
 sub _sniff_terms_url_in_html ($$$) {
@@ -1001,6 +1019,10 @@ sub get_legal ($;%) {
       }
       return $zip_index->{legal};
     });
+  }
+
+  if (defined $repo->{upstream_repo}) {
+    return $repo->{upstream_repo}->get_legal (%args);
   }
   
   return Promise->all ([
@@ -1516,38 +1538,37 @@ sub format_legal ($$$;%) {
   return $cleanup;
 } # format_legal
 
+## ------ Repository index accesses ------
+
+sub _get_item_by_key ($$$) {
+  #my ($self, $ix, $item_key) = @_;
+  return undef;
+} # _get_item_by_key
+
 ## ------ File metadata ------
 
-my $MIMENormalize = {
-  'application/json; charset=utf-8' => 'application/json',
-  'application/x-zip-compressed' => 'application/zip',
-  'binary/octet-stream' => 'application/octet-stream',
-  'text/turtle; charset=utf-8' => 'text/turtle; charset=UTF-8',
-};
-
 sub _set_item_file_info ($$$$$%) {
-  my ($self, $url, $fdef, $in, $file, %args) = @_;
+  my ($self, $item_desc, $fdef, $ix, $file, %args) = @_;
 
   my $item;
-  if (defined $url) {
+  if (defined $item_desc and defined $ix) {
     my $item_key;
-    ($item_key, $item) = $in->get_item
-        ($url->stringify, file_def => $fdef);
+    ($item_key, $item) = $ix->get_item (@$item_desc, file_def => $fdef);
     if (defined $item) {
       $file->{rev} = $item->{rev};
       $file->{item_key} = $item_key if $args{with_item_key};
-      
+
       if ($args{with_path}) {
-        my $storage_path = $self->storage->{path};
-        $file->{path} = $storage_path->child ($item->{files}->{data})
+        my $storage = $ix->{storage};
+        $file->{path} = $storage->child_path ($item->{files}->{data})
             if defined $item->{files}->{data};
-        $file->{meta_path} = $storage_path->child ($item->{files}->{meta})
+        $file->{meta_path} = $storage->child_path ($item->{files}->{meta})
             if defined $item->{files}->{meta};
-        $file->{log_path} = $storage_path->child ($item->{files}->{log})
+        $file->{log_path} = $storage->child_path ($item->{files}->{log})
             if defined $item->{files}->{log};
       }
     }
-  } # $url
+  } # $item_desc
 
   my $pi = $file->{package_item} = {};
   if ($file->{type} eq 'file' or $file->{type} eq 'meta' or
@@ -1555,11 +1576,8 @@ sub _set_item_file_info ($$$$$%) {
     $pi->{mime} = $args{default_mime} // 'application/octet-stream';
     $pi->{mime} = $file->{rev}->{http_content_type}
         if defined $file->{rev} and defined $file->{rev}->{http_content_type};
-    my $m = $pi->{mime};
-    $pi->{mime} =~ s{\A([^;]+);\s*[Cc][Hh][Aa][Rr][Ss][Ee][Tt]=[Uu][Tt][Ff]-8\z}{$1; charset=utf-8};
-    $pi->{mime} =~ s{^([^;\s]+)}{lc $1}e;
-    $pi->{mime} = $MIMENormalize->{$pi->{mime}} // $pi->{mime};
-    delete $pi->{mime} unless length $pi->{mime};
+    $pi->{mime} = FileTypes::normalize_mime_type_string $pi->{mime};
+    delete $pi->{mime} unless defined $pi->{mime} and length $pi->{mime};
   }
   if ($args{with_props}) {
     if (defined $file->{rev}) {
@@ -1600,7 +1618,9 @@ sub _expand_dataset ($$$$$$%) {
                   $f->{source}->{url} .= 'query=SELECT%20%2A%20WHERE%20%7B%20%20%3Fs%20%3Fp%20%3Fo%20.%20%20FILTER%20(STRSTARTS(SUBSTR(MD5(STR(%3Fs)),%201,%202),%20%22'.$h.'%22))%20%7D';
                 }
                 $self->_set_item_file_info
-                    (Web::URL->parse_string ($f->{source}->{url} // ''), $fdefs->{$f->{key}}, $in, $f, %args);
+                    ([url_string => $f->{source}->{url}, # or undef
+                      allow_no_item => 1],
+                     $fdefs->{$f->{key}}, $in, $f, %args);
                 
                 my $fd = $fdefs->{$f->{key}};
                 if (defined $fd and defined $fd->{name}) {
@@ -1655,6 +1675,13 @@ sub construct_file_list ($$;%) {
     data_area_key => $args{data_area_key},
     with_props => 1,
   )->then (sub {
+    my $files = shift;
+    return $self->_extract_files ($files,
+      with_path => 1, file_defs => $def->{files},
+      has_error => $args{has_error},
+    )->then (sub { $files }) if $args{extract};
+    return $files;
+  })->then (sub {
     my $files = shift;
     my $found = {};
     my $found_n2u = {};
@@ -1777,7 +1804,7 @@ sub construct_file_list ($$;%) {
               next;
             }
             if (not FileNames::is_free_file_name $file->{file}->{name}) {
-              $args{has_error}->();
+              #$args{has_error}->();
               $logger->message ({
                 type => 'not a safe file name',
                 key => $file->{key},
@@ -1793,7 +1820,7 @@ sub construct_file_list ($$;%) {
           } else {
             my $dir = $file->{file}->{directory} // 'files';
             if (not FileNames::is_free_file_name $file->{file}->{name}) {
-              $args{has_error}->();
+              #$args{has_error}->();
               $logger->message ({
                 type => 'not a safe file name',
                 key => $file->{key},
@@ -1848,7 +1875,7 @@ sub construct_file_list ($$;%) {
             }
           }
           unless (defined $name) {
-            $args{has_error}->();
+            #$args{has_error}->();
             $logger->message ({
               type => 'not a safe file name',
               key => $file->{key},
@@ -1882,7 +1909,7 @@ sub construct_file_list ($$;%) {
         }
         my $dir_name = $key_to_dir_name->{$file->{file}->{directory_file_key}};
         if (defined $dir_name) {
-          $found->{"$dir_name/$file->{file}->{name}"}++;
+          $found->{FileNames::normalize_for_duplicate_check "$dir_name/$file->{file}->{name}"}++;
           $file->{snapshot}->{file_name} = "$dir_name/$file->{file}->{name}";
           next;
         } else {
@@ -1904,17 +1931,17 @@ sub construct_file_list ($$;%) {
           #
         } elsif (not defined $file->{snapshot}->{file_name}) {
           my $n = $i;
-          $n = ++$i while $found->{"files/$n"};
+          $n = ++$i while $found->{FileNames::normalize_for_duplicate_check "files/$n"};
           $def->{files}->{$file->{key}}->{name} = '' . $n;
           ($args{def_touch} or sub { })->();
-          $found->{"files/$n"}++;
+          $found->{FileNames::normalize_for_duplicate_check "files/$n"}++;
           $file->{snapshot}->{file_name} = "files/$n";
         } elsif ($found->{FileNames::normalize_for_duplicate_check $file->{snapshot}->{file_name}} > 1) {
           my $n0 = $file->{snapshot}->{file_name};
           $n0 =~ s{^files/}{};
           my $n = $n0 . '-' . $i;
-          $n = $n0 . '-' . ++$i while $found->{"files/$n"};
-          $found->{"files/$n"}++;
+          $n = $n0 . '-' . ++$i while $found->{FileNames::normalize_for_duplicate_check "files/$n"};
+          $found->{FileNames::normalize_for_duplicate_check "files/$n"}++;
           $def->{files}->{$file->{key}}->{name} = $n;
           ($args{def_touch} or sub { })->();
           $file->{snapshot}->{file_name} = "files/$n";
@@ -1925,6 +1952,7 @@ sub construct_file_list ($$;%) {
             ($args{def_touch} or sub { })->();
           }
         } elsif (defined $file->{rev} and
+                 defined $file->{rev}->{original_url} and
                  not $file->{rev}->{url} eq $file->{rev}->{original_url}) {
           my $n = $file->{snapshot}->{file_name};
           if ($n =~ s{^files/}{}) {

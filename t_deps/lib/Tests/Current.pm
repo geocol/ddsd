@@ -300,10 +300,28 @@ sub check_files ($$;%) {
       })->then (sub {
         if ($test->{is_none}) {
           return;
+        } elsif (defined $test->{timestamp}) {
+          return Promised::File->new_from_path ($current_path)->stat->then (sub {
+            my $mtime = $_[0]->mtime;
+            test {
+              is $mtime, $test->{timestamp}, "mtime";
+            } $self->c, name => $specified_path;
+          });
+        }
+      })->then (sub {
+        if ($test->{is_none}) {
+          return;
         } elsif (defined $test->{check}) {
           return test {
             return $test->{check}->($current_path);
           } $self->c, name => $specified_path;
+        } elsif ($test->{file}) {
+          return Promised::File->new_from_path ($current_path)->is_file->then (sub {
+            my $is_file = !!$_[0];
+            test {
+              ok $is_file, "file found";
+            } $self->c, name => $specified_path;
+          });
         } elsif (defined $test->{text}) {
           return Promised::File->new_from_path ($current_path)->read_byte_string->then (sub {
             my $text = decode_web_utf8 $_[0];
@@ -314,6 +332,24 @@ sub check_files ($$;%) {
             } else {
               return test {
                 is $text, $test->{text}, 'file content text matched';
+              } $self->c, name => $specified_path;
+            }
+          }, sub {
+            my $e = $_[0];
+            test {
+              is $e, undef, "@$specified_path ($current_path) found";
+            } $self->c;
+          });
+        } elsif (defined $test->{bytes}) {
+          return Promised::File->new_from_path ($current_path)->read_byte_string->then (sub {
+            my $bytes = $_[0];
+            if (ref $test->{bytes}) {
+              return test {
+                return $test->{bytes}->($bytes, $current_path);
+              } $self->c, name => $specified_path;
+            } else {
+              return test {
+                is $bytes, $test->{bytes}, 'file content bytes matched';
               } $self->c, name => $specified_path;
             }
           }, sub {

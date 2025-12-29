@@ -1,6 +1,7 @@
 package FSStorage;
 use strict;
 use warnings;
+use Time::HiRes qw(time);
 use ArrayBuffer;
 use DataView;
 use Promise;
@@ -18,12 +19,33 @@ sub new_from_path ($$) {
   return $self;
 } # new_from_path
 
-sub child ($@) {
+sub child_storage ($@) {
   my $self = shift;
   my $path = $self->{path}->child (@_);
   my $storage = (ref $self)->new_from_path ($path);
   return $storage;
-} # child
+} # child_storage
+
+sub child_path ($@) {
+  my $self = shift;
+  return $self->{path}->child (@_);
+} # child_path
+
+sub create_child_path ($;%) {
+  my ($self, %args) = @_;
+  return $self->{path}->child ($args{dir_name} // (),
+                               sprintf '%s%s%s.%s', $args{prefix} // '', time, rand, $args{ext} // 'dat');
+} # create_child_path
+
+sub create_child_storage ($) {
+  my ($self, %args) = @_;
+  return $self->child_storage ($args{dir_name} // (),
+                               sprintf '%s%s%s', $args{prefix} // '', time, rand);
+} # create_child_storage
+
+sub mkpath ($) {
+  return Promised::File->new_from_path ($_[0]->{path})->mkpath;
+} # mkpath
 
 sub write_by_readable ($$$;%) {
   my ($self, $rs, $logger, %args) = @_;
@@ -88,10 +110,13 @@ sub write_by_readable ($$$;%) {
   });
 } # write_by_readable
 
-sub write_json ($$) {
-  my ($self, $name, $json) = @_;
+sub write_json ($$;%) {
+  my ($self, $name, $json, %args) = @_;
   my $path = $self->{path}->child ($name);
-  return Promised::File->new_from_path ($path)->write_byte_string (perl2json_bytes_for_record $json);
+  my $file = Promised::File->new_from_path ($path);
+  return $file->write_byte_string (perl2json_bytes_for_record $json)->then (sub {
+    return $file->chmod (0444) if $args{readonly};
+  });
 } # write_json
 
 sub write_jsonl ($$) {
@@ -105,11 +130,9 @@ sub hardlink_from ($$;%) {
   my ($self, $name, $from_path, %args) = @_;
   my $path = $self->{path}->child ($name);
   my $file = Promised::File->new_from_path ($path);
-  return $file->hardlink_from ($from_path, fallback_to_copy => 1)->then (sub {
-    return $file->chmod (0444) if $args{readonly};
-  })->catch (sub {
+  return $file->hardlink_from ($from_path, fallback_to_copy => 1)->catch (sub {
     my $e = $_[0];
-    die "$path: $e"; # XXX wrap with error object?
+    die "|$from_path| => |$path| |$name|: |$e|"; # XXX wrap with error object?
   });
 } # hardlink_from
 
@@ -156,7 +179,7 @@ sub for_child_directories ($$$) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

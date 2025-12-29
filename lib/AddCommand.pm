@@ -9,6 +9,7 @@ push our @ISA, qw(Command);
 
 use Fetcher;
 use PackageListFile;
+use FileTypes;
 
 sub run ($$;%) {
   my ($self, $input, %args) = @_;
@@ -139,14 +140,36 @@ sub run ($$;%) {
           type => 'ckansite',
           url => 'https://search.ckan.jp/',
         };
-        $name = $r->{url}->host->to_ascii,
+          $name = $r->{url}->host->to_ascii,
+        }
       }
-    }
-      last DEF if (defined $def and defined $name);
+      last DEF if defined $def;
+      
+      my $ct = FileTypes::normalize_mime_type_string
+          ($r->{res}->header ('content-type') // '');
+      $ct = FileTypes::remove_mime_type_parameters $ct;
+      if ($ct eq 'application/zip' or
+          ($ct eq 'application/octet-stream' and $r->{url}->path =~ /\.zip/)) {
+        $def = {
+          type => 'zip',
+          source => {
+            type => 'single',
+            url => $r->{url}->stringify,
+          },
+          file_key => 'file',
+        };
+        
+        if ($r->{url}->path =~ m{([^/]+)\z}) {
+          my $n = percent_decode_c $1;
+          $n =~ s/\.zip\z//;
+          $name = $n;
+        }
+        last DEF;
+      }
 
       ## And more to come!
     } # DEF
-    unless (defined $def and defined $name) {
+    unless (defined $def) {
       return $logger->throw ({
         type => 'package type not detected',
         url => $input,
@@ -202,7 +225,11 @@ sub run ($$;%) {
         return $repo->construct_file_list (
           $def,
           skip_all => $args{min},
-          init_by_default => 1, has_error => sub { },
+          init_by_default => 1,
+          ## Even when the package is added, the list might not be
+          ## constructable, i.e. when it is a broken ZIP archive.
+          has_error => sub { $self->has_error (1) },
+          #extract => 0,
           data_area_key => $name,
         )->then (sub {
           $files = shift;

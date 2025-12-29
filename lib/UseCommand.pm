@@ -96,6 +96,7 @@ sub run ($$$$;%) {
           init_by_default => $mode eq 'use',
           init_key => $file_key, # or undef
           init_no_skip_marking => 1,
+          extract => 1,
           data_area_key => $da_name,
           def_touch => sub { $plist->touch },
         );
@@ -109,6 +110,7 @@ sub run ($$$$;%) {
     return $repo->construct_file_list (
       $def,
       has_error => sub { },
+      extract => $mode eq 'use',
       data_area_key => $da_name,
     );
   })->then (sub {

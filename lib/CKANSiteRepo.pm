@@ -178,7 +178,8 @@ sub get_item_list ($;%) {
       }
       # XXX skipped
       my $item = $self->_set_item_file_info
-          ($url, $file_defs->{$file_key}, $in, $file, %args);
+          ([url_string => $url->stringify],
+           $file_defs->{$file_key}, $in, $file, %args);
       $items->{$file_key} = $item; # or undef
     } # for
 

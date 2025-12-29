@@ -44,6 +44,7 @@ sub fetch ($;%) {
     $ret->{timestamp} = $x->{timestamp};
   }
   my $r_item_key;
+  my $has_new_fetch = 0;
   return $self->_fetch_file (
     $self->{url}, undef,
     %args,
@@ -59,6 +60,7 @@ sub fetch ($;%) {
   )->then (sub {
     my $r = $_[0];
     $package_item_key = $r->{key}; # or undef
+    $has_new_fetch = 1 if $r->{has_new_fetch};
     $ret->{insecure} = 1 if $r->{insecure};
     if ($r->{error}) {
       if ($args{requires_package}) {
@@ -98,7 +100,7 @@ sub fetch ($;%) {
     return $self->read_index->then (sub {
       my $in = $_[0];
       my (undef, $item) = $in->get_item
-          ($self->{url}->stringify, file_def => undef);
+          (url_string => $self->{url}->stringify, file_def => undef);
       if (defined $item) {
         $ret->{has_package} = 1;
       } else {
@@ -213,6 +215,7 @@ sub fetch ($;%) {
             )->then (sub {
               my $r = $_[0];
               $ret->{insecure} = 1 if $r->{insecure};
+              $has_new_fetch = 1 if $r->{has_new_fetch};
               if ($r->{error}) {
                 $args{has_error}->();
                 $ret->{broken} = 1;
@@ -240,7 +243,7 @@ sub fetch ($;%) {
       dest_item_key => $package_item_key,
       packref_url => $self->{url},
       logger => $logger,
-    );
+    ) if $has_new_fetch;
   })->then (sub {
     return unless $args{is_special_repo};
 
@@ -281,13 +284,13 @@ sub get_item_list ($;%) {
       writing_mode => 'horizontal-tb',
     },
   };
-  
+
   return $self->read_index->then (sub {
     my $in = $_[0];
 
     my $packref_fdef = $file_defs->{'meta:packref.json'};
     my (undef, $item) = $in->get_item
-        ($self->{url}->stringify, file_def => $packref_fdef);
+        (url_string => $self->{url}->stringify, file_def => $packref_fdef);
     if (not defined $item) {
       $logger->message ({
         type => 'no local copy available',
@@ -384,7 +387,8 @@ sub get_item_list ($;%) {
             $file->{source}->{url} = $self->{url}->stringify
                 if $args{with_source_meta};
             $self->_set_item_file_info
-                ($self->{url}, $packref_fdef, $in, $file, %args,
+                ([url_string => $self->{url}->stringify],
+                 $packref_fdef, $in, $file, %args,
                  default_mime => 'application/json',
                  default_directory_name => 'package',
                  default_file_name => 'packref.json');
@@ -403,7 +407,7 @@ sub get_item_list ($;%) {
 
         return unless defined $repo;
         return if $repo_is_files;
-        
+
         return $repo->_use_mirror ($args{data_area_key}, $source)->then (sub {
           return $repo->get_item_list (
             %args,
@@ -449,7 +453,8 @@ sub get_item_list ($;%) {
               if ($args{with_source_meta} or
                   ($file->{type} eq 'dataset' and $file->{set_type} eq 'sparql')) and
                  defined $url;
-          $self->_set_item_file_info ($url, $fdef, $in, $file, %args)
+          $self->_set_item_file_info ([url_string => $url->stringify],
+                                      $fdef, $in, $file, %args)
               unless $skipped; # XXX tests for skipped
 
           if (defined $file->{package_item}->{file_time}) {

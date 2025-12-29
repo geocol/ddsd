@@ -65,7 +65,7 @@ sub run ($;%) {
             $self->has_error (1);
             return;
           }
-          
+
           my $da_repo = $self->app->data_area->get_repo ($key);
           if (not defined $da_repo) {
             $as->message ({
@@ -78,14 +78,13 @@ sub run ($;%) {
           }
           return $repo->construct_file_list (
             $def,
-            has_error => sub {
-              $self->has_error (1);
-            },
+            has_error => sub { $self->has_error (1) },
             skip_other_files => $def->{skip_other_files},
+            extract => 1,
             data_area_key => $key,
           )->then (sub {
             my $files = shift;
-            return $da_repo->sync ($repo, $files);
+            return $da_repo->sync ($repo, $files, data_area_key => $key);
           })->finally (sub {
             return $da_repo->close;
           });
@@ -105,7 +104,7 @@ sub run ($;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -1,6 +1,7 @@
 package SnapshotRepo;
 use strict;
 use warnings;
+use Promise;
 use Promised::Flow;
 
 use Repo;
@@ -24,7 +25,9 @@ sub type () { "datasnapshot" }
 sub sync ($$$;%) {
   my ($self, $from_repo, $files, %args) = @_;
   my $storage = $self->storage;
-  return $self->lock_index->then (sub {
+  return Promise->resolve->then (sub {
+    return $self->lock_index;
+  })->then (sub {
     my $ix = $_[0];
     $ix->ensure_type ($self->type);
     return Promise->all ([

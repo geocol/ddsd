@@ -1,11 +1,15 @@
 use strict;
 use warnings;
+use Carp;
 use Time::HiRes qw(time);
 use Path::Tiny;
 use JSON::PS;
 use Digest::SHA;
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 use Archive::Zip::MemberRead;
+use Web::Encoding;
+use Web::Encoding::Sniffer;
+use Web::URL;
 
 sub print_item ($) {
   print perl2json_bytes $_[0];
@@ -27,8 +31,26 @@ sub create ($) {
                 path => $file->{input_file_name},
                 input_size => (-s $file->{input_file_name}),
                 path_in_archive => $file->{file_name}};
-    $zip->addFile ($file->{input_file_name}, $file->{file_name})
+
+    my $name;
+    my $utf8 = 0;
+    if ($file->{file_name} =~ /[^\x00-\x7F]/) {
+      if ($file->{byte_file_name}) {
+        $name = $file->{file_name};
+        utf8::downgrade ($name);
+      } else {
+        $name = $file->{file_name};
+        $utf8 = 1;
+      }
+    } else { ## ASCII only
+      $name = encode_web_utf8 $file->{file_name};
+    }
+
+    local $Archive::Zip::UNICODE = $utf8;
+    my $mem = $zip->addFile ($file->{input_file_name}, $file->{file_name})
         or die "$file->{input_file_name}: $!";
+    $mem->setLastModFileDateTimeFromUnix ($file->{timestamp})
+        if defined $file->{timestamp};
   }
 
   print_info {type => 'write file', format => 'zip',
@@ -56,13 +78,102 @@ sub list ($) {
   unless ($zip->read ($in->{input_file_name}) == AZ_OK) {
     die "$in->{input_file_name}: Failed to read";
   }
+  ## If the file is broken, |->read| can throw.
+
+  my $url;
+  $url = Web::URL->parse_string ($in->{url}) if defined $in->{url};
 
   my @list;
+  my $names1 = [];
+  my $names2 = [];
   for my $member (($zip->members)) {
-    my $file_name = $member->fileName;
-    my $file_size = $member->uncompressedSize;
-    push @list, {name => $file_name, size => $file_size};
-  }
+    push @list, my $item = {
+      name => $member->fileName,
+      size => $member->uncompressedSize,
+      bits => $member->bitFlag,
+      fileAttributeFormat => $member->fileAttributeFormat,
+      versionMadeBy => $member->versionMadeBy,
+      time => $member->lastModTime,
+      fileComment => $member->fileComment,
+      internalFileAttributes => $member->internalFileAttributes,
+    };
+
+    {
+      my $extra = $member->{cdExtraField};
+      last unless defined $extra;
+
+      my $pos = 0;
+      while ($pos + 4 <= length ($extra)) {
+        my ($header_id, $data_len) = unpack ("vv", substr ($extra, $pos, 4));
+        $pos += 4;
+        my $data = substr ($extra, $pos, $data_len);
+        $pos += $data_len;
+
+        if ($header_id == 0x7075) { # Info-ZIP Unicode Path Extra Field
+          my ($ver, $crc32, $utf8_name) = unpack("C N a*", $data);
+          $item->{unicode_path} //= decode_web_utf8 $utf8_name;
+        #} elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
+        #  my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
+        #  $item->{unicode_comment} //= $utf8_comment;
+
+        ## Not sure these are used in the wild or not:
+        #} elsif ($header_id == 0x0008) { # Extended Language Encoding Extra Field
+        #  $item->{extended_language_encoding} //= $data;
+        #} elsif ($header_id == 0x5A4C) { # ZipArchive Extra Field
+        #  my ($version, $flag) = unpack ("CC", substr ($data, 0, 2));
+        #  my $offset = 2;
+        #  if ($flag & 0x01) { # Filename Code Page
+        #    my $filename_cp = unpack ("V", substr ($data, $offset, 4));
+        #    $item->{ziparchive_filename_cp} //= $filename_cp;
+        #    $offset += 4;
+        #  }
+        #  if ($flag & 0x04) { # Comment Code Page
+        #    my $comment_cp = unpack ("V", substr ($data, -4));
+        #    $item->{ziparchive_comment_cp} //= $comment_cp;
+        #    substr ($data, -4) = '';
+        #  }
+        #  if ($flag & 0x02) { # Encoded Filename
+        #    my $encoded_name = substr ($data, $offset);
+        #    $item->{ziparchive_encoded_filename} //= $encoded_name;
+        #  }
+        #} elsif ($header_id == 0x554E) { # Xceed Unicode Extra Field
+        #  my $sig = unpack 'V', substr $data, 0, 4;
+        #  if ($sig == 0x5843554E) {
+        #    my ($name_len, $comment_len) = unpack ("vv", substr ($data, 4, 4));
+        #    $item->{xceed_unicode_filename} //= substr $data, 8, $name_len * 2;
+        #    $item->{xceed_unicode_comment} //= substr $data, 8 + $name_len * 2, $comment_len * 2;
+        #  }
+        #} else {
+        #  #
+        }
+      }
+    }
+
+    push @{defined $item->{unicode_path} ? $names2 : $names1}, $item->{name}
+        if not utf8::is_utf8 ($item->{name}) and
+           $item->{name} =~ /[^\x00-\x7F]/;
+  } # $member
+  if (@$names1) {
+    my $det = Web::Encoding::Sniffer->new_from_context ('zip');
+    $det->detect ((join "\x0A", @$names1, @$names2),
+                  forced => $in->{path_encoding},
+                  context_url => $url);
+    my $charset = $det->encoding;
+    for my $item (@list) {
+      if (defined $item->{unicode_path}) {
+        $item->{path} = $item->{unicode_path};
+      } elsif (utf8::is_utf8 $item->{name}) {
+        $item->{path} = $item->{name};
+      } elsif (defined $charset and
+               $item->{name} =~ /[^\x00-\x7F]/) {
+        $item->{path} = decode_web_charset $charset, $item->{name};
+        $item->{path_encoding} = $charset;
+      } else {
+        $item->{path} = $item->{name};
+        $item->{path_encoding} = 'ibm437';
+      }
+    }
+  } # names
 
   return {files => \@list};
 } # list
@@ -101,6 +212,15 @@ sub main ($) {
   print_info {type => 'zipper invoked', value => $0};
   my $exit_code = 0;
   my $return;
+  Archive::Zip::setErrorHandler (sub {
+    my $info = {
+      type => 'Archive::Zip error',
+      error => ''.$_[0],
+      location => {short => Carp::shortmess},
+    };
+    $info->{location}->{long} = Carp::longmess if $ENV{DDSD_DEBUG};
+    print_info $info;
+  });
   eval {
     my $in = json_bytes2perl $in_bytes;
     die "Bad input" unless defined $in and ref $in eq 'HASH';
@@ -136,7 +256,7 @@ exit main (do {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

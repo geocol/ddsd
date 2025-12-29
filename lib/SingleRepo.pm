@@ -106,7 +106,7 @@ sub get_item_list ($;%) {
   return $self->read_index->then (sub {
     my $in = $_[0];
     my (undef, $item) = $in->get_item
-        ($self->{url}->stringify, file_def => undef);
+        (url_string => $self->{url}->stringify, file_def => undef);
 
     return Promise->all ([
       (($args{with_props} and defined $item->{files}->{log}) ? Promised::File->new_from_path ($self->storage->{path}->child ($item->{files}->{log}))->read_byte_string : undef),
@@ -147,7 +147,8 @@ sub get_item_list ($;%) {
             if ($args{with_source_meta} or
                 ($file->{type} eq 'dataset' and $file->{set_type} eq 'sparql')) and
                     defined $url;
-        $self->_set_item_file_info ($url, $fdef, $in, $file, %args)
+        $self->_set_item_file_info ([url_string => $url->stringify],
+                                    $fdef, $in, $file, %args)
             unless $skipped; # XXX tests for skipped
 
         if (defined $file->{package_item}->{file_time}) {
@@ -178,6 +179,16 @@ sub get_item_list ($;%) {
     return $files;
   });
 } # get_item_list
+
+sub _get_item_by_key ($$$) {
+  my ($self, $ix, $item_key) = @_;
+  if ($item_key eq 'file') {
+    my (undef, $item) = $ix->get_item
+        (url_string => $self->{url}->stringify, file_def => undef);
+    return $item; # or undef
+  }
+  return undef;
+} # _get_item_by_key
 
 1;
 

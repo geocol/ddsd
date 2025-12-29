@@ -60,6 +60,9 @@ sub _pull_ddsd_data ($;%) {
       )->then (sub {
         my $files = shift;
         return $da_repo->sync ($repo, $files, data_area_key => undef);
+        ## |data_area_key| is intentionally left |undef|.  ddsd
+        ## packages are not defined by |config/ddsd/packages.json| by
+        ## definition.
       })->finally (sub {
         return $da_repo->close;
       });
