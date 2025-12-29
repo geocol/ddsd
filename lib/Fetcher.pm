@@ -265,7 +265,10 @@ sub fetch ($$$;%) {
       $r->{insecure} = 1 if $insecure;
       if ($args{sniffing}) {
         $r->{is_html} = 1 if $is_html;
-        $r->{json} = json_bytes2perl $r->{body_bytes} if $is_json;
+        $r->{json} = json_bytes2perl $r->{body_bytes} if $is_json and
+            1024*1024 > length $r->{body_bytes};
+        ## Avoid wasting time to parse too large JSON files which are
+        ## unlikely something we are interested in.
       }
       if (defined $args{file_def} and defined $args{file_def}->{sha256}) {
         unless ($r->{sha256} eq $args{file_def}->{sha256}) {
@@ -378,7 +381,7 @@ sub _fetch ($$$%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
