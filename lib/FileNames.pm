@@ -11,7 +11,7 @@ sub is_free_file_name ($) {
 
   return 0 if not defined $s;
   return 0 if $s eq "";
-  return 0 if 127 < length $s;
+  return 0 if 150 < length $s;
 
   return 0 if $s =~ /[^\x{0000}-\x{10FFFF}]/;
   return 0 if $s =~ /[\x00-\x2C\x2F\x3A-\x40\x5B-\x5E\x60\x7B-\x9F]/;
@@ -19,6 +19,7 @@ sub is_free_file_name ($) {
   return 0 if $s =~ /\A[-.\p{InNotNameStartChar}]/;
   return 0 if $s =~ /[\.\p{InNotNameEndChar}]\z/;
   return 0 if $s =~ /\p{InNotNameEndChar}\.[^.]+\z/;
+  return 0 if $s =~ /\x{FFFD}/;
 
   if (not $s =~ m{\x2E[0-9A-Za-z_]+[0-9A-Za-z_-]*\z} or
       $s =~ /\.(?:[Ll][Nn][Kk]|[Uu][Rr][Ll]|[Pp][Ii][Ff]|[Ss][Cc][Ff])\z/) {
