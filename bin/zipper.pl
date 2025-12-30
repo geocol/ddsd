@@ -147,7 +147,7 @@ sub list ($) {
 
         if ($header_id == 0x7075) { # Info-ZIP Unicode Path Extra Field
           my ($ver, $crc32, $utf8_name) = unpack("C N a*", $data);
-          $item->{unicode_path} //= decode_web_utf8 $utf8_name;
+          $item->{unicode_path} //= decode_web_utf8_no_bom $utf8_name;
         } elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
           my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
           $item->{unicode_comment} //= $utf8_comment;
@@ -205,7 +205,11 @@ sub list ($) {
         $item->{path} = $item->{unicode_path};
       } elsif (defined $charset and
                $item->{name} =~ /[^\x00-\x7F]/) {
-        $item->{path} = decode_web_charset $charset, $item->{name};
+        if ($charset eq 'utf-8') {
+          $item->{path} = decode_web_utf8_no_bom $item->{name};
+        } else {
+          $item->{path} = decode_web_charset $charset, $item->{name};
+        }
         $item->{path_encoding} = $charset;
       } else {
         $item->{path} = $item->{name};
@@ -217,19 +221,28 @@ sub list ($) {
         ## set.
         $item->{comment} = $item->{raw_comment};
       } elsif ($item->{bits} & 0x0800) {
-        $item->{comment} = decode_web_utf8 $item->{raw_comment};
+        $item->{raw_comment} =
+        $item->{comment} = decode_web_utf8_no_bom $item->{raw_comment};
       } elsif (defined $item->{unicode_comment}) {
         $item->{comment} = $item->{unicode_comment};
       } elsif (defined $charset and
                $item->{raw_comment} =~ /[^\x00-\x7F]/) {
-        $item->{comment} = decode_web_charset $charset, $item->{raw_comment};
+        if ($charset eq 'utf-8') {
+          $item->{comment} = decode_web_utf8_no_bom $item->{raw_comment};
+        } else {
+          $item->{comment} = decode_web_charset $charset, $item->{raw_comment};
+        }
         $item->{comment_encoding} = $charset;
       } else {
         $item->{comment} = $item->{raw_comment};
         $item->{comment_encoding} = 'ibm437';
       }
     }
-    $meta->{comment} = decode_web_charset $charset, $meta->{raw_comment};
+    if ($charset eq 'utf-8') {
+      $meta->{comment} = decode_web_utf8_no_bom $meta->{raw_comment};
+    } else {
+      $meta->{comment} = decode_web_charset $charset, $meta->{raw_comment};
+    }
     $meta->{comment_encoding} = $charset;
   } else {
     for my $item (@list) {

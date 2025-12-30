@@ -695,7 +695,7 @@ Test {
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{comment}, "abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, undef;
-        is $item->{archive_item}->{raw_comment}, "abc\xE6\x80\x80";
+        is $item->{archive_item}->{raw_comment}, "abc\x{6000}";
         is $item->{package_item}->{desc}, "abc\x{6000}";
       }
     } $current->c;
@@ -775,7 +775,123 @@ Test {
     undef,
     {
       "https://hoge/$key.zip" => {zip => {
-      }, comment => "abc\x{6000}\x{0300}"},
+        "\x{FEFF}abc/def\x{4000}.dat" => {text => "abc",
+                                          comment => "\x{FEFF}abc\x{6000}"},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{path_encoding}, undef;
+        is $item->{archive_item}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{archive_item}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{comment}, "\x{FEFF}abc\x{6000}";
+        is $item->{archive_item}->{comment_encoding}, undef;
+        is $item->{archive_item}->{raw_comment}, "\x{FEFF}abc\x{6000}";
+        is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{path_encoding}, undef;
+        is $item->{archive_item}, undef;
+        is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
+      }
+    } $current->c;
+  });
+} n => 25, name => 'file comment utf-8 with BOM';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "\xEF\xBB\xBFabc/def一.dat" => {text => "abc", timestamp => 1766901800,
+                                        byte_file_name => 1, byte_comment => 1,
+                                        comment => "\xEF\xBB\xBFabc\xe6\x80\x80"},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:\x{FEFF}abc/def\x{4E00}.dat";
+        is $item->{rev}->{path}, "\x{FEFF}abc/def\x{4E00}.dat";
+        is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
+        is $item->{rev}->{path_encoding}, "utf-8";
+        is $item->{archive_item}->{path}, "\x{FEFF}abc/def\x{4E00}.dat";
+        is $item->{archive_item}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
+        is $item->{archive_item}->{path_encoding}, "utf-8";
+        is $item->{archive_item}->{comment}, "\x{FEFF}abc\x{6000}";
+        is $item->{archive_item}->{comment_encoding}, "utf-8";
+        is $item->{archive_item}->{raw_comment}, "\xEF\xBB\xBFabc\xe6\x80\x80";
+        is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
+      }
+    } $current->c;
+  });
+} n => 16, name => 'file comment utf-8 unflagged with BOM';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+      }, comment => "\x{FEFF}abc\x{6000}\x{0300}"},
     },
   )->then (sub {
     return $current->run ('add', additional => ["https://hoge/$key.zip"]);
@@ -793,7 +909,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{archive_meta}, undef;
-        is $item->{package_item}->{desc}, "abc\x{6000}\x{0300}";
+        is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}\x{0300}";
       }
     } $current->c;
     return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
@@ -804,10 +920,10 @@ Test {
       is 0+@{$r->{jsonl}}, 1;
       {
         my $item = $r->{jsonl}->[0];
-        is $item->{archive_meta}->{comment}, "abc\x{6000}\x{0300}";
+        is $item->{archive_meta}->{comment}, "\x{FEFF}abc\x{6000}\x{0300}";
         is $item->{archive_meta}->{comment_encoding}, "utf-8";
-        is $item->{archive_meta}->{raw_comment}, "abc怀̀";
-        is $item->{package_item}->{desc}, "abc\x{6000}\x{0300}";
+        is $item->{archive_meta}->{raw_comment}, "\xEF\xBB\xBFabc怀̀";
+        is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}\x{0300}";
       }
     } $current->c;
   });
