@@ -11,13 +11,14 @@ push our @ISA, qw(Repo);
 use Zipper;
 use RepoIndexFile;
 
-sub new_from_upstream ($$$) {
-  my ($class, $upstream_repo, $upstream_args) = @_;
+sub new_from_upstream ($$$;%) {
+  my ($class, $upstream_repo, $upstream_args, %args) = @_;
 
   my $self = bless {
     set => $upstream_repo->set,
     upstream_repo => $upstream_repo,
     upstream_args => $upstream_args,
+    forced_encoding => $args{forced_encoding}, # or undef
   }, $class;
 
   return $self;
@@ -143,7 +144,7 @@ sub get_item_list ($;%) {
     type => 'package',
     key => 'package',
     package_item => {
-      title => '', desc => '', author => '', org => '',
+      title => '',
       lang => '',
       dir => 'auto',
       writing_mode => 'horizontal-tb',
@@ -174,7 +175,7 @@ sub get_item_list ($;%) {
       Zipper->list (
         $self->set->app, $zip_path,
         url_string => ($upitem->{rev} || {})->{url}, # string or undef # XXX or parent url, if nested archive
-        #path_encoding => $args{XXX}, # XXX overridden, or parent archive's encoding if nested
+        forced_encoding => $self->{forced_encoding}, # or undef
       )->catch (sub {
         my $e = $_[0];
         die $e unless UNIVERSAL::isa ($e, 'App::Error');
@@ -189,26 +190,37 @@ sub get_item_list ($;%) {
         });
         $args{has_error}->();
 
-        return {files => []};
+        return {files => [], meta => {comment => ''}};
       }),
     ])->then (sub {
       my ($info) = @{$_[0]};
 
+      if ($args{with_props}) {
+        $pack_file->{package_item}->{desc} = $info->{meta}->{comment};
+      }
+      if ($args{with_source_meta}) {
+        $pack_file->{archive_meta} = $info->{meta};
+        # comment : String
+        # comment_encoding : String?
+      }
+      
       my $seen = {};
       my $i = 0;
       for my $zipped_file (@{$info->{files}}) {
-        ## $zipped_file->{name} is always available.  It may or may
-        ## not be a character string.  It can be used to obtain a file
-        ## from ZIP.
-        ##
-        ## $zipped_file->{path} may or may not be available.  It is a
-        ## character string.  If a non-standard Unicode file name is
-        ## specified, that value is used with no
-        ## $zipped_file->{path_encoding}.  Otherwise, the sniffed
-        ## encoding used to decode the file name is set to
-        ## $zipped_file->{path_encoding}.
+        ## At the moment we only can expose files.  We are not
+        ## interested in directories and their attributes.
+        next if $zipped_file->{isDirectory};
         
-        my $file_key = 'file:' . ($zipped_file->{path} // $zipped_file->{name});
+        ## $zipped_file->{name} may or may not be a character string.
+        ## It can be used to obtain a file from ZIP.
+        ##
+        ## $zipped_file->{path} is a character string.  If a
+        ## non-standard Unicode file name is specified, that value is
+        ## set to here with no $zipped_file->{path_encoding}.
+        ## Otherwise, the sniffed encoding used to decode the file
+        ## name is set to $zipped_file->{path_encoding}.
+        
+        my $file_key = 'file:' . $zipped_file->{path};
         if (defined $seen->{$file_key}) {
           $file_key = 'file:' . $zipped_file->{name}; # raw path
         }
@@ -224,35 +236,38 @@ sub get_item_list ($;%) {
         my $skipped;
         if (defined $fdef and $fdef->{skip}) {
           $skipped = 1;
-            if ($args{with_skipped}) {
-              #
-            } else {
-              $logger->info ({
-                type => 'item ignored by skip',
-                value => $file->{key},
-                #path => $in->path->absolute,
-              });
-              next;
-            }
-          } # skip
+          if ($args{with_skipped}) {
+            #
+          } else {
+            $logger->info ({
+              type => 'item ignored by skip',
+              value => $file->{key},
+              #path => $in->path->absolute,
+            });
+            next;
+          }
+        } # skip
 
-        $file->{source}->{file_name} = $zipped_file->{path} // $zipped_file->{name};
+        $self->_set_item_file_info
+            ([raw_path_string => $zipped_file->{name}],
+             $fdef, $zipix, $file, %args)
+            unless $skipped;
+
+        $file->{source}->{file_name} = $zipped_file->{path};
         $file->{package_item}->{file_time} = $zipped_file->{time};
         $file->{package_item}->{mime} = 'application/octet-stream';
         $file->{package_item}->{title} = '';
         if ($args{with_source_meta}) {
-          for (qw(path_encoding time)) {
+          for (qw(path_encoding time comment comment_encoding raw_comment)) {
             $file->{archive_item}->{$_} = $zipped_file->{$_} if defined $zipped_file->{$_};
           }
           $file->{archive_item}->{byte_length} = $zipped_file->{size};
           $file->{archive_item}->{raw_path} = $zipped_file->{name};
           $file->{archive_item}->{path} = $file->{source}->{file_name};
         } # meta
-
-        $self->_set_item_file_info
-            ([raw_path_string => $zipped_file->{name}],
-             $fdef, $zipix, $file, %args)
-            unless $skipped; # XXX tests for skipped
+        if ($args{with_props}) {
+          $file->{package_item}->{desc} = $zipped_file->{comment} // '';
+        }
 
         if (defined $file->{package_item}->{file_time}) {
           $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
@@ -332,7 +347,7 @@ sub _extract_files ($$;%) {
             )->then (sub {
               return $zipix->put_zip_item (
                 $file, $_[0], $dest_path,
-            #, insecure => $XXX
+                insecure => $upitem->{rev}->{insecure},
               )->then (sub {
                 my $r = $_[0];
                 return $zipix->save;

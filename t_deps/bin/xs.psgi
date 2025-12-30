@@ -27,8 +27,8 @@ my $ZipperPath = $RootPath->child ('bin/zipper.pl');
 
 sub create_files ($$$);
 
-sub create_zip ($$) {
-  my ($items, $onerror) = @_;
+sub create_zip ($$;%) {
+  my ($items, $onerror, %args) = @_;
   my $in_files = [];
   return create_files ($items, sub {
     my ($key, $def, $body, $path) = @_;
@@ -41,6 +41,9 @@ sub create_zip ($$) {
       file_name => $key,
       timestamp => $def->{timestamp}, # or undef
       byte_file_name => $def->{byte_file_name},
+      comment => $def->{comment},
+      byte_comment => $def->{byte_comment},
+      is_directory => $def->{is_directory},
     };
   }, $onerror)->then (sub {
     my $cmd = Promised::Command->new ([
@@ -52,6 +55,8 @@ sub create_zip ($$) {
       command => 'create',
       files => $in_files,
       output_file_name => $out_path->absolute,
+      comment => $args{comment},
+      byte_comment => $args{byte_comment},
     });
     $cmd->stdout (\my $stdout);
     return $cmd->run->then (sub {
@@ -86,13 +91,20 @@ sub create_files ($$$) {
       $body = '';
     } elsif (exists $def->{zip}) {
       $def->{mime} //= 'application/zip';
-      push @$pp, create_zip ($def->{zip}, $onerror)->then (sub {
+      push @$pp, create_zip ($def->{zip}, $onerror,
+        comment => $def->{comment},
+        byte_comment => $def->{byte_comment},
+      )->then (sub {
         $code->($key, $def, '', $_[0]);
       });
       next;
     } elsif (defined $def->{status} and $def->{status} == 304) {
       $body = '';
     } elsif (defined $def->{redirect}) {
+      $body = '';
+    } elsif ($def->{is_directory}) {
+      $path = $TempPath->child (rand);
+      $path->mkpath;
       $body = '';
     } else {
       $onerror->($def);

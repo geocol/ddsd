@@ -1,0 +1,213 @@
+This is an incomplete description of various internal data structure
+of ddsd.
+
+* Index JSON object
+
+type
+
+    /repo type/               A repository.
+    archive                   An archive file list.
+    mirrorzip:/repo type/     A mirrorzip of repository.
+
+items
+
+urls
+
+url_sha256s
+
+paths
+
+raw_paths
+
+zip_file_name
+zip_index
+
+* Item object
+
+type
+
+    file                      A file.
+    meta                      A metadata file.
+    mirrorzip                 A mirrorzip.
+    package                   A package.  For archives, it represents the
+                              archive file.  Otherwise, a virtual object.
+
+path [Path::Tiny?]
+
+    The path, to the file in the local file system, of the file's
+    bytes, if there is a local copy of the file available.
+
+archive_meta (when with_source_meta => 1)
+
+    Properties of the entire archive, if it is a |package|
+    representing an archive file.
+
+  comment [text?]
+
+    The comment of the archive, as a character string.
+
+  comment_encoding
+
+    The encoding label of the comment of the file, used to decode byte
+    string of |raw_comment| to obtain character string |comment|, if
+    applicable.
+
+  raw_comment
+
+    The comment of the archive, in the raw format.  It can be a byte
+    string or a character string, depending on the data type of the
+    comment.  Missing when an archive-format-specified fixed encoding
+    is used.
+
+archive_item (when with_source_meta => 1)
+
+    Properties of the file from the archive, if it is a |file|
+    representing a file in an archive file.
+
+  path (required)
+
+    Path to the file in the archive, as a character string.
+
+  path_encoding
+
+    The encoding label of the path to the file, used to decode byte
+    string of |raw_path| to obtain character string |path|, if
+    applicable.  Missing when an archive-format-specified fixed
+    encoding is used.
+
+  raw_path (required)
+
+    Path to the file in the archive, in the raw format.  It can be a
+    byte string or a character string, depending on the data type of
+    the path.
+
+  comment [text?]
+
+    The comment of the file in the archive, as a character string.
+
+  comment_encoding
+
+    The encoding label of the comment of the file, used to decode byte
+    string of |raw_comment| to obtain character string |comment|, if
+    applicable.
+
+  raw_comment
+
+    The comment of the file in the archive, in the raw format.  It can
+    be a byte string or a character string, depending on the data type
+    of the comment.  Missing when an archive-format-specified fixed
+    encoding is used.
+
+  byte_length [integer?]
+
+    The byte length of the file, if known.  It might or might not be
+    equal to the actual length of the stored file, depending on the
+    archive format.
+
+  time [time?]
+
+    The timestamp of the file, if known.
+
+rev
+
+    Physical properties of the file.
+
+  from_mirrorzip [boolean]
+
+    True if the item is imported from a mirrorzip.
+
+  http_etag
+
+    The HTTP |ETag| response header's value, if any.
+
+  http_incomplete [boolean]
+
+    True if the file comes from HTTP and is terminated prematurely.
+
+  insecure [boolean]
+
+    True if the file comes from an insecure source.
+
+  length (required)
+
+    The byte length of the file's bytes.
+
+  mime_filename
+
+    The MIME file name of the file, if any.
+
+  sha256 (required)
+
+    Base16 of SHA-256 hash of the file's bytes.
+
+  timestamp [time] (required)
+
+    The file's created time, if the file comes from HTTP.
+
+    The file's timestamp, if the file comes from an archive.
+
+  http_content_type
+
+    The HTTP |Content-Type| response header's value of the file, if
+    any.
+
+  http_date [time?]
+
+    The HTTP |Date| response header's value of the file, if the file
+    comes from HTTP.
+
+  http_last_modiied [time?]
+
+    The HTTP |Last-Modified| response header's value of the file, if
+    any.
+
+  url
+
+    The URL of the file, if any.
+
+  original_url
+
+    The original URL of the file before any redirect.  Required if
+    |url| is specified.
+
+  path
+
+    The path to the file, if any.
+
+  raw_path
+
+    The raw path to the file, if any.
+
+  path_encoding
+
+    The encoding label of the path, used to obtain |path| from
+    |raw_path|, if applicable.
+
+package_item
+
+    Computed properties of the item.
+
+  title [text] (required)
+  lang
+  dir
+  writing_mode
+
+  desc [text?]
+
+    A human-readable description for the item, if any.
+
+  author
+  org
+  
+  mime (required for |file|)
+
+  file_time [time?]
+
+    For a |file|, the file's timestamp, if known.
+
+    For a |package|, the maximum (latest) of the files' timestamps,
+    the package's manifest's timestamp, if applicable, and the
+    package's file's timestamp, if applicable.
+
+  legal
+  snapshot_hash

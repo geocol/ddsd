@@ -125,6 +125,7 @@ sub main ($$$$$$$) {
       'min' => \$opts->{min},
       'all' => \$opts->{all},
       'single-file' => \$opts->{single_file},
+      'forced-encoding=s' => \$opts->{forced_encoding},
       'name=s' => \$opts->{name},
       'now=s' => sub { $self->{now} = 0+$_[1] },
       'log-file=s' => sub { $self->{log_file} = $_[1] },
@@ -204,6 +205,7 @@ sub main ($$$$$$$) {
          single_file => $opts->{single_file},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
+         forced_encoding => $opts->{forced_encoding},
        )->then (sub {
          $exit = 12 if $cmd->has_error;
        });

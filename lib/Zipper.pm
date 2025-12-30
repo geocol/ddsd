@@ -83,7 +83,7 @@ sub list ($$;%) {
     command => 'list',
     input_file_name => $zip_path->absolute,
     url => (defined $args{url_string} ? $args{url_string} : undef),
-    path_encoding => $args{path_encoding},
+    forced_encoding => $args{forced_encoding},
   }); # {files}
 } # list
 

@@ -265,8 +265,10 @@ sub fetch ($$$;%) {
       $r->{insecure} = 1 if $insecure;
       if ($args{sniffing}) {
         $r->{is_html} = 1 if $is_html;
+        # XXX json_bytes2perl will print error to stderr if it is not a JSON
         $r->{json} = json_bytes2perl $r->{body_bytes} if $is_json and
-            1024*1024 > length $r->{body_bytes};
+            1024*1024 > length $r->{body_bytes} and
+            $r->{body_bytes} =~ /^\s*[\{\[]/;
         ## Avoid wasting time to parse too large JSON files which are
         ## unlikely something we are interested in.
       }
@@ -326,6 +328,7 @@ sub _fetch ($$$%) {
       ca_file => $args{cacert},
       insecure => $args{insecure},
     },
+    debug => $args{debug},
   });
   $logger->count (['http_request']);
   return $client->request (

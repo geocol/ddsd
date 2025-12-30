@@ -8,7 +8,7 @@ push our @ISA, qw(Command);
 use ListWriter;
 
 my $HelpText = {
-  add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure]
+  add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure] [--forced-encoding=<charset>]
 
 Add a package specified by a URL <url>.
 
@@ -17,6 +17,11 @@ Arguments
   <options>     Zero or more common options.  See |ddsd help|.
 
   <url>         The absolute URL of the package.
+
+  --forced-encoding=<charset>
+                The character encoding used to decode unlabelled file names
+                and comments in archive files (such as non-UTF-8-flagged
+                ZIP file names).  Defaulted to auto-detection.
 
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 

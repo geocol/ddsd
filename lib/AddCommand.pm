@@ -159,6 +159,9 @@ sub run ($$;%) {
         };
         $def->{file_url} = $def->{source}->{url};
         # XXX fragment URLs
+        if (defined $args{forced_encoding}) {
+          $def->{forced_encoding} = $args{forced_encoding};
+        }
         
         if ($r->{url}->path =~ m{([^/]+)\z}) {
           my $n = percent_decode_c $1;

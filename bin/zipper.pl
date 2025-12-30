@@ -26,6 +26,17 @@ sub create ($) {
 
   my $zip = Archive::Zip->new;
 
+  if (defined $in->{comment}) {
+    my $s;
+    if ($in->{byte_comment}) {
+      $s = $in->{comment};
+      utf8::downgrade ($s);
+    } else {
+      $s = encode_web_utf8 $in->{comment};
+    }
+    $zip->zipfileComment ($s);
+  }
+
   for my $file (@{$in->{files}}) {
     print_info {type => 'add file to archive', format => 'zip',
                 path => $file->{input_file_name},
@@ -46,11 +57,30 @@ sub create ($) {
       $name = encode_web_utf8 $file->{file_name};
     }
 
-    local $Archive::Zip::UNICODE = $utf8;
-    my $mem = $zip->addFile ($file->{input_file_name}, $file->{file_name})
-        or die "$file->{input_file_name}: $!";
+    my $mem;
+    {
+      local $Archive::Zip::UNICODE = $utf8;
+      if ($file->{is_directory}) {
+        $mem = $zip->addDirectory ($file->{input_file_name}, $file->{file_name})
+            or die "$file->{input_file_name}: $!";
+      } else {
+        $mem = $zip->addFile ($file->{input_file_name}, $file->{file_name})
+            or die "$file->{input_file_name}: $!";
+      }
+    }
     $mem->setLastModFileDateTimeFromUnix ($file->{timestamp})
         if defined $file->{timestamp};
+
+    if (defined $file->{comment}) {
+      my $s;
+      if ($file->{byte_comment}) {
+        $s = $file->{comment};
+        utf8::downgrade $s;
+      } else {
+        $s = encode_web_utf8 $file->{comment};
+      }
+      $mem->fileComment ($s);
+    }
   }
 
   print_info {type => 'write file', format => 'zip',
@@ -83,9 +113,14 @@ sub list ($) {
   my $url;
   $url = Web::URL->parse_string ($in->{url}) if defined $in->{url};
 
-  my @list;
   my $names1 = [];
   my $names2 = [];
+  
+  my $meta = {};
+  $meta->{raw_comment} = $zip->zipfileComment;
+  push @$names1, $meta->{raw_comment} if $meta->{raw_comment} =~ /[^\x00-\x7F]/;
+
+  my @list;
   for my $member (($zip->members)) {
     push @list, my $item = {
       name => $member->fileName,
@@ -94,8 +129,9 @@ sub list ($) {
       fileAttributeFormat => $member->fileAttributeFormat,
       versionMadeBy => $member->versionMadeBy,
       time => $member->lastModTime,
-      fileComment => $member->fileComment,
+      raw_comment => $member->fileComment,
       internalFileAttributes => $member->internalFileAttributes,
+      isDirectory => $member->isDirectory,
     };
 
     {
@@ -112,9 +148,9 @@ sub list ($) {
         if ($header_id == 0x7075) { # Info-ZIP Unicode Path Extra Field
           my ($ver, $crc32, $utf8_name) = unpack("C N a*", $data);
           $item->{unicode_path} //= decode_web_utf8 $utf8_name;
-        #} elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
-        #  my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
-        #  $item->{unicode_comment} //= $utf8_comment;
+        } elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
+          my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
+          $item->{unicode_comment} //= $utf8_comment;
 
         ## Not sure these are used in the wild or not:
         #} elsif ($header_id == 0x0008) { # Extended Language Encoding Extra Field
@@ -152,18 +188,21 @@ sub list ($) {
     push @{defined $item->{unicode_path} ? $names2 : $names1}, $item->{name}
         if not utf8::is_utf8 ($item->{name}) and
            $item->{name} =~ /[^\x00-\x7F]/;
+    push @{defined $item->{unicode_comment} ? $names2 : $names1}, $item->{raw_comment}
+        if not utf8::is_utf8 ($item->{raw_comment}) and
+           $item->{raw_comment} =~ /[^\x00-\x7F]/;
   } # $member
   if (@$names1) {
     my $det = Web::Encoding::Sniffer->new_from_context ('zip');
     $det->detect ((join "\x0A", @$names1, @$names2),
-                  forced => $in->{path_encoding},
+                  forced => $in->{forced_encoding},
                   context_url => $url);
     my $charset = $det->encoding;
     for my $item (@list) {
-      if (defined $item->{unicode_path}) {
-        $item->{path} = $item->{unicode_path};
-      } elsif (utf8::is_utf8 $item->{name}) {
+      if (utf8::is_utf8 $item->{name}) {
         $item->{path} = $item->{name};
+      } elsif (defined $item->{unicode_path}) {
+        $item->{path} = $item->{unicode_path};
       } elsif (defined $charset and
                $item->{name} =~ /[^\x00-\x7F]/) {
         $item->{path} = decode_web_charset $charset, $item->{name};
@@ -172,10 +211,49 @@ sub list ($) {
         $item->{path} = $item->{name};
         $item->{path_encoding} = 'ibm437';
       }
+      if (utf8::is_utf8 $item->{raw_comment}) {
+        ## But the |Archive::Zip| as of today does not return
+        ## utf8-flagged string even when ZIP's file's UTF-8 flag is
+        ## set.
+        $item->{comment} = $item->{raw_comment};
+      } elsif ($item->{bits} & 0x0800) {
+        $item->{comment} = decode_web_utf8 $item->{raw_comment};
+      } elsif (defined $item->{unicode_comment}) {
+        $item->{comment} = $item->{unicode_comment};
+      } elsif (defined $charset and
+               $item->{raw_comment} =~ /[^\x00-\x7F]/) {
+        $item->{comment} = decode_web_charset $charset, $item->{raw_comment};
+        $item->{comment_encoding} = $charset;
+      } else {
+        $item->{comment} = $item->{raw_comment};
+        $item->{comment_encoding} = 'ibm437';
+      }
     }
+    $meta->{comment} = decode_web_charset $charset, $meta->{raw_comment};
+    $meta->{comment_encoding} = $charset;
+  } else {
+    for my $item (@list) {
+      if (defined $item->{unicode_path}) {
+        $item->{path} = $item->{unicode_path};
+      } elsif (utf8::is_utf8 $item->{name}) {
+        $item->{path} = $item->{name};
+      } else {
+        $item->{path} = $item->{name};
+        $item->{path_encoding} = 'ibm437';
+      }
+      if (defined $item->{unicode_comment}) {
+        $item->{comment} = $item->{unicode_comment};
+      } elsif (utf8::is_utf8 $item->{raw_comment}) {
+        $item->{comment} = $item->{raw_comment};
+      } else {
+        $item->{comment} = $item->{raw_comment};
+      }
+    }
+    $meta->{comment} = $meta->{raw_comment};
+    $meta->{comment_encoding} = 'ibm437';
   } # names
 
-  return {files => \@list};
+  return {meta => $meta, files => \@list};
 } # list
 
 sub extract ($) {

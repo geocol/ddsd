@@ -36,14 +36,15 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
         is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
+        is $item->{archive_meta}, undef;
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
         ok $item->{rev}->{length};
@@ -81,14 +82,16 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
         is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
+        is $item->{archive_meta}->{comment}, '';
+        is $item->{archive_meta}->{comment_encoding}, 'ibm437';
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
         ok $item->{rev}->{length};
@@ -135,8 +138,8 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
@@ -166,7 +169,7 @@ Test {
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc.dat";
         is $item->{rev}->{raw_path}, "abc.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{rev}->{length}, 3;
         is $item->{rev}->{http_date}, undef;
         is $item->{rev}->{http_content_type}, undef;
@@ -191,8 +194,8 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
@@ -222,7 +225,7 @@ Test {
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc.dat";
         is $item->{rev}->{raw_path}, "abc.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{rev}->{length}, 3;
         is $item->{rev}->{http_date}, undef;
         is $item->{rev}->{http_content_type}, undef;
@@ -231,12 +234,12 @@ Test {
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc.dat";
         is $item->{archive_item}->{raw_path}, "abc.dat";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{time}, 1766901800;
       }
     } $current->c;
   });
-} n => 166, name => 'ok';
+} n => 169, name => 'ok';
 
 Test {
   my $current = shift;
@@ -276,8 +279,8 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
@@ -362,8 +365,8 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
@@ -416,6 +419,99 @@ Test {
     undef,
     {
       "https://hoge/$key.zip" => {zip => {
+        "abc䀀.dat" => {text => "abc", timestamp => 1766901800,
+                        byte_file_name => 1},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--forced-encoding', 'iBm437']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{path}, undef, "not exposed in local/data";
+        is $item->{package_item}->{mime}, 'application/zip';
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{desc}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{package_item}->{file_time}, 1766901872;
+        is $item->{package_item}->{legal}, undef;
+        ok $item->{package_item}->{snapshot_hash};
+        is $item->{rev}->{url}, "https://hoge/$key.zip";
+        is $item->{rev}->{original_url}, "https://hoge/$key.zip";
+        ok $item->{rev}->{length};
+        ok $item->{rev}->{http_date};
+        is $item->{rev}->{http_content_type}, 'application/zip';
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        ok $item->{rev}->{sha256};
+        is $item->{archive_item}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc\x{03A3}\x{C7}\x{C7}.dat";
+        is $item->{file}, undef;
+        like $item->{path}, qr{files/abc\x{03A3}\x{C7}\x{C7}.dat$};
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
+        is $item->{rev}->{url}, undef;
+        is $item->{rev}->{original_url}, undef;
+        is $item->{rev}->{path}, "abc\x{03A3}\x{C7}\x{C7}.dat";
+        is $item->{rev}->{raw_path}, "abc䀀.dat";
+        is $item->{rev}->{path_encoding}, "ibm437";
+        is $item->{rev}->{length}, 3;
+        is $item->{rev}->{http_date}, undef;
+        is $item->{rev}->{http_content_type}, undef;
+        is $item->{rev}->{http_last_modified}, undef;
+        is $item->{rev}->{timestamp}, 1766901800;
+        is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        is $item->{archive_item}->{path}, "abc\x{03A3}\x{C7}\x{C7}.dat";
+        is $item->{archive_item}->{raw_path}, "abc䀀.dat";
+        is $item->{archive_item}->{path_encoding}, "ibm437";
+        is $item->{archive_item}->{time}, 1766901800;
+      }
+    } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+        my ($json, $path) = @_;
+        my $item = $json->{$key};
+        is $item->{forced_encoding}, "iBm437";
+      }},
+    ]);
+  });
+} n => 52, name => 'forced encoding';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
         "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat" => {text => "abc", timestamp => 1766901800,
                               byte_file_name => 1},
       }, timestamp => 1766901872},
@@ -448,8 +544,8 @@ Test {
         is $item->{package_item}->{mime}, 'application/zip';
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{desc}, '';
-        is $item->{package_item}->{author}, '';
-        is $item->{package_item}->{org}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
         is $item->{package_item}->{lang}, '';
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
@@ -534,10 +630,11 @@ Test {
         like $item->{path}, qr{files/def.dat$};
         is $item->{rev}->{path}, "abc/def.dat";
         is $item->{rev}->{raw_path}, "abc/def.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "abc/def.dat";
         is $item->{archive_item}->{raw_path}, "abc/def.dat";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
+        is $item->{package_item}->{desc}, "";
       }
       {
         my $item = $r->{jsonl}->[1];
@@ -547,14 +644,287 @@ Test {
         like $item->{path}, qr{files/a.dat$};
         is $item->{rev}->{path}, "abc/xyz/a.dat";
         is $item->{rev}->{raw_path}, "abc/xyz/a.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "abc/xyz/a.dat";
         is $item->{archive_item}->{raw_path}, "abc/xyz/a.dat";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
     } $current->c;
   });
-} n => 24, name => 'directory';
+} n => 25, name => 'directoried';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "abc/def\x{4000}.dat" => {text => "abc", timestamp => 1766901800,
+                                  comment => "abc\x{6000}"},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc/def\x{4000}.dat";
+        is $item->{rev}->{path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{path_encoding}, undef;
+        is $item->{archive_item}->{path}, "abc/def\x{4000}.dat";
+        is $item->{archive_item}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{comment}, "abc\x{6000}";
+        is $item->{archive_item}->{comment_encoding}, undef;
+        is $item->{archive_item}->{raw_comment}, "abc\xE6\x80\x80";
+        is $item->{package_item}->{desc}, "abc\x{6000}";
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc/def\x{4000}.dat";
+        is $item->{rev}->{path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{path_encoding}, undef;
+        is $item->{archive_item}, undef;
+        is $item->{package_item}->{desc}, "abc\x{6000}";
+      }
+    } $current->c;
+  });
+} n => 25, name => 'file comment utf-8 flagged';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "abc/def一.dat" => {text => "abc", timestamp => 1766901800,
+                            byte_file_name => 1, comment => "abc\x{6000}"},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc/def\x{4E00}.dat";
+        is $item->{rev}->{path}, "abc/def\x{4E00}.dat";
+        is $item->{rev}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
+        is $item->{rev}->{path_encoding}, "utf-8";
+        is $item->{archive_item}->{path}, "abc/def\x{4E00}.dat";
+        is $item->{archive_item}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
+        is $item->{archive_item}->{path_encoding}, "utf-8";
+        is $item->{archive_item}->{comment}, "abc\x{6000}";
+        is $item->{archive_item}->{comment_encoding}, "utf-8";
+        is $item->{archive_item}->{raw_comment}, "abc\xe6\x80\x80";
+        is $item->{package_item}->{desc}, "abc\x{6000}";
+      }
+    } $current->c;
+  });
+} n => 16, name => 'file comment utf-8 unflagged';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+      }, comment => "abc\x{6000}\x{0300}"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 1;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{archive_meta}, undef;
+        is $item->{package_item}->{desc}, "abc\x{6000}\x{0300}";
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 1;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{archive_meta}->{comment}, "abc\x{6000}\x{0300}";
+        is $item->{archive_meta}->{comment_encoding}, "utf-8";
+        is $item->{archive_meta}->{raw_comment}, "abc怀̀";
+        is $item->{package_item}->{desc}, "abc\x{6000}\x{0300}";
+      }
+    } $current->c;
+  });
+} n => 11, name => 'zip comment utf-8';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+      }, comment => "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2", byte_comment => 1},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--forced-encoding', "ISo-8859-1"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 1;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{archive_meta}, undef;
+        is $item->{package_item}->{desc}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}";
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 1;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{archive_meta}->{comment}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}";
+        is $item->{archive_meta}->{comment_encoding}, "shift_jis";
+        is $item->{archive_meta}->{raw_comment}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2";
+        is $item->{package_item}->{desc}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}";
+      }
+    } $current->c;
+    return $current->run ('ls', additional => ["$key-2", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 1;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{archive_meta}->{comment}, "abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2";
+        is $item->{archive_meta}->{comment_encoding}, "windows-1252";
+        is $item->{archive_meta}->{raw_comment}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2";
+        is $item->{package_item}->{desc}, "abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2";
+      }
+    } $current->c;
+  });
+} n => 18, name => 'zip comment sjis';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "abc/def.dat" => {text => "abc", timestamp => 1766901800},
+        "abc/xyz/" => {is_directory => 1},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc/def.dat";
+        is $item->{file}, undef;
+        like $item->{path}, qr{files/def.dat$};
+        is $item->{rev}->{path}, "abc/def.dat";
+        is $item->{rev}->{raw_path}, "abc/def.dat";
+        is $item->{rev}->{path_encoding}, 'ibm437';
+        is $item->{archive_item}->{path}, "abc/def.dat";
+        is $item->{archive_item}->{raw_path}, "abc/def.dat";
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
+      }
+    } $current->c;
+  });
+} n => 14, name => 'has directory';
 
 Test {
   my $current = shift;
@@ -598,10 +968,10 @@ Test {
         like $item->{path}, qr{files/c.dat$};
         is $item->{rev}->{path}, "ab\\c.dat";
         is $item->{rev}->{raw_path}, "ab\\c.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "ab\\c.dat";
         is $item->{archive_item}->{raw_path}, "ab\\c.dat";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
         my $item = $r->{jsonl}->[1];
@@ -611,10 +981,10 @@ Test {
         like $item->{path}, qr{files/[0-9]+$};
         is $item->{rev}->{path}, "b/con/con.dat";
         is $item->{rev}->{raw_path}, "b/con/con.dat";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "b/con/con.dat";
         is $item->{archive_item}->{raw_path}, "b/con/con.dat";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
         my $item = $r->{jsonl}->[2];
@@ -624,10 +994,10 @@ Test {
         like $item->{path}, qr{files/[0-9]+$};
         is $item->{rev}->{path}, "c//";
         is $item->{rev}->{raw_path}, "c//";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "c//";
         is $item->{archive_item}->{raw_path}, "c//";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
         my $item = $r->{jsonl}->[3];
@@ -637,10 +1007,10 @@ Test {
         like $item->{path}, qr{files/d_$};
         is $item->{rev}->{path}, "d\x00";
         is $item->{rev}->{raw_path}, "d\x00";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "d\x00";
         is $item->{archive_item}->{raw_path}, "d\x00";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
         my $item = $r->{jsonl}->[4];
@@ -650,10 +1020,10 @@ Test {
         like $item->{path}, qr{files/eF-[0-9]+$};
         is $item->{rev}->{path}, "eF";
         is $item->{rev}->{raw_path}, "eF";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "eF";
         is $item->{archive_item}->{raw_path}, "eF";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
         my $item = $r->{jsonl}->[5];
@@ -663,14 +1033,122 @@ Test {
         like $item->{path}, qr{files/ef-[0-9]+$};
         is $item->{rev}->{path}, "ef";
         is $item->{rev}->{raw_path}, "ef";
-        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "ef";
         is $item->{archive_item}->{raw_path}, "ef";
-        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
     } $current->c;
   });
-} n => 63, name => 'directory';
+} n => 63, name => 'stupid file names';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "http://hoge/$key.zip" => {zip => {
+        "abc\x{4000}.dat" => {text => "abc", timestamp => 1766901800},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["http://hoge/$key.zip"], insecure => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{path}, undef, "not exposed in local/data";
+        is $item->{package_item}->{mime}, 'application/zip';
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{desc}, '';
+        is $item->{package_item}->{author}, undef;
+        is $item->{package_item}->{org}, undef;
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{package_item}->{file_time}, 1766901872;
+        is $item->{package_item}->{legal}, undef;
+        ok $item->{package_item}->{snapshot_hash};
+        is $item->{rev}->{url}, "http://hoge/$key.zip";
+        is $item->{rev}->{original_url}, "http://hoge/$key.zip";
+        ok $item->{rev}->{length};
+        ok $item->{rev}->{http_date};
+        is $item->{rev}->{http_content_type}, 'application/zip';
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        ok $item->{rev}->{sha256};
+        ok $item->{rev}->{insecure};
+        is $item->{archive_item}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc\x{4000}.dat";
+        is $item->{file}, undef;
+        like $item->{path}, qr{files/abc\x{4000}.dat$};
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
+        is $item->{rev}->{url}, undef;
+        is $item->{rev}->{original_url}, undef;
+        is $item->{rev}->{path}, "abc\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{rev}->{path_encoding}, undef;
+        is $item->{rev}->{length}, 3;
+        is $item->{rev}->{http_date}, undef;
+        is $item->{rev}->{http_content_type}, undef;
+        is $item->{rev}->{http_last_modified}, undef;
+        is $item->{rev}->{timestamp}, 1766901800;
+        is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        ok $item->{rev}->{insecure};
+        is $item->{archive_item}->{path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{path_encoding}, undef;
+        is $item->{archive_item}->{time}, 1766901800;
+      }
+    } $current->c;
+    return $current->check_files ([
+      {path => $current->repo_path ('single', "http://hoge/$key.zip")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         is $json->{type}, 'single';
+         ok my $key = $json->{urls}->{"http://hoge/$key.zip"};
+         {
+           my $item = $json->{items}->{$key};
+           is $item->{type}, 'file';
+           ok $item->{files}->{data};
+           ok $item->{files}->{extracted};
+
+           my $dir_path = $path->parent->child ($item->{files}->{extracted});
+           my $json_path = $dir_path->child ('index.json');
+           my $json = json_bytes2perl $json_path->slurp;
+           {
+             my $item = $json->{items}->{"file:abc\x{4000}.dat"};
+             ok $item->{rev}->{insecure};
+           }
+         }
+       }},
+    ]);
+  });
+} n => 59, name => 'insecure';
 
 Run;
 

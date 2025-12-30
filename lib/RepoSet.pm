@@ -96,10 +96,13 @@ sub get_repo_by_source ($$%) {
         });
         return undef;
       }
-      return ZipRepo->new_from_upstream ($upstream_repo, {url => $url});
+      return ZipRepo->new_from_upstream
+          ($upstream_repo, {url => $url},
+           forced_encoding => $source->{forced_encoding}); # or undef
     } elsif (defined $source->{file_path}) {
       return ZipRepo->new_from_upstream
-          ($upstream_repo, {path_string => $source->{file_path}});
+          ($upstream_repo, {path_string => $source->{file_path}},
+           forced_encoding => $source->{forced_encoding}); # or undef
     } else {
       $logger->$bad_method ({
         type => 'bad source',
