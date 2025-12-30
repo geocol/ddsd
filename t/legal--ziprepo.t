@@ -12,7 +12,7 @@ Test {
   return $current->prepare ({
     $key => {
       type => 'zip',
-      file_key => "file",
+      file_url => "https://hoge/$key.zip",
       source => {
         type => 'single',
         url => "https://hoge/$key.zip",

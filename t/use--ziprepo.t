@@ -56,7 +56,7 @@ Test {
            is $item->{type}, 'zip';
            is $item->{source}->{type}, 'single';
            is $item->{source}->{url}, "https://hoge/$key.zip";
-           is $item->{file_key}, 'file';
+           is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 2;
            ok $item->{files}->{"file:abc.txt"};
            ok $item->{files}->{"file:xyz.txt"};
@@ -119,7 +119,7 @@ Test {
            is $item->{type}, 'zip';
            is $item->{source}->{type}, 'single';
            is $item->{source}->{url}, "https://hoge/$key.zip";
-           is $item->{file_key}, 'file';
+           is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 2;
            ok $item->{files}->{"file:abc.txt"};
            ok ! $item->{files}->{"file:abc.txt"}->{skip};

@@ -156,8 +156,9 @@ sub run ($$;%) {
             type => 'single',
             url => $r->{url}->stringify,
           },
-          file_key => 'file',
         };
+        $def->{file_url} = $def->{source}->{url};
+        # XXX fragment URLs
         
         if ($r->{url}->path =~ m{([^/]+)\z}) {
           my $n = percent_decode_c $1;

@@ -35,7 +35,6 @@ sub read_index ($) {
       my $logger = $self->set->app->logger;
       $logger->message ({
         type => 'no local copy available',
-        key => $self->{upstream_args}->{key}, # or undef
         path => $self->{upstream_args}->{path_string}, # or undef
         (defined $self->{upstream_args}->{url} ? (url => $self->{upstream_args}->{url}->stringify) : ()),
       });
@@ -92,7 +91,6 @@ sub fetch ($;%) {
     if (defined $self->{upstream_args}->{url}) {
       return $self->{upstream_repo}->fetch (
         %args,
-        no_update => 1,
         skip_unless_url => $self->{upstream_args}->{url},
         skip_unless_path_string => undef,
         skip_other_files => 1,
@@ -102,17 +100,10 @@ sub fetch ($;%) {
     } elsif (defined $self->{upstream_args}->{path_string}) {
       return $self->{upstream_repo}->fetch (
         %args,
-        no_update => 1,
         skip_unless_url => undef,
         skip_unless_path_string => $self->{upstream_args}->{path_string},
         skip_other_files => 1,
       )->then (sub {
-        $ret->{has_package} = 1;
-      });
-    } elsif (defined $self->{upstream_args}->{key}) {
-      return $self->{upstream_repo}->fetch (%args, file_defs => {
-        $self->{upstream_args}->{key} => {},
-      }, skip_other_files => 1)->then (sub {
         $ret->{has_package} = 1;
       });
     } else {

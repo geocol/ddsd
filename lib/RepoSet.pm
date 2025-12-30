@@ -100,9 +100,6 @@ sub get_repo_by_source ($$%) {
     } elsif (defined $source->{file_path}) {
       return ZipRepo->new_from_upstream
           ($upstream_repo, {path_string => $source->{file_path}});
-    } elsif (defined $source->{file_key}) {
-      return ZipRepo->new_from_upstream
-          ($upstream_repo, {key => $source->{file_key}});
     } else {
       $logger->$bad_method ({
         type => 'bad source',

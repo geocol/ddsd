@@ -186,10 +186,6 @@ sub _get_item ($$$) {
     my (undef, $item) = $ix->get_item
         (url_string => $args->{url}->stringify, file_def => undef);
     return $item; # or undef
-  } elsif (defined $args->{key} and $args->{key} eq 'file') {
-    my (undef, $item) = $ix->get_item
-        (url_string => $self->{url}->stringify, file_def => undef);
-    return $item; # or undef
   }
   return undef;
 } # _get_item
