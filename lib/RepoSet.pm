@@ -86,8 +86,23 @@ sub get_repo_by_source ($$%) {
     }
     my $upstream_repo = $self->get_repo_by_source ($source->{source}, %args);
     require ZipRepo;
-    if (defined $source->{file_key}) {
-      return ZipRepo->new_from_upstream ($upstream_repo, $source->{file_key});
+    if (defined $source->{file_url}) {
+      my $url = Web::URL->parse_string ($source->{file_url});
+      if (not defined $url) {
+        $logger->$bad_method ({
+          type => 'bad source file_url',
+          value => $source->{file_url} // '',
+          %$el,
+        });
+        return undef;
+      }
+      return ZipRepo->new_from_upstream ($upstream_repo, {url => $url});
+    } elsif (defined $source->{file_path}) {
+      return ZipRepo->new_from_upstream
+          ($upstream_repo, {path_string => $source->{file_path}});
+    } elsif (defined $source->{file_key}) {
+      return ZipRepo->new_from_upstream
+          ($upstream_repo, {key => $source->{file_key}});
     } else {
       $logger->$bad_method ({
         type => 'bad source',

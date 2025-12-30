@@ -365,6 +365,281 @@ Test {
   });
 } n => 17, name => 'pull, file changed';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'zip',
+        file_url => "https://hoge/$key/hoge.zip",
+        source => {
+          type => 'single',
+          url => "https://hoge/$key/hoge.zip",
+        },
+        files => {
+          "file:abc.txt" => {
+            sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          },
+        },
+      },
+    },
+    {
+      "https://hoge/$key/hoge.zip" => {zip => {
+        "abc.txt" => {text => "abc"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  })->then (sub {
+    return $current->prepare (
+      undef, {
+        "https://hoge/$key/hoge.zip" => {zip => {
+          "abc.txt" => {text => "xyz"},
+        }},
+      },
+    );
+  })->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 12;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", is_none => 1},
+    ]);
+  });
+} n => 5, name => 'sha256 limited';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'zip',
+        file_url => "https://hoge/$key/hoge.zip",
+        source => {
+          type => 'single',
+          url => "https://hoge/$key/hoge.zip",
+        },
+      },
+    },
+    {
+      "https://hoge/$key/hoge.zip" => {zip => {
+        "abc.txt" => {text => "abc"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  })->then (sub {
+    return $current->prepare (
+      undef, {
+        "https://hoge/$key/hoge.zip" => {zip => {
+          "abc.txt" => {text => "xyz"},
+        }},
+      },
+    );
+  })->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "xyz"},
+    ]);
+  });
+} n => 6, name => 'single > zip';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'zip',
+        file_url => "https://hoge/$key/hoge.zip",
+        source => {
+          type => 'ckan',
+          url => "https://hoge/dataset/$key",
+        },
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge.zip"},
+            {id => 'foo', url => "https://hoge/$key/foo.txt"},
+          ],
+        }},
+      },
+      "https://hoge/$key/hoge.zip" => {zip => {
+        "abc.txt" => {text => "abc"},
+      }},
+      "https://hoge/$key/foo.txt" => {text => "a"},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  })->then (sub {
+    return $current->prepare (
+      undef, {
+        "https://hoge/$key/hoge.zip" => {zip => {
+          "abc.txt" => {text => "xyz"},
+        }},
+      },
+    );
+  })->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "xyz"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         ok $json->{urls}->{"https://hoge/$key/hoge.zip"};
+         ok not $json->{urls}->{"https://hoge/$key/foo.txt"};
+       }},
+    ]);
+  });
+} n => 8, name => 'ckan > zip';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      "p1" => {
+        type => 'zip',
+        file_url => "https://hoge/$key/hoge.zip",
+        source => {
+          type => 'ckan',
+          url => "https://hoge/dataset/$key",
+        },
+      },
+      "p2" => {
+        type => 'zip',
+        file_url => "https://hoge/$key/fuga.zip",
+        source => {
+          type => 'ckan',
+          url => "https://hoge/dataset/$key",
+        },
+      },
+      "p3" => {
+        type => 'zip',
+        file_url => "https://hoge/$key/hoge.zip",
+        source => {
+          type => 'ckan',
+          url => "https://hoge/dataset/$key",
+        },
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge.zip"},
+            {id => 'fuga', url => "https://hoge/$key/fuga.zip"},
+          ],
+        }},
+      },
+      "https://hoge/$key/hoge.zip" => {zip => {
+        "abc.txt" => {text => "abc"},
+      }},
+      "https://hoge/$key/fuga.zip" => {zip => {
+        "xyz.txt" => {text => "xyz"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/p1/files/abc.txt", text => "abc"},
+      {path => "local/data/p2/files/xyz.txt", text => "xyz"},
+      {path => "local/data/p3/files/abc.txt", text => "abc"},
+    ]);
+  });
+} n => 5, name => 'ckan > zip files';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'zip',
+        file_path => "fuga.zip",
+        source => {
+          type => 'zip',
+          file_url => "https://hoge/$key/hoge.zip",
+          source => {
+            type => 'ckan',
+            url => "https://hoge/dataset/$key",
+          },
+        },
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge.zip"},
+          ],
+        }},
+      },
+      "https://hoge/$key/hoge.zip" => {zip => {
+        "fuga.zip" => {zip => {
+          "abc.txt" => {text => "abc"},
+        }},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  });
+} n => 3, name => 'ckan > zip > zip';
+
 Run;
 
 =head1 LICENSE

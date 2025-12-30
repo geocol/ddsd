@@ -180,15 +180,19 @@ sub get_item_list ($;%) {
   });
 } # get_item_list
 
-sub _get_item_by_key ($$$) {
-  my ($self, $ix, $item_key) = @_;
-  if ($item_key eq 'file') {
+sub _get_item ($$$) {
+  my ($self, $ix, $args) = @_;
+  if (defined $args->{url}) {
+    my (undef, $item) = $ix->get_item
+        (url_string => $args->{url}->stringify, file_def => undef);
+    return $item; # or undef
+  } elsif (defined $args->{key} and $args->{key} eq 'file') {
     my (undef, $item) = $ix->get_item
         (url_string => $self->{url}->stringify, file_def => undef);
     return $item; # or undef
   }
   return undef;
-} # _get_item_by_key
+} # _get_item
 
 1;
 

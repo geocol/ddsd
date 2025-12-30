@@ -1,6 +1,7 @@
 package RepoIndexFile;
 use strict;
 use warnings;
+use Carp;
 use Time::HiRes qw(time);
 use JSON::PS;
 use Promised::File;
@@ -9,7 +10,7 @@ use JSONFile;
 push our @ISA, qw(JSONFile);
 
 sub open_by_app_and_storage ($$$;%) {
-  my ($class, $app, $storage, %args) = @_;
+  my ($class, $app, $storage, %cargs) = @_;
 
   my $init = sub {
     my ($self, $logger, $path, $index, %args) = @_;
@@ -58,25 +59,39 @@ sub open_by_app_and_storage ($$$;%) {
 
     $self->{json} = $index;
     $self->{storage} = $storage;
-  };
+    $self->{upstream_index} = $cargs{upstream_index}; # or undef
+    $self->{upstream_item} = $cargs{upstream_item}; # or undef
+  }; # $init
   
   my $init_empty = sub {
     my ($self, %args) = @_;
     $self->{json} = {type => 'empty', items => {}};
     $self->{storage} = $storage;
-  };
+    $self->{upstream_index} = $cargs{upstream_index}; # or undef
+    $self->{upstream_item} = $cargs{upstream_item}; # or undef
+  }; # $init_empty
 
   my $path = $storage->child_path ('index.json');
   return $class->_open_by_app_and_path
       ($app, $path,
-       allow_missing => $args{allow_missing}, lock => $args{lock},
+       allow_missing => $cargs{allow_missing}, lock => $cargs{lock},
        format => 'ddsd repo index',
        init => $init, init_empty => $init_empty);
 } # open_by_app_and_storage
 
 sub index ($) { $_[0]->{json} }
 sub items ($) { $_[0]->{json}->{items} }
+sub upstream_index ($) { $_[0]->{upstream_index} }
+sub upstream_item ($) { $_[0]->{upstream_item} }
 
+## Return item object for the specified condition.
+##
+## Exactly one of |url_string| (matches to |url_string| or
+## |original_url_string| of items), |path_string|, or
+## |raw_path_string| is required.
+##
+## If |sha256| is specified in |file_def|, the item object whose
+## |sha256| is equal to the value, if any, is returned.
 sub get_item ($%) {
   my ($self, %args) = @_;
   my $index = $self->{json};
@@ -88,12 +103,28 @@ sub get_item ($%) {
     } else {
       $ref = $index->{urls}->{$args{url_string}};
     }
+  } elsif (defined $args{original_url_string}) {
+    if (defined $args{file_def}->{sha256}) {
+      $ref = $index->{original_url_sha256s}->{$args{original_url_string}, $args{file_def}->{sha256}};
+    } else {
+      $ref = $index->{original_urls}->{$args{original_url_string}};
+    }
   } elsif (defined $args{raw_path_string}) {
-    $ref = $index->{raw_paths}->{$args{raw_path_string}};
+    if (defined $args{file_def}->{sha256}) {
+      $ref = $index->{raw_path_sha256s}->{$args{raw_path_string}, $args{file_def}->{sha256}};
+    } else {
+      $ref = $index->{raw_paths}->{$args{raw_path_string}};
+    }
+  } elsif (defined $args{path_string}) {
+    if (defined $args{file_def}->{sha256}) {
+      $ref = $index->{path_sha256s}->{$args{path_string}, $args{file_def}->{sha256}};
+    } else {
+      $ref = $index->{paths}->{$args{path_string}};
+    }
   } elsif ($args{allow_no_item}) {
     #
   } else {
-    die "No item key";
+    die "No item key", Carp::longmess;
   }
   return (undef, undef) unless defined $ref;
   
@@ -541,6 +572,10 @@ sub put_zip_item ($$$$;%) {
 
   $index->{raw_paths}->{$file->{archive_item}->{raw_path}} = $file->{key};
   $index->{paths}->{$file->{archive_item}->{path}} = $file->{key};
+  if (defined $rev->{sha256}) {
+    $index->{raw_path_sha256s}->{$file->{archive_item}->{raw_path}, $rev->{sha256}} = $file->{key};
+    $index->{path_sha256s}->{$file->{archive_item}->{path}, $rev->{sha256}} = $file->{key};
+  }
 
   return $p->then (sub {
     return $return;

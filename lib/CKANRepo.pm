@@ -141,11 +141,12 @@ sub fetch ($;%) {
     return $self->get_item_list (
       with_source_meta => 1, file_defs => $file_defs,
       has_error => $args{has_error},
-      skip_other_files => $args{skip_other_files},
       requires_package => 1,
       requires_legal => 1,
       with_skipped => defined $args{file_key},
+      skip_other_files => (defined $args{skip_unless_url} ? 0 : $args{skip_other_files}),
       skip_if_found => $args{no_update},
+      skip_unless_url => $args{skip_unless_url},
       with_item_key => 1,
       data_area_key => $args{data_area_key},
       report_unexpandable_set_type => 1,
@@ -226,6 +227,9 @@ sub fetch ($;%) {
           }
           push @$files, $file;
         }
+      #} elsif (defined $args{skip_unless_url}) {
+      #  #
+      ## filtered in get_item_list
       } else {
         push @$files, @$all_files;
       }
@@ -283,6 +287,7 @@ sub fetch ($;%) {
           has_error => $he,
           index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
           logger => $as,
+          #debug => 2, 
         )->then (sub {
           my $r = $_[0];
           $ret->{insecure} = 1 if $r->{insecure};
@@ -914,6 +919,20 @@ sub get_item_list ($;%) {
             next;
           }
         }
+        if (defined $args{skip_unless_url}) {
+          my $x = $args{_suu} //= $args{skip_unless_url}->stringify;
+          if (defined $url and $url->stringify eq $x) {
+            #
+          } else {
+            $logger->info ({
+              type => 'item ignored by skip_unless_url',
+              value => $file->{key},
+              url => (defined $url ? $url->stringify : undef),
+              path => $in->path->absolute,
+            });
+            next;
+          }
+        }
         if ($args{skip_other_files} and
             not defined $file_defs->{$file->{key}}) {
           $logger->info ({
@@ -1028,6 +1047,16 @@ sub get_item_list ($;%) {
     });
   });
 } # get_item_list
+
+sub _get_item ($$$) {
+  my ($self, $ix, $args) = @_;
+  if (defined $args->{url}) {
+    my (undef, $item) = $ix->get_item
+        (url_string => $args->{url}->stringify, file_def => undef);
+    return $item; # or undef
+  }
+  return undef;
+} # _get_item
 
 1;
 

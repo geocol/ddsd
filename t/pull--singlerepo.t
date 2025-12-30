@@ -188,6 +188,53 @@ Test {
   });
 } n => 5, name => 'bad 304';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'single',
+        url => "https://hoge/$key/abc.txt",
+        files => {
+          "file" => {
+            sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          },
+        },
+      },
+    },
+    {
+      "https://hoge/$key/abc.txt" => {text => "abc"},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  })->then (sub {
+    return $current->prepare (
+      undef, {
+        "https://hoge/$key/abc.txt" => {text => "xyz"},
+      },
+    );
+  })->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/abc.txt", text => "abc"},
+    ]);
+  });
+} n => 6, name => 'sha256 limited';
+
 Run;
 
 =head1 LICENSE

@@ -42,8 +42,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -62,6 +61,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}, undef;
         is $item->{archive_item}, undef;
       }
@@ -87,8 +87,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -107,6 +106,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}, undef;
         is $item->{archive_item}->{path}, "abc.dat";
         is $item->{archive_item}->{raw_path}, "abc.dat";
@@ -141,8 +141,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{archive_item}, undef;
         is $item->{rev}->{url}, "https://hoge/$key.zip";
@@ -162,6 +161,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc.dat";
@@ -197,8 +197,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{archive_item}, undef;
         is $item->{rev}->{url}, "https://hoge/$key.zip";
@@ -218,6 +217,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc.dat";
@@ -282,8 +282,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -303,6 +302,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc\x{4000}.dat";
@@ -368,8 +368,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -389,6 +388,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc\x{4000}.dat";
@@ -454,8 +454,7 @@ Test {
         is $item->{package_item}->{dir}, 'auto';
         is $item->{package_item}->{writing_mode}, 'horizontal-tb';
         is $item->{package_item}->{file_time}, 1766901872;
-        is ref $item->{package_item}->{legal}, 'ARRAY';
-        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -475,6 +474,7 @@ Test {
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";

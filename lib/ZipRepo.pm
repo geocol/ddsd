@@ -1,6 +1,7 @@
 package ZipRepo;
 use strict;
 use warnings;
+use Carp;
 use Promise;
 use Promised::Flow;
 
@@ -11,12 +12,12 @@ use Zipper;
 use RepoIndexFile;
 
 sub new_from_upstream ($$$) {
-  my ($class, $upstream_repo, $key) = @_;
+  my ($class, $upstream_repo, $upstream_args) = @_;
 
   my $self = bless {
     set => $upstream_repo->set,
     upstream_repo => $upstream_repo,
-    upstream_item_key => $key,
+    upstream_args => $upstream_args,
   }, $class;
 
   return $self;
@@ -24,17 +25,118 @@ sub new_from_upstream ($$$) {
 
 sub type () { "zip" }
 
+sub read_index ($) {
+  my $self = $_[0];
+  return $self->{upstream_repo}->read_index->then (sub {
+    my $upix = $_[0];
+    my $upitem = $self->{upstream_repo}->_get_item
+        ($upix, $self->{upstream_args});
+    if (not defined $upitem) {
+      my $logger = $self->set->app->logger;
+      $logger->message ({
+        type => 'no local copy available',
+        key => $self->{upstream_args}->{key}, # or undef
+        path => $self->{upstream_args}->{path_string}, # or undef
+        (defined $self->{upstream_args}->{url} ? (url => $self->{upstream_args}->{url}->stringify) : ()),
+      });
+      #$args{has_error}->();
+      return $self->SUPER::read_index;
+    }
+
+    my $storage = $upix->get_storage_of
+        ($upitem, 'extracted', allow_missing => 1); # or undef
+    unless (defined $storage) {
+      ## Dummy object used for new not-initialized-yet repo
+      return $self->SUPER::read_index (
+        upstream_index => $upix,
+        upstream_item => $upitem,
+      );
+    }
+    return RepoIndexFile->open_by_app_and_storage (
+      $self->set->app, $storage, allow_missing => 1,
+      upstream_index => $upix,
+      upstream_item => $upitem,
+    );
+  });
+} # read_index
+
+sub lock_index ($) {
+  my $self = $_[0];
+  return $self->{upstream_repo}->lock_index->then (sub {
+    my $upix = $_[0];
+    my $upitem = $self->{upstream_repo}->_get_item
+        ($upix, $self->{upstream_args});
+    if (not defined $upitem) {
+      # XXX This will create a broken index file...
+      return $self->SUPER::lock_index;
+    }
+
+    my $storage = $upix->get_storage_of
+        ($upitem, 'extracted', prefix => $self->type . '-',
+         create_if_missing => 1);
+    return $storage->mkpath->then (sub { $upix->save })->finally (sub { $upix->close })->then (sub {
+      return RepoIndexFile->open_by_app_and_storage (
+        $self->set->app, $storage, allow_missing => 1, lock => 1,
+        upstream_index => $upix,
+        upstream_item => $upitem,
+      );
+    });
+  });
+} # lock_index
+
 sub fetch ($;%) {
   my ($self, %args) = @_;
+  my $file_defs = $args{file_defs} || {};
   my $ret = {};
   return Promise->resolve->then (sub {
-    if (defined $self->{upstream_item_key}) {
+    if (defined $self->{upstream_args}->{url}) {
+      return $self->{upstream_repo}->fetch (
+        %args,
+        no_update => 1,
+        skip_unless_url => $self->{upstream_args}->{url},
+        skip_unless_path_string => undef,
+        skip_other_files => 1,
+      )->then (sub {
+        $ret->{has_package} = 1;
+      });
+    } elsif (defined $self->{upstream_args}->{path_string}) {
+      return $self->{upstream_repo}->fetch (
+        %args,
+        no_update => 1,
+        skip_unless_url => undef,
+        skip_unless_path_string => $self->{upstream_args}->{path_string},
+        skip_other_files => 1,
+      )->then (sub {
+        $ret->{has_package} = 1;
+      });
+    } elsif (defined $self->{upstream_args}->{key}) {
       return $self->{upstream_repo}->fetch (%args, file_defs => {
-        $self->{upstream_item_key} => {},
+        $self->{upstream_args}->{key} => {},
       }, skip_other_files => 1)->then (sub {
         $ret->{has_package} = 1;
       });
-    } # else : Assert: never
+    } else {
+      die "No |upstream_args| data";
+    }
+  })->then (sub {
+    return if $args{min};
+    return $self->get_item_list (
+      with_path => 1, with_item_key => 1, with_source_meta => 1,
+      file_defs => $file_defs,
+      has_error => $args{has_error},
+      with_skipped => defined $args{file_key},
+      skip_other_files => (defined $args{skip_unless_path_string} ? 0 : $args{skip_other_files}),
+      skip_if_found => $args{no_update},
+      skip_unless_path_string => $args{skip_unless_path_string},
+      data_area_key => $args{data_area_key},
+    )->then (sub {
+      my $files = shift;
+
+      return $self->_extract_files ($files,
+        file_defs => $file_defs,
+        has_error => $args{has_error},
+      );
+    });
   })->then (sub {
     return $ret;
   });
@@ -57,15 +159,10 @@ sub get_item_list ($;%) {
     },
   };
 
-  return $self->{upstream_repo}->read_index->then (sub {
-    my $upix = $_[0];
-    my $upitem = $self->{upstream_repo}->_get_item_by_key
-        ($upix, $self->{upstream_item_key});
-    if (not defined $upitem) {
-      $logger->message ({
-        type => 'no local copy available',
-        key => $self->{upstream_item_key},
-      });
+  return $self->read_index->then (sub {
+    my $zipix = $_[0];
+    my $upitem = $zipix->upstream_item;
+    unless (defined $upitem) {
       $args{has_error}->();
       return;
     }
@@ -81,9 +178,7 @@ sub get_item_list ($;%) {
       $pack_file->{package_item}->{$_} = $upitem->{package_item}->{$_};
     }
 
-    my $storage = $upix->get_storage_of
-        ($upitem, 'extracted', allow_missing => 1); # or undef
-    my $zip_path = $upix->get_path_of ($upitem, 'data'); # or throw
+    my $zip_path = $zipix->upstream_index->get_path_of ($upitem, 'data'); # or throw
     return Promise->all ([
       Zipper->list (
         $self->set->app, $zip_path,
@@ -105,11 +200,8 @@ sub get_item_list ($;%) {
 
         return {files => []};
       }),
-      (defined $storage ? RepoIndexFile->open_by_app_and_storage (
-        $self->set->app, $storage, allow_missing => 1,
-      ) : undef),
     ])->then (sub {
-      my ($info, $zipix) = @{$_[0]};
+      my ($info) = @{$_[0]};
 
       my $seen = {};
       my $i = 0;
@@ -166,7 +258,6 @@ sub get_item_list ($;%) {
           $file->{archive_item}->{path} = $file->{source}->{file_name};
         } # meta
 
-        ## These need to be redone in _extract_files
         $self->_set_item_file_info
             ([raw_path_string => $zipped_file->{name}],
              $fdef, $zipix, $file, %args)
@@ -196,37 +287,34 @@ sub get_item_list ($;%) {
   });
 } # get_item_list
 
+sub _get_item ($$$) {
+  my ($self, $ix, $args) = @_;
+  if (defined $args->{path_string}) {
+    my (undef, $item) = $ix->get_item
+        (path_string => $args->{path_string}, file_def => undef);
+    return $item; # or undef
+  }
+  return undef;
+} # _get_item
+
 sub _extract_files ($$;%) {
   my ($self, $files, %args) = @_;
   my $pack_file = $files->[0]; # must be type=package
   my $file_defs = $args{file_defs} || {};
   my $logger = $self->set->app->logger;
-  return Promise->resolve->then (sub {
-    return $self->{upstream_repo}->lock_index;
-  })->then (sub {
-    my $upix = $_[0];
-    my $upitem = $self->{upstream_repo}->_get_item_by_key
-        ($upix, $self->{upstream_item_key});
+  return $self->lock_index->then (sub {
+    my $zipix = $_[0];
+    my $upitem = $zipix->upstream_item;
     return unless defined $upitem;
 
-    my $storage = $upix->get_storage_of
-        ($upitem, 'extracted', prefix => $self->type . '-',
-         create_if_missing => 1);
-    return $storage->mkpath->then (sub { $upix->save })->finally (sub { $upix->close })->then (sub {
-      return RepoIndexFile->open_by_app_and_storage (
-        $self->set->app, $storage, allow_missing => 1, lock => 1,
-      );
-    })->then (sub {
-      my $zipix = $_[0];
-      $zipix->ensure_type ('archive');
-
-      my $temp_storage = $self->set->app->temp_storage;
-      return $temp_storage->mkpath->then (sub {
-        my $zip_path = $upix->get_path_of ($upitem, 'data'); # or throw
-        return promised_for {
-          my $file = shift;
-          return unless $file->{type} eq 'file';
-          my $fdef = $file_defs->{$file->{key}};
+    $zipix->ensure_type ('archive');
+    my $zip_path = $zipix->upstream_index->get_path_of ($upitem, 'data'); # or throw
+    my $temp_storage = $self->set->app->temp_storage;
+    return $temp_storage->mkpath->then (sub {
+      return promised_for {
+        my $file = shift;
+        return unless $file->{type} eq 'file';
+        my $fdef = $file_defs->{$file->{key}};
 
           if (defined $fdef and $fdef->{skip} and
               not $args{with_skipped}) {
@@ -240,7 +328,7 @@ sub _extract_files ($$;%) {
             });
             return;
           }
-          
+
           my $zip_item = $zipix->get_item
               (raw_path_string => $file->{archive_item}->{raw_path});
           if (defined $zip_item) {
@@ -256,25 +344,12 @@ sub _extract_files ($$;%) {
             #, insecure => $XXX
               )->then (sub {
                 my $r = $_[0];
-                $file->{path} = $r->{data_path};
                 return $zipix->save;
               });
-            })->then (sub {
-              ## These are done once in _extract_files
-              $self->_set_item_file_info
-                  ([raw_path_string => $file->{archive_item}->{raw_path}],
-                   $fdef, $zipix, $file, %args);
-
-              if (defined $file->{package_item}->{file_time}) {
-                $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
-                $pack_file->{package_item}->{file_time} = $file->{package_item}->{file_time}
-                    if $pack_file->{package_item}->{file_time} < $file->{package_item}->{file_time};
-              }
             });
           }
-        } $files;
-      })->then (sub { $zipix->save })->finally (sub { $zipix->close });
-    });
+      } $files;
+    })->then (sub { $zipix->save })->finally (sub { $zipix->close });
   });
 } # _extract_files
 

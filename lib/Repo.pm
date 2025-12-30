@@ -38,10 +38,10 @@ sub storage ($) {
   return $self->{storage} //= $self->set->storage->child_storage (@{$self->{key}});
 } # storage
 
-sub read_index ($) {
-  my $self = $_[0];
+sub read_index ($;%) {
+  my ($self, %args) = @_;
   return RepoIndexFile->open_by_app_and_storage
-      ($self->set->app, $self->storage, allow_missing => 1);
+      ($self->set->app, $self->storage, allow_missing => 1, %args);
 } # read_index
 
 sub lock_index ($) {
@@ -485,6 +485,7 @@ sub _fetch_file ($$$%) {
       rev => $args{rev} || $item->{rev}, # or undef
       file_def => $file_def,
       logger => $logger,
+      debug => $args{debug},
     )->then (sub {
       my $r = $_[0];
       if ($r->{error}) {
@@ -1540,10 +1541,10 @@ sub format_legal ($$$;%) {
 
 ## ------ Repository index accesses ------
 
-sub _get_item_by_key ($$$) {
-  #my ($self, $ix, $item_key) = @_;
+sub _get_item ($$$) {
+  #my ($self, $ix, $args) = @_;
   return undef;
-} # _get_item_by_key
+} # _get_item
 
 ## ------ File metadata ------
 
@@ -1675,13 +1676,6 @@ sub construct_file_list ($$;%) {
     data_area_key => $args{data_area_key},
     with_props => 1,
   )->then (sub {
-    my $files = shift;
-    return $self->_extract_files ($files,
-      with_path => 1, file_defs => $def->{files},
-      has_error => $args{has_error},
-    )->then (sub { $files }) if $args{extract};
-    return $files;
-  })->then (sub {
     my $files = shift;
     my $found = {};
     my $found_n2u = {};

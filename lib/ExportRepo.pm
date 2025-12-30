@@ -35,12 +35,6 @@ sub construct_file_list_of ($$$;%) {
     skip_other_files => $args{skip_other_files},
     data_area_key => $args{data_area_key},
   )->then (sub {
-    my $files = $_[0];
-    return $self->_extract_files ($files,
-      with_path => 1, file_defs => $def->{files},
-      has_error => $args{has_error},
-    )->then (sub { $files });
-  })->then (sub {
     my $all_files = shift;
     my $files = [];
     for my $file (@$all_files) {
