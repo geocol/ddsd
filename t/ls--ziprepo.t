@@ -112,8 +112,8 @@ Test {
         is $item->{package_item}->{legal}, undef;
         is $item->{rev}, undef;
         is $item->{archive_item}->{path}, "abc.dat";
-        is $item->{archive_item}->{raw_path}, "abc.dat";
-        is $item->{archive_item}->{byte_length}, 3;
+        is $item->{archive_item}->{central}->{raw_path}, "abc.dat";
+        is $item->{archive_item}->{central}->{byte_length}, 3;
         is $item->{archive_item}->{time}, 1766901800;
       }
     } $current->c;
@@ -233,7 +233,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc.dat";
-        is $item->{archive_item}->{raw_path}, "abc.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -318,7 +318,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
-        is $item->{archive_item}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc\x{4000}.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -404,7 +404,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
-        is $item->{archive_item}->{raw_path}, "abc䀀.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, "utf-8";
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -490,7 +490,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{03A3}\x{C7}\x{C7}.dat";
-        is $item->{archive_item}->{raw_path}, "abc䀀.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, "ibm437";
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -583,7 +583,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
-        is $item->{archive_item}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
         is $item->{archive_item}->{path_encoding}, "shift_jis";
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -632,7 +632,7 @@ Test {
         is $item->{rev}->{raw_path}, "abc/def.dat";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "abc/def.dat";
-        is $item->{archive_item}->{raw_path}, "abc/def.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/def.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
         is $item->{package_item}->{desc}, "";
       }
@@ -646,7 +646,7 @@ Test {
         is $item->{rev}->{raw_path}, "abc/xyz/a.dat";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "abc/xyz/a.dat";
-        is $item->{archive_item}->{raw_path}, "abc/xyz/a.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/xyz/a.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
     } $current->c;
@@ -691,11 +691,11 @@ Test {
         is $item->{rev}->{raw_path}, "abc/def\x{4000}.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}->{path}, "abc/def\x{4000}.dat";
-        is $item->{archive_item}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/def\x{4000}.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{comment}, "abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, undef;
-        is $item->{archive_item}->{raw_comment}, "abc\x{6000}";
+        is $item->{archive_item}->{central}->{raw_comment}, "abc\x{6000}";
         is $item->{package_item}->{desc}, "abc\x{6000}";
       }
     } $current->c;
@@ -757,11 +757,11 @@ Test {
         is $item->{rev}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
         is $item->{rev}->{path_encoding}, "utf-8";
         is $item->{archive_item}->{path}, "abc/def\x{4E00}.dat";
-        is $item->{archive_item}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
         is $item->{archive_item}->{path_encoding}, "utf-8";
         is $item->{archive_item}->{comment}, "abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, "utf-8";
-        is $item->{archive_item}->{raw_comment}, "abc\xe6\x80\x80";
+        is $item->{archive_item}->{central}->{raw_comment}, "abc\xe6\x80\x80";
         is $item->{package_item}->{desc}, "abc\x{6000}";
       }
     } $current->c;
@@ -806,11 +806,11 @@ Test {
         is $item->{rev}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
-        is $item->{archive_item}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{comment}, "\x{FEFF}abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, undef;
-        is $item->{archive_item}->{raw_comment}, "\x{FEFF}abc\x{6000}";
+        is $item->{archive_item}->{central}->{raw_comment}, "\x{FEFF}abc\x{6000}";
         is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
       }
     } $current->c;
@@ -873,11 +873,11 @@ Test {
         is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
         is $item->{rev}->{path_encoding}, "utf-8";
         is $item->{archive_item}->{path}, "\x{FEFF}abc/def\x{4E00}.dat";
-        is $item->{archive_item}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
         is $item->{archive_item}->{path_encoding}, "utf-8";
         is $item->{archive_item}->{comment}, "\x{FEFF}abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, "utf-8";
-        is $item->{archive_item}->{raw_comment}, "\xEF\xBB\xBFabc\xe6\x80\x80";
+        is $item->{archive_item}->{central}->{raw_comment}, "\xEF\xBB\xBFabc\xe6\x80\x80";
         is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
       }
     } $current->c;
@@ -1035,7 +1035,7 @@ Test {
         is $item->{rev}->{raw_path}, "abc/def.dat";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "abc/def.dat";
-        is $item->{archive_item}->{raw_path}, "abc/def.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/def.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
     } $current->c;
@@ -1086,7 +1086,7 @@ Test {
         is $item->{rev}->{raw_path}, "ab\\c.dat";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "ab\\c.dat";
-        is $item->{archive_item}->{raw_path}, "ab\\c.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "ab\\c.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
@@ -1099,7 +1099,7 @@ Test {
         is $item->{rev}->{raw_path}, "b/con/con.dat";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "b/con/con.dat";
-        is $item->{archive_item}->{raw_path}, "b/con/con.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "b/con/con.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
@@ -1112,7 +1112,7 @@ Test {
         is $item->{rev}->{raw_path}, "c//";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "c//";
-        is $item->{archive_item}->{raw_path}, "c//";
+        is $item->{archive_item}->{central}->{raw_path}, "c//";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
@@ -1125,7 +1125,7 @@ Test {
         is $item->{rev}->{raw_path}, "d\x00";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "d\x00";
-        is $item->{archive_item}->{raw_path}, "d\x00";
+        is $item->{archive_item}->{central}->{raw_path}, "d\x00";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
@@ -1138,7 +1138,7 @@ Test {
         is $item->{rev}->{raw_path}, "eF";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "eF";
-        is $item->{archive_item}->{raw_path}, "eF";
+        is $item->{archive_item}->{central}->{raw_path}, "eF";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
       {
@@ -1151,7 +1151,7 @@ Test {
         is $item->{rev}->{raw_path}, "ef";
         is $item->{rev}->{path_encoding}, 'ibm437';
         is $item->{archive_item}->{path}, "ef";
-        is $item->{archive_item}->{raw_path}, "ef";
+        is $item->{archive_item}->{central}->{raw_path}, "ef";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
       }
     } $current->c;
@@ -1237,7 +1237,7 @@ Test {
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         ok $item->{rev}->{insecure};
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
-        is $item->{archive_item}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc\x{4000}.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{time}, 1766901800;
       }

@@ -59,54 +59,10 @@ archive_meta (when with_source_meta => 1)
     comment.  Missing when an archive-format-specified fixed encoding
     is used.
 
-archive_item (when with_source_meta => 1)
+archive_item [Archive Item]? (when with_source_meta => 1)
 
     Properties of the file from the archive, if it is a |file|
     representing a file in an archive file.
-
-  path (required)
-
-    Path to the file in the archive, as a character string.
-
-  path_encoding
-
-    The encoding label of the path to the file, used to decode byte
-    string of |raw_path| to obtain character string |path|, if
-    applicable.  Missing when an archive-format-specified fixed
-    encoding is used.
-
-  raw_path (required)
-
-    Path to the file in the archive, in the raw format.  It can be a
-    byte string or a character string, depending on the data type of
-    the path.
-
-  comment [text?]
-
-    The comment of the file in the archive, as a character string.
-
-  comment_encoding
-
-    The encoding label of the comment of the file, used to decode byte
-    string of |raw_comment| to obtain character string |comment|, if
-    applicable.
-
-  raw_comment
-
-    The comment of the file in the archive, in the raw format.  It can
-    be a byte string or a character string, depending on the data type
-    of the comment.  Missing when an archive-format-specified fixed
-    encoding is used.
-
-  byte_length [integer?]
-
-    The byte length of the file, if known.  It might or might not be
-    equal to the actual length of the stored file, depending on the
-    archive format.
-
-  time [time?]
-
-    The timestamp of the file, if known.
 
 rev
 
@@ -211,3 +167,69 @@ package_item
 
   legal
   snapshot_hash
+
+* Archive Item object
+
+An Archive Item object represents a member of archive, such as ZIP.
+
+path (required)
+
+  Path to the member in the archive, as a character string.
+
+path_encoding
+
+  The encoding label of the path to the member, used to decode bytes
+  to obtain character string |path|, if applicable.  Missing when an
+  archive-format-specified fixed encoding is used.
+
+comment [text?]
+
+  The comment of the member in the archive, as a character string.
+
+comment_encoding
+
+  The encoding label of the comment of the member, used to decode
+  bytes to obtain character string |comment|, if applicable.
+
+time [time?]
+
+  The timestamp of the member, if known.
+
+is_directory [boolean]
+
+  True if the member is a directory.
+
+central [Archive Item Meta?]
+
+  Metadata for the member in the central data structure of the
+  archive, if any.
+
+local [Archive Item Meta?]
+
+  Metadata for the member in the member-local data structure of the
+  archive, if any.
+
+* Archive Item Meta object
+
+An Archive Item Meta object represents a set of metadata for a member
+of archive, such as ZIP central directory header or ZIP local header.
+
+byte_length [integer?]
+
+  The byte length of the uncompressed data of the member, if known.
+  It might or might not be equal to the actual length of the file
+  stored as the member, depending on the archive format.
+
+raw_path [bytes?]
+
+  Path to the member in the archive, in the raw format.  It can be a
+  byte string or a character string, depending on the data type of the
+  path.
+
+raw_comment [bytes?]
+
+  The comment of the member in the archive, in the raw format.  It can
+  be a byte string or a character string, depending on the data type
+  of the comment.  Missing when an archive-format-specified fixed
+  encoding is used.
+

@@ -123,19 +123,35 @@ sub list ($) {
   my @list;
   for my $member (($zip->members)) {
     push @list, my $item = {
-      name => $member->fileName,
-      size => $member->uncompressedSize,
-      bits => $member->bitFlag,
-      fileAttributeFormat => $member->fileAttributeFormat,
-      versionMadeBy => $member->versionMadeBy,
+      central => {
+        raw_path => $member->fileName,
+        byte_length => $member->uncompressedSize,
+        zip_bit_flags => $member->bitFlag,
+        raw_comment => $member->fileComment,
+      #fileAttributeFormat => $member->fileAttributeFormat,
+      #versionMadeBy => $member->versionMadeBy,
+      #internalFileAttributes => $member->internalFileAttributes,
+        # zip_unicode_path zip_unicode_comment
+      },
       time => $member->lastModTime,
-      raw_comment => $member->fileComment,
-      internalFileAttributes => $member->internalFileAttributes,
-      isDirectory => $member->isDirectory,
+      local => {
+        ## Not accessible
+        #raw_path
+        #byte_length
+        #zip_bit_flags
+        #is_directory
+        # zip_unicode_path zip_unicode_comment
+      },
+      # path path_encoding comment comment_encoding
     };
+    $item->{is_directory} = 1 if $member->isDirectory; # comes from ->{central}->{raw_path} and ->{central}->uncompressed size
+
+    my $times = {};
+    ## last mod file time / last mod file date
+    $times->{last_mod} = $member->lastModFileDateTime;
 
     {
-      my $extra = $member->{cdExtraField};
+      my $extra = $member->cdExtraField;
       last unless defined $extra;
 
       my $pos = 0;
@@ -147,11 +163,11 @@ sub list ($) {
 
         if ($header_id == 0x7075) { # Info-ZIP Unicode Path Extra Field
           my ($ver, $crc32, $utf8_name) = unpack("C N a*", $data);
-          $item->{unicode_path} //= decode_web_utf8_no_bom $utf8_name;
+          $item->{central}->{zip_unicode_path} //= decode_web_utf8_no_bom $utf8_name;
         } elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
           my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
-          $item->{unicode_comment} //= $utf8_comment;
-
+          $item->{central}->{zip_unicode_comment} //= $utf8_comment;
+          
         ## Not sure these are used in the wild or not:
         #} elsif ($header_id == 0x0008) { # Extended Language Encoding Extra Field
         #  $item->{extended_language_encoding} //= $data;
@@ -183,14 +199,14 @@ sub list ($) {
         #  #
         }
       }
-    }
+    } # cd
 
-    push @{defined $item->{unicode_path} ? $names2 : $names1}, $item->{name}
-        if not utf8::is_utf8 ($item->{name}) and
-           $item->{name} =~ /[^\x00-\x7F]/;
-    push @{defined $item->{unicode_comment} ? $names2 : $names1}, $item->{raw_comment}
-        if not utf8::is_utf8 ($item->{raw_comment}) and
-           $item->{raw_comment} =~ /[^\x00-\x7F]/;
+    push @{defined $item->{central}->{zip_unicode_path} ? $names2 : $names1}, $item->{central}->{raw_path}
+        if not utf8::is_utf8 ($item->{central}->{raw_path}) and
+           $item->{central}->{raw_path} =~ /[^\x00-\x7F]/;
+    push @{defined $item->{central}->{zip_unicode_comment} ? $names2 : $names1}, $item->{central}->{raw_comment}
+        if not utf8::is_utf8 ($item->{central}->{raw_comment}) and
+           $item->{central}->{raw_comment} =~ /[^\x00-\x7F]/;
   } # $member
   if (@$names1) {
     my $det = Web::Encoding::Sniffer->new_from_context ('zip');
@@ -199,42 +215,44 @@ sub list ($) {
                   context_url => $url);
     my $charset = $det->encoding;
     for my $item (@list) {
-      if (utf8::is_utf8 $item->{name}) {
-        $item->{path} = $item->{name};
-      } elsif (defined $item->{unicode_path}) {
-        $item->{path} = $item->{unicode_path};
+      if (utf8::is_utf8 $item->{central}->{raw_path}) { # UTF-8 flagged (decoded by Archive::ZIP)
+        $item->{path} = $item->{central}->{raw_path};
+      } elsif ($item->{central}->{zip_bit_flags} & 0x0800) { # UTF-8 flagged ASCII
+        $item->{path} = $item->{central}->{raw_path};
+      } elsif (defined $item->{central}->{zip_unicode_path}) {
+        $item->{path} = $item->{central}->{zip_unicode_path};
       } elsif (defined $charset and
-               $item->{name} =~ /[^\x00-\x7F]/) {
+               $item->{central}->{raw_path} =~ /[^\x00-\x7F]/) {
         if ($charset eq 'utf-8') {
-          $item->{path} = decode_web_utf8_no_bom $item->{name};
+          $item->{path} = decode_web_utf8_no_bom $item->{central}->{raw_path};
         } else {
-          $item->{path} = decode_web_charset $charset, $item->{name};
+          $item->{path} = decode_web_charset $charset, $item->{central}->{raw_path};
         }
         $item->{path_encoding} = $charset;
       } else {
-        $item->{path} = $item->{name};
+        $item->{path} = $item->{central}->{raw_path};
         $item->{path_encoding} = 'ibm437';
       }
-      if (utf8::is_utf8 $item->{raw_comment}) {
+      if (utf8::is_utf8 $item->{central}->{raw_comment}) {
         ## But the |Archive::Zip| as of today does not return
         ## utf8-flagged string even when ZIP's file's UTF-8 flag is
         ## set.
-        $item->{comment} = $item->{raw_comment};
-      } elsif ($item->{bits} & 0x0800) {
-        $item->{raw_comment} =
-        $item->{comment} = decode_web_utf8_no_bom $item->{raw_comment};
-      } elsif (defined $item->{unicode_comment}) {
-        $item->{comment} = $item->{unicode_comment};
+        $item->{comment} = $item->{central}->{raw_comment};
+      } elsif ($item->{central}->{zip_bit_flags} & 0x0800) { # UTF-8 flagged
+        $item->{central}->{raw_comment} =
+        $item->{comment} = decode_web_utf8_no_bom $item->{central}->{raw_comment};
+      } elsif (defined $item->{central}->{zip_unicode_comment}) {
+        $item->{comment} = $item->{central}->{zip_unicode_comment};
       } elsif (defined $charset and
-               $item->{raw_comment} =~ /[^\x00-\x7F]/) {
+               $item->{central}->{raw_comment} =~ /[^\x00-\x7F]/) {
         if ($charset eq 'utf-8') {
-          $item->{comment} = decode_web_utf8_no_bom $item->{raw_comment};
+          $item->{comment} = decode_web_utf8_no_bom $item->{central}->{raw_comment};
         } else {
-          $item->{comment} = decode_web_charset $charset, $item->{raw_comment};
+          $item->{comment} = decode_web_charset $charset, $item->{central}->{raw_comment};
         }
         $item->{comment_encoding} = $charset;
       } else {
-        $item->{comment} = $item->{raw_comment};
+        $item->{comment} = $item->{central}->{raw_comment};
         $item->{comment_encoding} = 'ibm437';
       }
     }
@@ -246,20 +264,20 @@ sub list ($) {
     $meta->{comment_encoding} = $charset;
   } else {
     for my $item (@list) {
-      if (defined $item->{unicode_path}) {
-        $item->{path} = $item->{unicode_path};
-      } elsif (utf8::is_utf8 $item->{name}) {
-        $item->{path} = $item->{name};
+      if (defined $item->{central}->{zip_unicode_path}) {
+        $item->{path} = $item->{central}->{zip_unicode_path};
+      } elsif (utf8::is_utf8 $item->{central}->{raw_path}) {
+        $item->{path} = $item->{central}->{raw_path};
       } else {
-        $item->{path} = $item->{name};
+        $item->{path} = $item->{central}->{raw_path};
         $item->{path_encoding} = 'ibm437';
       }
-      if (defined $item->{unicode_comment}) {
-        $item->{comment} = $item->{unicode_comment};
-      } elsif (utf8::is_utf8 $item->{raw_comment}) {
-        $item->{comment} = $item->{raw_comment};
+      if (defined $item->{central}->{zip_unicode_comment}) {
+        $item->{comment} = $item->{central}->{zip_unicode_comment};
+      } elsif (utf8::is_utf8 $item->{central}->{raw_comment}) {
+        $item->{comment} = $item->{central}->{raw_comment};
       } else {
-        $item->{comment} = $item->{raw_comment};
+        $item->{comment} = $item->{central}->{raw_comment};
       }
     }
     $meta->{comment} = $meta->{raw_comment};
@@ -347,7 +365,7 @@ exit main (do {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

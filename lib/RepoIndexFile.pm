@@ -539,7 +539,7 @@ sub put_zip_item ($$$$;%) {
   my $return = {};
   
   my $rev = {
-    raw_path => $file->{archive_item}->{raw_path},
+    raw_path => $file->{archive_item}->{central}->{raw_path},
     path => $file->{archive_item}->{path},
     timestamp => $file->{archive_item}->{time},
     sha256 => $zipped->{sha256},
@@ -570,10 +570,10 @@ sub put_zip_item ($$$$;%) {
   $return->{key} = $file->{key};
   $return->{new} = 1;
 
-  $index->{raw_paths}->{$file->{archive_item}->{raw_path}} = $file->{key};
+  $index->{raw_paths}->{$file->{archive_item}->{central}->{raw_path}} = $file->{key};
   $index->{paths}->{$file->{archive_item}->{path}} = $file->{key};
   if (defined $rev->{sha256}) {
-    $index->{raw_path_sha256s}->{$file->{archive_item}->{raw_path}, $rev->{sha256}} = $file->{key};
+    $index->{raw_path_sha256s}->{$file->{archive_item}->{central}->{raw_path}, $rev->{sha256}} = $file->{key};
     $index->{path_sha256s}->{$file->{archive_item}->{path}, $rev->{sha256}} = $file->{key};
   }
 
@@ -586,7 +586,7 @@ sub put_zip_item ($$$$;%) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

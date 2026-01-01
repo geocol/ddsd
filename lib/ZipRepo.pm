@@ -198,21 +198,18 @@ sub get_item_list ($;%) {
       if ($args{with_props}) {
         $pack_file->{package_item}->{desc} = $info->{meta}->{comment};
       }
-      if ($args{with_source_meta}) {
-        $pack_file->{archive_meta} = $info->{meta};
-        # comment : String
-        # comment_encoding : String?
-      }
+      $pack_file->{archive_meta} = $info->{meta} if $args{with_source_meta};
       
       my $seen = {};
       my $i = 0;
       for my $zipped_file (@{$info->{files}}) {
         ## At the moment we only can expose files.  We are not
         ## interested in directories and their attributes.
-        next if $zipped_file->{isDirectory};
+        next if $zipped_file->{is_directory};
         
-        ## $zipped_file->{name} may or may not be a character string.
-        ## It can be used to obtain a file from ZIP.
+        ## $zipped_file->{central}->{raw_path} may or may not be a
+        ## character string.  It can be used to obtain a file from
+        ## ZIP.
         ##
         ## $zipped_file->{path} is a character string.  If a
         ## non-standard Unicode file name is specified, that value is
@@ -222,7 +219,7 @@ sub get_item_list ($;%) {
         
         my $file_key = 'file:' . $zipped_file->{path};
         if (defined $seen->{$file_key}) {
-          $file_key = 'file:' . $zipped_file->{name}; # raw path
+          $file_key = 'file:' . $zipped_file->{central}->{raw_path};
         }
         while (defined $seen->{$file_key}) {
           $file_key = 'object:' . $i++;
@@ -249,7 +246,7 @@ sub get_item_list ($;%) {
         } # skip
 
         $self->_set_item_file_info
-            ([raw_path_string => $zipped_file->{name}],
+            ([raw_path_string => $zipped_file->{central}->{raw_path}],
              $fdef, $zipix, $file, %args)
             unless $skipped;
 
@@ -257,14 +254,7 @@ sub get_item_list ($;%) {
         $file->{package_item}->{file_time} = $zipped_file->{time};
         $file->{package_item}->{mime} = 'application/octet-stream';
         $file->{package_item}->{title} = '';
-        if ($args{with_source_meta}) {
-          for (qw(path_encoding time comment comment_encoding raw_comment)) {
-            $file->{archive_item}->{$_} = $zipped_file->{$_} if defined $zipped_file->{$_};
-          }
-          $file->{archive_item}->{byte_length} = $zipped_file->{size};
-          $file->{archive_item}->{raw_path} = $zipped_file->{name};
-          $file->{archive_item}->{path} = $file->{source}->{file_name};
-        } # meta
+        $file->{archive_item} = $zipped_file if $args{with_source_meta};
         if ($args{with_props}) {
           $file->{package_item}->{desc} = $zipped_file->{comment} // '';
         }
@@ -336,13 +326,13 @@ sub _extract_files ($$;%) {
           }
 
           my $zip_item = $zipix->get_item
-              (raw_path_string => $file->{archive_item}->{raw_path});
+              (raw_path_string => $file->{archive_item}->{central}->{raw_path});
           if (defined $zip_item) {
             $file->{path} = $zipix->get_path_of ($zip_item, 'data'); # or throw
           } else {
             my $dest_path = $temp_storage->create_child_path;
             return Zipper->extract (
-              $self->set->app, $zip_path, $file->{archive_item}->{raw_path},
+              $self->set->app, $zip_path, $file->{archive_item}->{central}->{raw_path},
               $dest_path,
             )->then (sub {
               return $zipix->put_zip_item (
