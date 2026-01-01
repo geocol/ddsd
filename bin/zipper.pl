@@ -70,14 +70,15 @@ sub create ($) {
     }
     $mem->setLastModFileDateTimeFromUnix ($file->{timestamp})
         if defined $file->{timestamp};
-
+    
     if (defined $file->{comment}) {
       my $s;
       if ($file->{byte_comment}) {
         $s = $file->{comment};
         utf8::downgrade $s;
       } else {
-        $s = encode_web_utf8 $file->{comment};
+        $s = $file->{comment};
+        utf8::encode $s;
       }
       $mem->fileComment ($s);
     }
@@ -105,10 +106,21 @@ sub list ($) {
   my $in = shift;
 
   my $zip = Archive::Zip->new;
-  unless ($zip->read ($in->{input_file_name}) == AZ_OK) {
-    die "$in->{input_file_name}: Failed to read";
+  {
+    my $new = \&Archive::Zip::Member::endRead;
+    local *Archive::Zip::Member::endRead = sub {
+      my $mem = $_[0];
+      my $ret = $new->(@_);
+      $mem->{_raw_fileName} = $mem->{fileName};
+      $mem->{_raw_fileComment} = $mem->{fileComment};
+      return $ret;
+    };
+      
+    unless ($zip->read ($in->{input_file_name}) == AZ_OK) {
+      die "$in->{input_file_name}: Failed to read";
+    }
+    ## If the file is broken, |->read| can throw.
   }
-  ## If the file is broken, |->read| can throw.
 
   my $url;
   $url = Web::URL->parse_string ($in->{url}) if defined $in->{url};
@@ -124,10 +136,17 @@ sub list ($) {
   for my $member (($zip->members)) {
     push @list, my $item = {
       central => {
-        raw_path => $member->fileName,
+        raw_path => $member->{_raw_fileName},
+        raw_comment => $member->{_raw_fileComment},
+        ## Archive::Zip's $member->fileName returns text when general
+        ## purpose bit 11 is set using Perl's Encode::decode_utf8 or
+        ## bytes otherwise.  $member->fileComment always returns
+        ## bytes.  We don't use them as it's not sure whether
+        ## fileComment's current status is stable or whether
+        ## Encode::decode_utf8 is compatible enough to Encoding
+        ## Standard's utf-8.
         byte_length => $member->uncompressedSize,
-        zip_bit_flags => $member->bitFlag,
-        raw_comment => $member->fileComment,
+        zip_general_purpose_bit_flag => $member->bitFlag,
       #fileAttributeFormat => $member->fileAttributeFormat,
       #versionMadeBy => $member->versionMadeBy,
       #internalFileAttributes => $member->internalFileAttributes,
@@ -138,7 +157,7 @@ sub list ($) {
         ## Not accessible
         #raw_path
         #byte_length
-        #zip_bit_flags
+        #zip_general_purpose_bit_flag
         #is_directory
         # zip_unicode_path zip_unicode_comment
       },
@@ -215,10 +234,8 @@ sub list ($) {
                   context_url => $url);
     my $charset = $det->encoding;
     for my $item (@list) {
-      if (utf8::is_utf8 $item->{central}->{raw_path}) { # UTF-8 flagged (decoded by Archive::ZIP)
-        $item->{path} = $item->{central}->{raw_path};
-      } elsif ($item->{central}->{zip_bit_flags} & 0x0800) { # UTF-8 flagged ASCII
-        $item->{path} = $item->{central}->{raw_path};
+      if ($item->{central}->{zip_general_purpose_bit_flag} & 0x0800) { # UTF-8 flagged
+        $item->{path} = decode_web_utf8_no_bom $item->{central}->{raw_path};
       } elsif (defined $item->{central}->{zip_unicode_path}) {
         $item->{path} = $item->{central}->{zip_unicode_path};
       } elsif (defined $charset and
@@ -233,13 +250,7 @@ sub list ($) {
         $item->{path} = $item->{central}->{raw_path};
         $item->{path_encoding} = 'ibm437';
       }
-      if (utf8::is_utf8 $item->{central}->{raw_comment}) {
-        ## But the |Archive::Zip| as of today does not return
-        ## utf8-flagged string even when ZIP's file's UTF-8 flag is
-        ## set.
-        $item->{comment} = $item->{central}->{raw_comment};
-      } elsif ($item->{central}->{zip_bit_flags} & 0x0800) { # UTF-8 flagged
-        $item->{central}->{raw_comment} =
+      if ($item->{central}->{zip_general_purpose_bit_flag} & 0x0800) { # UTF-8 flagged
         $item->{comment} = decode_web_utf8_no_bom $item->{central}->{raw_comment};
       } elsif (defined $item->{central}->{zip_unicode_comment}) {
         $item->{comment} = $item->{central}->{zip_unicode_comment};
@@ -291,19 +302,35 @@ sub extract ($) {
   my $in = shift;
 
   my $zip = Archive::Zip->new;
-  unless ($zip->read ($in->{input_file_name}) == AZ_OK) {
-    die "$in->{input_file_name}: Failed to open";
+  {
+    my $new = \&Archive::Zip::Member::endRead;
+    local *Archive::Zip::Member::endRead = sub {
+      my $mem = $_[0];
+      my $ret = $new->(@_);
+      $mem->{_raw_fileName} = $mem->{fileName};
+      #$mem->{_raw_fileComment} = $mem->{fileComment};
+      return $ret;
+    };
+
+    unless ($zip->read ($in->{input_file_name}) == AZ_OK) {
+      die "$in->{input_file_name}: Failed to open";
+    }
+    ## If the file is broken, |->read| can throw.
   }
 
-  my $member = $zip->memberNamed ($in->{file_name});
-  unless ($member) {
-    die "$in->{file_name}: File not found";
+  my $member;
+  for my $mem (($zip->members)) {
+    if ($mem->{_raw_fileName} eq $in->{file_name}) {
+      $member = $mem;
+      last;
+    }
   }
+  die "$in->{file_name}: File not found" unless defined $member;
 
   my $out_f = path ($in->{output_file_name})->openw;
   my $sha = Digest::SHA->new (256);
 
-  my $fh = Archive::Zip::MemberRead->new ($zip, $in->{file_name});
+  my $fh = Archive::Zip::MemberRead->new ($member);
   my $chunk_size = 4096;
   my $buffer;
   my $length = 0;

@@ -309,7 +309,7 @@ Test {
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{rev}->{length}, 3;
         is $item->{rev}->{http_date}, undef;
@@ -318,7 +318,7 @@ Test {
         is $item->{rev}->{timestamp}, 1766901800;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
-        is $item->{archive_item}->{central}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -688,14 +688,14 @@ Test {
         is $item->{type}, 'file';
         is $item->{key}, "file:abc/def\x{4000}.dat";
         is $item->{rev}->{path}, "abc/def\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}->{path}, "abc/def\x{4000}.dat";
-        is $item->{archive_item}->{central}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc/def䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{comment}, "abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, undef;
-        is $item->{archive_item}->{central}->{raw_comment}, "abc\x{6000}";
+        is $item->{archive_item}->{central}->{raw_comment}, "abc\xe6\x80\x80";
         is $item->{package_item}->{desc}, "abc\x{6000}";
       }
     } $current->c;
@@ -710,7 +710,7 @@ Test {
         is $item->{type}, 'file';
         is $item->{key}, "file:abc/def\x{4000}.dat";
         is $item->{rev}->{path}, "abc/def\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}, undef;
         is $item->{package_item}->{desc}, "abc\x{6000}";
@@ -803,14 +803,14 @@ Test {
         is $item->{type}, 'file';
         is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
         is $item->{rev}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
-        is $item->{archive_item}->{central}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "\xEF\xBB\xBFabc/def䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{comment}, "\x{FEFF}abc\x{6000}";
         is $item->{archive_item}->{comment_encoding}, undef;
-        is $item->{archive_item}->{central}->{raw_comment}, "\x{FEFF}abc\x{6000}";
+        is $item->{archive_item}->{central}->{raw_comment}, "\xEF\xBB\xBFabc\xe6\x80\x80";
         is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
       }
     } $current->c;
@@ -825,7 +825,7 @@ Test {
         is $item->{type}, 'file';
         is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
         is $item->{rev}->{path}, "\x{FEFF}abc/def\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{archive_item}, undef;
         is $item->{package_item}->{desc}, "\x{FEFF}abc\x{6000}";
@@ -1227,7 +1227,7 @@ Test {
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
         is $item->{rev}->{path}, "abc\x{4000}.dat";
-        is $item->{rev}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{rev}->{raw_path}, "abc䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
         is $item->{rev}->{length}, 3;
         is $item->{rev}->{http_date}, undef;
@@ -1237,7 +1237,7 @@ Test {
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         ok $item->{rev}->{insecure};
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
-        is $item->{archive_item}->{central}->{raw_path}, "abc\x{4000}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
         is $item->{archive_item}->{time}, 1766901800;
       }
@@ -1270,7 +1270,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2025-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

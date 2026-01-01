@@ -352,7 +352,7 @@ Test {
            is $file->{rev}->{url}, undef;
            is $file->{rev}->{path}, "abc.txt";
            is $file->{rev}->{raw_path}, "abc.txt";
-           is $file->{rev}->{path_encoding}, undef;
+           is $file->{rev}->{path_encoding}, 'ibm437';
            is $file->{rev}->{sha256}, "3608bca1e44ea6c4d268eb6db02260269892c0b42b86bbf1e77a6fa16c3c9282";
            is $file->{rev}->{timestamp}, 1766890770;
            ok ! $file->{rev}->{insecure};
