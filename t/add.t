@@ -633,11 +633,58 @@ Test {
   });
 } n => 3, name => 'not supported response 2';
 
+Test {
+  my $current = shift;
+  my $key = "a\x{5000}\x{10000}x";
+  my $keyp = "a%E5%80%80%F0%90%80%80x";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/index.json", json => sub {
+         my $json = shift;
+         is $json->{type}, 'datasnapshot';
+         is ref $json->{items}, 'HASH';
+         is 0+keys %{$json->{items}}, 1;
+         {
+           my $file = $json->{items}->{file};
+           is $file->{type}, 'file';
+           is $file->{files}->{data}, "files/$key";
+           is $file->{rev}->{original_url}, "https://hoge/$keyp";
+           is $file->{rev}->{url}, "https://hoge/$keyp";
+           ok $file->{rev}->{sha256};
+           ok $file->{rev}->{timestamp};
+           ok ! $file->{rev}->{insecure};
+         }
+       }},
+      {path => "config/ddsd/packages.json", json => sub {
+         my $json = shift;
+         ok $json->{$key};
+         {
+           my $item = $json->{$key};
+           is $item->{type}, 'single';
+           is $item->{url}, "https://hoge/$keyp";
+         }
+       }},
+      {path => "local/data/$key/files/$key", text => "r1"},
+    ]);
+  });
+} n => 16, name => 'non-ascii URL';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

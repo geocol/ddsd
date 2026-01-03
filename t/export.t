@@ -65,10 +65,10 @@ Test {
     return $current->check_files ([
       {path => "foo.zip", zip => sub {
          my $files = shift;
-         ok $files->{"index.json"}->{size};
-         ok $files->{"LICENSE"}->{size};
-         is $files->{'data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat'}->{size}, 100;
-         is $files->{'data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat'}->{size}, 1;
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
+         is $files->{'data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat'}->{central}->{byte_length}, 100;
+         is $files->{'data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat'}->{central}->{byte_length}, 1;
        }},
       {path => ["foo.zip", "index.json"], json => sub {
          my $json = shift;
@@ -126,8 +126,8 @@ Test {
     return $current->check_files ([
       {path => "foo.zip", zip => sub {
          my $files = shift;
-         ok $files->{"index.json"}->{size};
-         ok $files->{"LICENSE"}->{size};
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
        }},
       {path => ["foo.zip", "index.json"], json => sub {
          my $json = shift;
@@ -210,8 +210,8 @@ Test {
     return $current->check_files ([
       {path => "foo/bar.zip", zip => sub {
          my $files = shift;
-         ok $files->{"index.json"}->{size};
-         ok $files->{"LICENSE"}->{size};
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
        }},
     ]);
   });
@@ -259,19 +259,80 @@ Test {
     return $current->check_files ([
       {path => "foo/bar.zip", zip => sub {
          my $files = shift;
-         ok $files->{"index.json"}->{size};
-         ok $files->{"LICENSE"}->{size};
-         is $files->{'data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat'}->{size}, 1;
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
+         is $files->{'data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat'}->{central}->{byte_length}, 1;
        }},
     ]);
   });
 } n => 5, name => 'override';
 
+Test {
+  my $current = shift;
+  my $key = "0geEGr42rewe44t24442";
+  my $name = "\x{5000}\x{210E0}abc";
+  my $name2 = "aa\x{0500}\x{30012}\x{100000}x";
+  return $current->prepare ({
+    $name => {
+      type => 'ckan',
+      url => "https://hoge/dataset/$key",
+    },
+  }, {
+    "https://hoge/dataset/$key" => {
+      text => "x",
+    },
+    "https://hoge/dataset/activity/$key" => {
+      text => "y",
+    },
+    "https://hoge/api/action/package_show?id=$key" => {
+      text => qq{ {"success": true, "result": {"resources": [{"url": "https://hoge/$key/abc.txt"}]}} },
+    },
+    "https://hoge/$key/abc.txt" => {
+      text => "abc",
+    },
+  })->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    return $current->run ('export', additional => ['mirrorzip', $name, "$name2.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "$name2.zip", zip => sub {
+         my $files = shift;
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
+         is $files->{'data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat'}->{central}->{byte_length}, 100;
+         is $files->{'data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat'}->{central}->{byte_length}, 1;
+       }},
+      {path => ["$name2.zip", "index.json"], json => sub {
+         my $json = shift;
+         is $json->{type}, 'mirrorzip';
+         is 0+keys %{$json->{items}}, 3;
+         is $json->{items}->{'meta:ckan.json'}->{files}->{data}, "data/0a22797ed8f2d36d6f31b5f55874223e7ff098496b211551d8b729b93ba864f0.dat";
+         like $json->{items}->{'meta:ckan.json'}->{files}->{meta}, qr{^meta/.+\.json$};
+         is $json->{items}->{"meta:activity.html"}->{files}->{data}, "data/a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa.dat";
+         like $json->{items}->{"meta:activity.html"}->{files}->{meta}, qr{^meta/.+\.json$};
+         is $json->{items}->{"file:index:0"}->{files}->{data}, "data/ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.dat";
+         like $json->{items}->{"file:index:0"}->{files}->{meta}, qr{^meta/.+\.json$};
+         is $json->{items}->{"file:index:0"}->{rev}->{url}, "https://hoge/$key/abc.txt";
+         is 0+@{$json->{legal}->{legal}}, 2;
+         is $json->{legal}->{is_free}, 'unknown';
+         is $json->{legal}->{legal}->[0]->{key}, '-ddsd-unknown';
+         is $json->{legal}->{legal}->[1]->{key}, '-ddsd-disclaimer';
+       }},
+      {path => ["$name2.zip", "data/ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.dat"], text => "abc"},
+    ]);
+  });
+} n => 20, name => 'non-ascii data repo name';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

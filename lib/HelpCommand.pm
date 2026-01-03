@@ -10,13 +10,14 @@ use ListWriter;
 my $HelpText = {
   add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure] [--forced-encoding=<charset>]
 
-Add a package specified by a URL <url>.
+Add a package specified by the URL <url> to the local data repository
+set.
 
 Arguments
 
   <options>     Zero or more common options.  See |ddsd help|.
 
-  <url>         The absolute URL of the package.
+  <url>         The absolute URL of the package, as a UTF-8 text.
 
   --forced-encoding=<charset>
                 The character encoding used to decode unlabelled file names
@@ -26,9 +27,9 @@ Arguments
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
   --name=<package>
-                The key of the data package to be used.  If not
-                specified, determined by the data package's content or
-                URL.
+                The key of the data package to be used, as a UTF-8
+                text.  If not specified, determined by the data
+                package's content or URL.
 
   --single-file Add the URL as a single file (as oppose to as a package
                 manifest).
@@ -36,13 +37,14 @@ Arguments
 }, # XXX exit code
   ls => qq{%%DDSD%% [<options>] ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
 
-Show list of data packages or files.
+Show the list of data packages in the local data repository or files
+in the package <package>.
 
 Arguments
 
   <options>     Zero or more common options.  See |ddsd help|.
 
-  <package>     The key of a data package.
+  <package>     The key of a data package, as a UTF-8 text.
 
                 If <package> is omitted, the list of the data packages
                 available in the current working directory is shown.
@@ -87,50 +89,87 @@ Output
     package.
 
 },
-#XXX  export  Export files of a package
-#XXX  help    Show usage
-#XXX  freeze  Freeze the version of the files of a package
-#XXX  pull    Update files to the latest version
-  use => qq{%%DDSD%% [<options>] use <package> {<id>|--all} [--name=<filename>] [--insecure]
+  export => qq{%%DDSD%% [<options>] export <type> <package> <out-path>
 
-Activate a file of ID <id> in package <package>.  If the file is not
-available, it is fetched from the server.
+Export files of the package <package>.
 
 Options
 
   <options>     Zero or more common options.  See |ddsd help|.
 
-  <package>     The key of a data package.
+  <type>        The format of the output.
 
-  <id>          The ID of a file in the data package.  The file is selected.
+                  mirrorzip      A mirrorzip file.
 
-                  file:id:{id}   A CKAN resource whose |id| is {id}.
-                  file:n:{name}  A file defined in a packref file.
+  <package>     The key of a data package, as a UTF-8 text.
+
+  <out-path>    The path to the output file, as a UTF-8 text.  Any
+                existing file is overridden.  The directory for the
+                file is created, if necessary.
+
+If <type> is |mirrorzip|, a ZIP archive file that is a snapshot copy
+of the current version of the package <package> and can be used in the
+mirror data package repository is created.
+
+},
+#XXX  help    Show usage
+  freeze => qq{%%DDSD%% [<options>] freeze <package>
+
+Freeze the version of the files of the package <package>.
+
+Options
+
+  <options>     Zero or more common options.  See |ddsd help|.
+
+  <package>     The key of a data package, as a UTF-8 text.
+
+The files in the package <package> is fixed to the current snapshot
+copies of the files by specifying the SHA-256 hashes of the files to
+the package list for the local data repository set,
+i.e. |config/ddsd/packages.json|.  Any subsequent |ddsd pull| or
+similar command invocations will not change the fixed files.
+
+},
+#XXX  pull    Update files to the latest version
+  use => qq{%%DDSD%% [<options>] use <package> {<id>|--all} [--name=<filename>] [--insecure]
+
+Activate a file of ID <id> in the package <package>.  If the file is
+not available in the local data repository set, it is fetched from the
+remote server.
+
+Options
+
+  <options>     Zero or more common options.  See |ddsd help|.
+
+  <package>     The key of a data package, as a UTF-8 text.
+
+  <id>          The ID of a file in the data package, as a UTF-8 text.
+                The ID of the files in the data package can be listed
+                by |ddsd ls| command.
 
   --all         All the files in the data package is selected.  Either <id>
                 or |--all| is required.
 
   --name=<filename>
                 Specify the name for the specified file, used in the
-                files directory for the package.
+                files directory for the package, as a UTF-8 text.
 
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
 }, # XXX exit code
   unuse => qq{%%DDSD%% [<options>] unuse <package> <id>
 
-Deactivate a file of ID <id> in package <package>.
+Deactivate a file of ID <id> in the package <package>.
 
 Options
 
   <options>     Zero or more common options.  See |ddsd help|.
 
-  <package>     The key of a data package.
+  <package>     The key of a data package, as a UTF-8 text.
 
-  <id>          The ID of a file in the data package.  The file is selected.
-
-                  file:id:{id}   A CKAN resource whose |id| is {id}.
-                  file:n:{name}  A file defined in a packref file.
+  <id>          The ID of a file in the data package, as a UTF-8 text.
+                The ID of the files in the data package can be listed
+                by |ddsd ls| command.
 
 },
 #XXX  version Describe about ddsd
@@ -215,7 +254,7 @@ sub run_version ($$;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

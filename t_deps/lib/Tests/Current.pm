@@ -118,6 +118,21 @@ sub run ($$;%) {
 sub o ($$) { $_[0]->{o}->{$_[1]} }
 sub set_o ($$$) { $_[0]->{o}->{$_[1]} = $_[2] }
 
+{
+  my $Chars = [0x0000..0xD7FF, 0xE000..0x10FFFF];
+  sub generate_text ($$$) {
+    my ($self, $name, $opts) = @_;
+    my $length = $opts->{length} || (int rand 30) || 10;
+    if (defined $opts->{max_length} and $opts->{max_length} < $length) {
+      $length = $opts->{max_length};
+    }
+    my $v = $opts->{prefix};
+    $v .= chr $Chars->[rand @$Chars] for 1..$length;
+    $v .= $name // '';
+    return $self->{o}->{$name // ''} = $v;
+  } # generate_text
+}
+
 sub prepare ($$$;%) {
   my ($self, $packages, $remote, %args) = @_;
   my $client = $self->xs_client;
@@ -403,7 +418,7 @@ sub check_files ($$;%) {
               return test {
                 my $files = {};
                 for (@{$out->{files}}) {
-                  $files->{$_->{name}} = $_;
+                  $files->{$_->{path}} = $_;
                 }
                 return $test->{zip}->($files, $current_path);
               } $self->c, name => $specified_path;

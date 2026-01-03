@@ -674,7 +674,7 @@ Test {
          my $json = shift;
          is 0+keys %$json, 1;
          my $def = $json->{$key};
-         is 0+keys %{$def->{files}}, 4;
+         is 0+keys %{$def->{files}}, 5;
          ok ! $def->{files}->{package}->{skip};
          ok ! $def->{files}->{'file:meta:ckan.json'}->{skip};
          ok ! $def->{files}->{"file:id:r1"}->{skip};
@@ -693,7 +693,7 @@ Test {
       {path => "local/data/$key/files/r3", is_none => 1},
     ]);
   });
-} n => 25, name => 'insecure error';
+} n => 26, name => 'insecure error';
 
 Test {
   my $current = shift;
@@ -1535,11 +1535,85 @@ for (
   } n => 9, name => ['replaced name', $in_name];
 }
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "a\x{30010}\x{5FE3}";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file', '--min', '--name', $name]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$name, '--all']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$name/index.json", json => sub {
+         my $json = shift;
+         is $json->{type}, 'datasnapshot';
+         is ref $json->{items}, 'HASH';
+         is 0+keys %{$json->{items}}, 1;
+         {
+           my $file = $json->{items}->{file};
+           is $file->{type}, 'file';
+           is $file->{files}->{data}, "files/$key";
+           is $file->{rev}->{original_url}, "https://hoge/$key";
+           is $file->{rev}->{url}, "https://hoge/$key";
+           ok $file->{rev}->{sha256};
+           ok $file->{rev}->{timestamp};
+           ok ! $file->{rev}->{insecure};
+         }
+       }},
+      {path => "local/data/$name/files/$key", text => "r1"},
+    ]);
+  });
+} n => 14, name => 'non-ascii options';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "a\x{64E2}\x{30000}";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "$name.txt" => {text => "abc"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--min']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, "file:$name.txt"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/$name.txt", text => "abc"},
+    ]);
+  });
+} n => 4, name => 'non-ascii file name';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

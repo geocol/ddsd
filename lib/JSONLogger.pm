@@ -8,6 +8,7 @@ use ArrayBuffer;
 use DataView;
 use WritableStream;
 use Streams::Filehandle;
+use Web::Encoding;
 use JSON::PS;
 use Promised::File;
 
@@ -72,7 +73,7 @@ sub message ($$) {
   if (delete $self->{stderr_continue}) {
     print STDERR "\n";
   }
-  print STDERR (App::Error->new ($error));
+  print STDERR encode_web_utf8 (App::Error->new ($error));
 } # message
 
 sub message_counts ($;%) {
@@ -87,16 +88,16 @@ sub message_counts ($;%) {
     print STDERR "\n";
   }
   # XXX locale
-  printf STDERR "%s HTTP requests, %s files transferred, %s fetches failed.\n",
+  printf STDERR "%d HTTP requests, %d files transferred, %d fetches failed.\n",
       $cc->{http_request} || 0, $cc->{http_request_completed} || 0,
       $cc->{fetch_failure} || 0;
   if ($cc->{add_package}) {
-    printf STDERR "%s data package added, %s files skipped.\n",
+    printf STDERR "%d data package added, %d files skipped.\n",
         $cc->{add_package}, $cc->{add_skipped} || 0;
     if (defined $args{data_package_key} and $cc->{add_skipped}) {
       printf STDERR "Run:\n\n  \$ %s use %s --all\n\n... to use skipped files.\n",
-          $self->ddsd_path_string,
-          (quotemeta $args{data_package_key});
+          (encode_web_utf8 $self->ddsd_path_string),
+          (encode_web_utf8 quotemeta $args{data_package_key});
     }
   }
 } # message_counts
@@ -137,7 +138,7 @@ sub start ($$$;%) {
   };
   my $this_up = sub ($$$) {
     my $v = ($_[0] // $max) * $current->{p} * $current->{q};
-    printf STDERR "\r%2.1f %% %s ", $v, substr $_[1], 0, 60;
+    printf STDERR "\r%2.1f %% %s ", $v, encode_web_utf8 substr $_[1], 0, 60;
     $current->{written} = 1;
     if ($v >= 100) {
       printf STDERR "\n";
@@ -261,7 +262,7 @@ sub start ($@) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -397,7 +397,7 @@ Test {
   })->then (sub {
     my $r = $_[0];
     test {
-      is $r->{exit_code}, 12;
+      is $r->{exit_code}, 0;
     } $current->c;
     return $current->run ('freeze', additional => ['foo']);
   })->then (sub {
@@ -631,11 +631,96 @@ Test {
   });
 } n => 29, name => 'packref';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "a\x{6000}\x{12000}";
+  return $current->prepare (
+    {
+      $name => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+        hoge => "abc",
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {
+          success => \1,
+          result => {
+            resources => [
+              {id => "r1", url => "https://hoge/" . $key . "/r1.txt"},
+              {id => "r2", url => "https://hoge/" . $key . "/r2.txt"},
+              {id => "r3", url => "https://hoge/" . $key . "/r3.txt"},
+            ],
+          },
+        },
+      },
+      "https://hoge/" . $key . "/r1.txt" => {text => "r1"},
+      "https://hoge/" . $key . "/r2.txt" => {text => "r2"},
+      "https://hoge/" . $key . "/r3.txt" => {text => "r3"},
+    },
+  )->then (sub {
+    return $current->run ('pull', insecure => 0);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('freeze', additional => [$name]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'config/ddsd/packages.json', json => sub {
+         my $json = shift;
+         my $def = $json->{$name};
+         is 0+keys %{$def}, 5;
+         is $def->{type}, 'ckan';
+         is $def->{url}, 'https://hoge/dataset/package-name-' . $key;
+         is $def->{hoge}, "abc";
+         ok $def->{skip_other_files};
+         is 0+keys %{$def->{files}}, 6;
+         {
+           my $f = $def->{files}->{'meta:ckan.json'};
+           is $f->{name}, undef;
+           ok $f->{sha256};
+           ok ! $f->{sha256_insecure};
+           ok ! $f->{skip};
+         }
+         {
+           my $f = $def->{files}->{"file:id:r1"};
+           is $f->{name}, "r1.txt";
+           is $f->{sha256}, "82f3e9c695dc6b8d1b11818d5701919e286de8d47f7c3eb3100c485f79e57828";
+           ok ! $f->{sha256_insecure};
+           ok ! $f->{skip};
+         }
+         {
+           my $f = $def->{files}->{"file:id:r2"};
+           is $f->{name}, "r2.txt";
+           is $f->{sha256}, "db77fd01af957221a4989b64b3770a83a3c56068405b9f0e9408feae57fd17e4";
+           ok ! $f->{sha256_insecure};
+           ok ! $f->{skip};
+         }
+         {
+           my $f = $def->{files}->{"file:id:r3"};
+           is $f->{name}, "r3.txt";
+           is $f->{sha256}, "e49d63b2a8a78f048bafc4b4590029603a5a4165ee8bf98af15d62f24cd83479";
+           ok ! $f->{sha256_insecure};
+           ok ! $f->{skip};
+         }
+       }},
+    ]);
+  });
+} n => 25, name => 'non-ascii name';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

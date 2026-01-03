@@ -271,11 +271,87 @@ Test {
   });
 } n => 14, name => 'file not found';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "a\x{30010}\x{5FE3}";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file', '--min', '--name', $name]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$name, '--all']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('unuse', additional => [$name, 'file']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$name/index.json", json => sub {
+         my $json = shift;
+         is $json->{type}, 'datasnapshot';
+         is ref $json->{items}, 'HASH';
+         is 0+keys %{$json->{items}}, 0;
+       }},
+      {path => "local/data/$name/files/$key", is_none => 1},
+    ]);
+  });
+} n => 7, name => 'non-ascii options';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "a\x{64E2}\x{30000}";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "$name.txt" => {text => "abc"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--min']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, "file:$name.txt"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('unuse', additional => [$key, "file:$name.txt"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/$name.txt", is_none => 1},
+    ]);
+  });
+} n => 4, name => 'non-ascii file name';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

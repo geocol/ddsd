@@ -197,10 +197,11 @@ sub main ($$$$$$$) {
          type => 'Bad arguments',
          args => $args,
        }) unless @$args == 1;
+       my $url_string = decode_web_utf8 $args->[0];
        require AddCommand;
        my $cmd = AddCommand->new_from_app ($self);
        return $cmd->run (
-         $args->[0],
+         $url_string,
          min => $opts->{min},
          single_file => $opts->{single_file},
          name => $opts->{name},
@@ -214,10 +215,12 @@ sub main ($$$$$$$) {
          type => 'Bad arguments',
          args => $args,
        }) unless @$args == (($opts->{all} and $sub eq 'use') ? 1 : 2);
+       my $data_repo_name = decode_web_utf8 $args->[0];
+       my $file_key = defined $args->[1] ? decode_web_utf8 $args->[1] : undef;
        require UseCommand;
        my $cmd = UseCommand->new_from_app ($self);
        return $cmd->run (
-         $sub, $args->[0], $args->[1],
+         $sub, $data_repo_name, $file_key,
          all => $opts->{all},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
@@ -229,13 +232,14 @@ sub main ($$$$$$$) {
          type => 'Bad arguments',
          args => $args,
        }) unless @$args == 1;
+       my $data_repo_name = decode_web_utf8 $args->[0];
        require FreezeCommand;
        my $cmd = FreezeCommand->new_from_app ($self);
-       return $cmd->run ($args->[0]);
+       return $cmd->run ($data_repo_name);
      } elsif ($sub eq 'ls') {
        my %args;
        if (@$args) {
-         $args{data_repo_name} = shift @$args;
+         $args{data_repo_name} = decode_web_utf8 shift @$args;
        }
        $self->{logger}->throw ({
          type => 'Bad arguments',
@@ -252,17 +256,20 @@ sub main ($$$$$$$) {
          type => 'Bad arguments',
          args => $args,
        }) unless @$args == 1;
+       my $data_repo_name = decode_web_utf8 $args->[0];
        require LegalCommand;
        my $cmd = LegalCommand->new_from_app ($self);
-       return $cmd->run ($out, $args->[0], json => $opts->{json});
+       return $cmd->run ($out, $data_repo_name, json => $opts->{json});
      } elsif ($sub eq 'export') {
        $self->{logger}->throw ({
          type => 'Bad arguments',
          args => $args,
        }) unless @$args == 3;
+       my $data_repo_name = decode_web_utf8 $args->[1];
+       my $out_file_name = decode_web_utf8 $args->[2];
        require ExportCommand;
        my $cmd = ExportCommand->new_from_app ($self);
-       return $cmd->run ($args->[0], $args->[1], $args->[2], $out);
+       return $cmd->run ($args->[0], $data_repo_name, $out_file_name, $out);
      } elsif ($sub eq 'help') {
        if (not defined $opts->{help_command} and @$args) {
          $opts->{help_command} = shift @$args;
@@ -384,7 +391,7 @@ sub stringify ($) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
