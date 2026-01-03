@@ -366,6 +366,7 @@ sub list ($) {
         $item->{mtime} = $mod_dt->to_unix_number - $item->{tzoffset};
       } else {
         $item->{mtime} = $mod_dt->to_unix_number;
+        push @$names1, 1;
       }
     }
     if ($item->{central}->{zip_ntfs_birthtime}) { # non-zero
@@ -402,6 +403,19 @@ sub list ($) {
                   forced => $in->{forced_encoding},
                   context_url => $url);
     my $charset = $det->encoding;
+
+    ## <https://wiki.suikawiki.org/n/%E3%83%AD%E3%82%B1%E3%83%BC%E3%83%AB%E7%AD%89%E3%81%AB%E3%82%88%E3%82%8B%E6%96%87%E5%AD%97%E3%82%B3%E3%83%BC%E3%83%89%E5%88%A4%E5%AE%9A%E3%81%AE%E8%A3%9C%E5%8A%A9#section-%E6%96%87%E5%AD%97%E3%82%B3%E3%83%BC%E3%83%89%E3%81%8B%E3%82%89%E6%99%82%E5%B7%AE%E3%82%92%E6%8E%A8%E5%AE%9A>
+    my $tz_guessed = {
+      shift_jis => 9*60*60, 'euc-jp' => 9*60*60, 'euc-kr' => 9*60*60,
+      big5 => 8*60*60, gb18030 => 8*60*60,
+      'windows-874' => 7*60*60,
+      ## XXX
+      # windows-1254 ibm857  3*60*60/2*60*60
+      # windows-1253 iso-8859-7 ibm737 windows-1257 ibm775 windows-1255 ibm862 2*60*60/3*60*60
+      # windows-1250 ibm852 ibm865 1*60*60/2*60*60
+    }->{$charset};
+    # XXX $url based guesses
+
     for my $item (@list) {
       if ($item->{central}->{zip_general_purpose_bit_flag} & 0x0800) { # UTF-8 flagged
         $item->{path} = decode_web_utf8_no_bom $item->{central}->{raw_path};
@@ -435,7 +449,12 @@ sub list ($) {
         $item->{comment} = $item->{central}->{raw_comment};
         $item->{comment_encoding} = 'ibm437';
       }
-    }
+
+      if (defined $tz_guessed and not defined $item->{tzoffset}) {
+        $item->{tzoffset} = $tz_guessed;
+        $item->{mtime} -= $tz_guessed;
+      }
+    } # $item
     if ($charset eq 'utf-8') {
       $meta->{comment} = decode_web_utf8_no_bom $meta->{raw_comment};
     } else {

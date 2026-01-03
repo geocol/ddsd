@@ -94,9 +94,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{extracted};
+           like $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"}, qr{^archive-[0-9a-z.]+$};
 
-           my $dir_path = $path->parent->child ($item->{files}->{extracted});
+           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -169,9 +169,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{extracted};
+           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
 
-           my $dir_path = $path->parent->child ($item->{files}->{extracted});
+           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -230,9 +230,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{extracted};
+           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
 
-           my $dir_path = $path->parent->child ($item->{files}->{extracted});
+           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -284,9 +284,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{extracted};
+           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
 
-           my $dir_path = $path->parent->child ($item->{files}->{extracted});
+           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -638,15 +638,38 @@ Test {
     } $current->c;
     return $current->check_files ([
       {path => "local/data/$key/files/abc.txt", text => "abc"},
+      {path => $current->repo_path ('ckan', "https://hoge/dataset/$key")->child ('index.json'), json => sub {
+         my ($json, $path) = @_;
+         ok my $key = $json->{urls}->{"https://hoge/$key/hoge.zip"};
+         {
+           my $item = $json->{items}->{$key};
+           is $item->{type}, 'file';
+           ok $item->{files}->{data};
+           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
+
+           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $json_path = $dir_path->child ('index.json');
+           my $json = json_bytes2perl $json_path->slurp;
+           ok my $key = $json->{paths}->{"fuga.zip"};
+           {
+             my $item = $json->{items}->{$key};
+             like $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"}, qr{^\.\./archive-[0-9.]+$};
+             my $dir_path = $json_path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+             my $json_path = $dir_path->child ('index.json');
+             my $json = json_bytes2perl $json_path->slurp;
+             ok my $key = $json->{paths}->{"abc.txt"};
+           }
+         }
+       }},
     ]);
   });
-} n => 3, name => 'ckan > zip > zip';
+} n => 10, name => 'ckan > zip > zip';
 
 Run;
 
 =head1 LICENSE
 
-Copyright 2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2025-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

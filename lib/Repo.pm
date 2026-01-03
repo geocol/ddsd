@@ -19,6 +19,7 @@ use FileTypes;
 
 sub set ($) { $_[0]->{set} // die }
 sub type ($) { die }
+sub is_nested ($) { 0 }
 
 sub _set_key ($$) {
   my ($self, $u) = @_;

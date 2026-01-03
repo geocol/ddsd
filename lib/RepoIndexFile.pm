@@ -146,7 +146,7 @@ sub get_path_of ($$$;%) {
   my $name = $item->{files}->{$key};
   if (not defined $name) {
     if ($args{create_if_missing}) {
-      my $path = $self->{storage}->create_child_path (prefix => $args{prefix});
+      my $path = $self->{storage}->create_child_path (prefix => $args{prefix}, dir_name => $args{nested} ? '..' : undef);
       $item->{files}->{$key} = $path->relative ($self->path);
       $self->touch;
       return $path;
@@ -171,7 +171,7 @@ sub get_storage_of ($$$;%) {
   my $name = $item->{files}->{$key};
   if (not defined $name) {
     if ($args{create_if_missing}) {
-      my $storage = $self->{storage}->create_child_storage (prefix => $args{prefix});
+      my $storage = $self->{storage}->create_child_storage (prefix => $args{prefix}, dir_name => $args{nested} ? '..' : undef);
       $item->{files}->{$key} = $storage->{path}->relative ($self->{storage}->{path});
       $self->touch;
       return $storage;
@@ -384,7 +384,7 @@ sub put_response ($$$) {
   return Promise->all ([
     $self->{storage}->write_json ("objects/$key-meta.json", $meta, readonly => 1),
     (defined $old_data ? undef : $self->{storage}->hardlink_from ("objects/$key-data.dat", $r->{path})->then (sub {
-      return Promised::File->new_from_path ($r->{path})->chmod (04444);      
+      return Promised::File->new_from_path ($r->{path})->chmod (0444);
     })),
     (defined $fl ? $self->{storage}->write_jsonl ("objects/$key-log.jsonl", [$fl]) : undef),
   ])->then (sub {
@@ -513,8 +513,8 @@ sub put_from_mirrorzip ($$$;%) {
     $p = $p->then (sub {
       return $self->{storage}->hardlink_from ($name, $files->{$f}->{path});
     })->then (sub {
-      return Promised::File->new_from_path ($files->{$f}->{path})->chmod (0444)
-          unless $f eq 'log';
+      return if $f eq 'log';
+      return Promised::File->new_from_path ($files->{$f}->{path})->chmod (0444);
     });
   }
   return $logger->throw ({

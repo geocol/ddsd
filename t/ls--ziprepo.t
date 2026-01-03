@@ -552,6 +552,7 @@ Test {
         is $item->{package_item}->{file_time}, 1766901872;
         is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
+        is $item->{package_item}->{tzoffset}, 9*60*60;
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
         ok $item->{rev}->{length};
@@ -569,7 +570,7 @@ Test {
         like $item->{path}, qr{files/abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{package_item}->{title}, "";
-        is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{package_item}->{file_time}, 1766901800 -9*60*60;
         is $item->{package_item}->{legal}, undef;
         is $item->{rev}->{url}, undef;
         is $item->{rev}->{original_url}, undef;
@@ -580,16 +581,17 @@ Test {
         is $item->{rev}->{http_date}, undef;
         is $item->{rev}->{http_content_type}, undef;
         is $item->{rev}->{http_last_modified}, undef;
-        is $item->{rev}->{timestamp}, 1766901800;
+        is $item->{rev}->{timestamp}, 1766901800 -9*60*60;
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         is $item->{archive_item}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
         is $item->{archive_item}->{path_encoding}, "shift_jis";
-        is $item->{archive_item}->{mtime}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800 -9*60*60;
+        is $item->{package_item}->{tzoffset}, 9*60*60;
       }
     } $current->c;
   });
-} n => 50, name => 'sjis';
+} n => 52, name => 'sjis';
 
 Test {
   my $current = shift;
@@ -1604,6 +1606,97 @@ Test {
     } $current->c;
   });
 } n => 36, name => 'has ntfstime';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat" => {text => "abc", timestamp => 1766901800,
+                              byte_file_name => 1},
+      }, timestamp => 1766900000},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--name', "a1", '--forced-tzoffset', 12345]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--name', "a2", '--forced-encoding', 'windows-1252']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => ['a1', '--all'], jsonl => 1);
+  })->then (sub {
+    return $current->run ('use', additional => ['a2', '--all'], jsonl => 1);
+  })->then (sub {
+    return $current->run ('ls', additional => ["a1", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766900000;
+        is $item->{rev}->{http_last_modified}, 1766900000;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
+        like $item->{path}, qr{files/abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat$};
+        is $item->{package_item}->{file_time}, 1766901800 -12345;
+        is $item->{rev}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
+        is $item->{rev}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
+        is $item->{rev}->{path_encoding}, "shift_jis";
+        is $item->{rev}->{timestamp}, 1766901800 -12345;
+        is $item->{archive_item}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
+        is $item->{archive_item}->{path_encoding}, "shift_jis";
+        is $item->{archive_item}->{mtime}, 1766901800 -12345;
+        is $item->{package_item}->{tzoffset}, 12345;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => ["a2", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 2;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{rev}->{http_last_modified}, 1766900000;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat";
+        like $item->{path}, qr{files/abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat$}, $item->{path};
+        is $item->{package_item}->{file_time}, 1766901800;
+        is $item->{rev}->{path}, "abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat";
+        is $item->{rev}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
+        is $item->{rev}->{path_encoding}, "windows-1252";
+        is $item->{rev}->{timestamp}, 1766901800;
+        is $item->{archive_item}->{path}, "abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat";
+        is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
+        is $item->{archive_item}->{path_encoding}, "windows-1252";
+        is $item->{archive_item}->{mtime}, 1766901800;
+        is $item->{package_item}->{tzoffset}, undef;
+      }
+    } $current->c;
+  });
+} n => 40, name => 'different options';
 
 Run;
 
