@@ -541,7 +541,7 @@ sub put_zip_item ($$$$;%) {
   my $rev = {
     raw_path => $file->{archive_item}->{central}->{raw_path},
     path => $file->{archive_item}->{path},
-    timestamp => $file->{archive_item}->{time},
+    timestamp => $file->{archive_item}->{mtime},
     sha256 => $zipped->{sha256},
     length => $zipped->{length},
   };

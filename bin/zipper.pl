@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use Carp;
 use Time::HiRes qw(time);
+use POSIX qw(floor);
+use Math::BigFloat;
 use Path::Tiny;
 use JSON::PS;
 use Digest::SHA;
@@ -10,6 +12,7 @@ use Archive::Zip::MemberRead;
 use Web::Encoding;
 use Web::Encoding::Sniffer;
 use Web::URL;
+use Web::DateTime;
 
 sub print_item ($) {
   print perl2json_bytes $_[0];
@@ -19,6 +22,30 @@ sub print_item ($) {
 sub print_info ($) {
   print_item {type => 'info', error => $_[0], time => time};
 } # print_info
+
+{
+  my $x = Math::BigFloat->new ('116444736000000000');
+  my $y = Math::BigFloat->new ('10000000');
+
+  sub _unix2ntfstime ($) {
+    return ((Math::BigFloat->new ($_[0]) * $y + $x)->bstr);
+  } # _unix2ntfstime
+
+  sub _ntfs2unixtime ($) {
+    return (((Math::BigFloat->new ($_[0]) - $x) / $y)->bstr);
+  } # _ntfs2unixtime
+}
+
+sub _from_dostime ($) {
+  my $dos = $_[0];
+  my $y = (($dos >> 25) & 0x7F) + 1980;
+  my $M = (($dos >> 21) & 0x0F);
+  my $d = (($dos >> 16) & 0x1F);
+  my $h = (($dos >> 11) & 0x1F);
+  my $m = (($dos >> 5) & 0x3F);
+  my $s = (($dos << 1) & 0x3E);
+  return Web::DateTime->new_from_components ($y, $M, $d, $h, $m, $s);
+} # _from_dostime
 
 sub create ($) {
   my $in = shift;
@@ -68,8 +95,42 @@ sub create ($) {
             or die "$file->{input_file_name}: $!";
       }
     }
-    $mem->setLastModFileDateTimeFromUnix ($file->{timestamp})
-        if defined $file->{timestamp};
+    if (defined $file->{timestamp}) {
+      local $ENV{TZ} = 'UTC';
+      $mem->setLastModFileDateTimeFromUnix
+          ($file->{timestamp} + ($file->{tzoffset} || 0));
+      if (defined $file->{tzoffset}) {
+        my $cd_extra = '';
+        my $local_extra = '';
+        if ($file->{ntfs}) {
+          $cd_extra .= pack 'vvL<vvQ<Q<Q<',
+              0x000A, 4+2+2+8+8+8,
+              0,
+              0x01, 24,
+              _unix2ntfstime ($file->{timestamp}),
+              0,
+              defined $file->{birthtime} ? _unix2ntfstime ($file->{birthtime}) : 0;
+        } else {
+          if (defined $file->{birthtime}) {
+            $cd_extra .= pack 'vvCV',
+                0x5455, 1+4,
+                0x01 | 0x04,
+                $file->{timestamp};
+            $local_extra .= pack 'vvCVV',
+                0x5455, 1+4+4,
+                0x01 | 0x04,
+                $file->{timestamp}, $file->{birthtime};
+          } else {
+            $cd_extra .= pack 'vvCV',
+                0x5455, 1+4,
+                0x01,
+                $file->{timestamp};
+          }
+        }
+        $mem->cdExtraField ($cd_extra);
+        $mem->localExtraField ($local_extra);
+      }
+    }
     
     if (defined $file->{comment}) {
       my $s;
@@ -147,32 +208,39 @@ sub list ($) {
         ## Standard's utf-8.
         byte_length => $member->uncompressedSize,
         zip_general_purpose_bit_flag => $member->bitFlag,
-      #fileAttributeFormat => $member->fileAttributeFormat,
-      #versionMadeBy => $member->versionMadeBy,
-      #internalFileAttributes => $member->internalFileAttributes,
+
+        ## last mod file time / last mod file date
+        zip_raw_last_mod_file_date_time => $member->lastModFileDateTime,
+
+        #fileAttributeFormat => $member->fileAttributeFormat,
+        #versionMadeBy => $member->versionMadeBy,
+        #internalFileAttributes => $member->internalFileAttributes,
+
         # zip_unicode_path zip_unicode_comment
       },
-      time => $member->lastModTime,
       local => {
         ## Not accessible
         #raw_path
         #byte_length
         #zip_general_purpose_bit_flag
-        #is_directory
+        #zip_raw_last_mod_file_date_time
+        
         # zip_unicode_path zip_unicode_comment
       },
       # path path_encoding comment comment_encoding
+      # mtime birthtime tzoffset
     };
     $item->{is_directory} = 1 if $member->isDirectory; # comes from ->{central}->{raw_path} and ->{central}->uncompressed size
 
-    my $times = {};
-    ## last mod file time / last mod file date
-    $times->{last_mod} = $member->lastModFileDateTime;
+    my $mod_dt = _from_dostime ($item->{central}->{zip_raw_last_mod_file_date_time});
+    my $unix = $mod_dt->year < 2038 ? 'L<' : 'V'; # signed / unsigned 32-bit
 
-    {
-      my $extra = $member->cdExtraField;
-      last unless defined $extra;
-
+    for (
+      ['central', 'cdExtraField'],
+      ['local', 'localExtraField'],
+    ) {
+      my ($meta_key, $method) = @$_;
+      my $extra = $member->$method;
       my $pos = 0;
       while ($pos + 4 <= length ($extra)) {
         my ($header_id, $data_len) = unpack ("vv", substr ($extra, $pos, 4));
@@ -182,10 +250,44 @@ sub list ($) {
 
         if ($header_id == 0x7075) { # Info-ZIP Unicode Path Extra Field
           my ($ver, $crc32, $utf8_name) = unpack("C N a*", $data);
-          $item->{central}->{zip_unicode_path} //= decode_web_utf8_no_bom $utf8_name;
+          $item->{$meta_key}->{zip_unicode_path} //= decode_web_utf8_no_bom $utf8_name;
         } elsif ($header_id == 0x6375) { # Info-ZIP Unicode Comment Extra Field
           my ($ver, $crc32, $utf8_comment) = unpack("C N a*", $data);
-          $item->{central}->{zip_unicode_comment} //= $utf8_comment;
+          $item->{$meta_key}->{zip_unicode_comment} //= $utf8_comment;
+        } elsif ($header_id == 0x5455) { # Extended Timestamp
+          my $flags = unpack ('C', $data);
+          my $off = 1;
+          $item->{$meta_key}->{zip_ext_mtime} = unpack ($unix, substr($data, $off, 4))
+              if $flags & 0x01; # ModTime
+          $off += 4 if $flags & 0x01;
+          $item->{$meta_key}->{zip_ext_atime} = unpack ($unix, substr($data, $off, 4))
+              if $flags & 0x02; # AcTime
+          $off += 4 if $flags & 0x02;
+          $item->{$meta_key}->{zip_ext_birthtime} = unpack ($unix, substr($data, $off, 4))
+              if $flags & 0x04; # CrTime
+        } elsif ($header_id == 0x000A) { # NTFS Extra Field
+          my $p = 4; # Reserved
+          while ($p + 4 <= length($data)) {
+            my ($tag, $sz) = unpack ('vv', substr ($data, $p, 4)); # Tag / Size
+            my $v = substr ($data, $p + 4, $sz);
+            if ($tag == 0x0001) {
+              my ($m, $a, $c) = unpack ('Q<Q<Q<', $v);
+              ## Stringify values such that |ddsd ls|'s JSON outputs
+              ## are JS compatible.
+              $item->{$meta_key}->{zip_ntfs_mtime} = ''.$m; # Mtime
+              $item->{$meta_key}->{zip_ntfs_atime} = ''.$a; # Atime
+              $item->{$meta_key}->{zip_ntfs_birthtime} = ''.$c; # Ctime
+            }
+            $p += 4 + $sz;
+          }
+        } elsif ($header_id == 0x5855) { # Info-ZIP Unix Extra Field
+          my ($actime, $modtime) = unpack ($unix.$unix, $data);
+          $item->{$meta_key}->{infozip_unix_atime} = $actime;
+          $item->{$meta_key}->{infozip_unix_mtime} = $modtime;
+        } elsif ($header_id == 0x000D) { # UNIX Extra Field
+          my ($atime, $mtime) = unpack ($unix.$unix, $data);
+          $item->{$meta_key}->{zip_unix_atime} = $atime; # Atime
+          $item->{$meta_key}->{zip_unix_mtime} = $mtime; # Mtime
           
         ## Not sure these are used in the wild or not:
         #} elsif ($header_id == 0x0008) { # Extended Language Encoding Extra Field
@@ -218,7 +320,62 @@ sub list ($) {
         #  #
         }
       }
-    } # cd
+    } # $meta_key
+
+    ## Use copies of mtime and birthtime for any numeric operations
+    ## such that IV / UV / NV is not generated before the JSON
+    ## stringification.
+    my $mtime;
+    my $birthtime;
+    if ($item->{central}->{zip_ntfs_mtime}) { # non-zero
+      $item->{mtime} = _ntfs2unixtime ($item->{central}->{zip_ntfs_mtime});
+    } elsif ($item->{local}->{zip_ntfs_mtime}) {
+      $item->{mtime} = _ntfs2unixtime ($item->{local}->{zip_ntfs_mtime});
+    } else {
+      for my $key (qw(zip_ext_mtime infozip_unix_mtime zip_unix_mtime)) {
+        if ($item->{central}->{$key}) {
+          $item->{mtime} = $item->{central}->{$key};
+          last;
+        } elsif ($item->{local}->{$key}) {
+          $item->{mtime} = $item->{local}->{$key};
+          last;
+        }
+      }
+    }
+    $mtime = $item->{mtime};
+    if (defined $mtime) { ## If UTC mtime is known,
+      my $offset = $mod_dt->to_unix_number - $mtime;
+      if ($offset >= 0) {
+        $offset = int ( ($offset + 900/2) / 900 ) * 900;
+        undef $offset if $offset > 24*60*60;
+      } else {
+        $offset = -int ( (-$offset + 900/2) / 900 ) * 900;
+        undef $offset if $offset < -24*60*60;
+      }
+      $item->{tzoffset} = $offset if defined $offset;
+    } else { ## If only local mtime is known,
+      $item->{mtime} = $mod_dt->to_unix_number; # XXX + forced tzoffset
+    }
+    if ($item->{central}->{zip_ntfs_birthtime}) { # non-zero
+      $item->{birthtime} = _ntfs2unixtime ($item->{central}->{zip_ntfs_birthtime});
+    } elsif ($item->{local}->{zip_ntfs_birthtime}) {
+      $item->{birthtime} = _ntfs2unixtime ($item->{local}->{zip_ntfs_birthtime});
+    } else {
+      for my $key (qw(zip_ext_birthtime)) {
+        if ($item->{central}->{$key}) {
+          $item->{birthtime} = $item->{central}->{$key};
+          last;
+        } elsif ($item->{local}->{$key}) {
+          $item->{birthtime} = $item->{local}->{$key};
+          last;
+        }
+      }
+      # or undef
+    }
+    $birthtime = $item->{birthtime};
+    if (defined $birthtime and $mtime < $birthtime) {
+      $item->{mtime} = $item->{birthtime};
+    }
 
     push @{defined $item->{central}->{zip_unicode_path} ? $names2 : $names1}, $item->{central}->{raw_path}
         if not utf8::is_utf8 ($item->{central}->{raw_path}) and

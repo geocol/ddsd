@@ -251,7 +251,6 @@ sub get_item_list ($;%) {
             unless $skipped;
 
         $file->{source}->{file_name} = $zipped_file->{path};
-        $file->{package_item}->{file_time} = $zipped_file->{time};
         $file->{package_item}->{mime} = 'application/octet-stream';
         $file->{package_item}->{title} = '';
         $file->{archive_item} = $zipped_file if $args{with_source_meta};
@@ -259,12 +258,19 @@ sub get_item_list ($;%) {
           $file->{package_item}->{desc} = $zipped_file->{comment} // '';
         }
 
+        $file->{package_item}->{file_time} = App::NumberString->new ($zipped_file->{mtime});
         if (defined $file->{package_item}->{file_time}) {
           $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
           $pack_file->{package_item}->{file_time} = $file->{package_item}->{file_time}
               if $pack_file->{package_item}->{file_time} < $file->{package_item}->{file_time};
         }
-
+        if (defined $zipped_file->{tzoffset}) {
+          $file->{package_item}->{tzoffset} = $zipped_file->{tzoffset};
+          $pack_file->{package_item}->{tzoffset} ||= $zipped_file->{tzoffset};
+        } else {
+          # XXX local time flag
+        }
+        
         push @$files, $file;
       } # $zipped_file
     });
@@ -353,7 +359,7 @@ sub _extract_files ($$;%) {
 
 =head1 LICENSE
 
-Copyright 2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2025-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

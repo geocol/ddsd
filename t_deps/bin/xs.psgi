@@ -40,6 +40,9 @@ sub create_zip ($$;%) {
       input_file_name => $path,
       file_name => $key,
       timestamp => $def->{timestamp}, # or undef
+      tzoffset => $def->{tzoffset}, # or undef
+      ntfs => $def->{ntfs},
+      birthtime => $def->{birthtime}, # or undef
       byte_file_name => $def->{byte_file_name},
       comment => $def->{comment},
       byte_comment => $def->{byte_comment},
@@ -216,7 +219,7 @@ return sub {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

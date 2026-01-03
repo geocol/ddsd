@@ -165,6 +165,11 @@ package_item
     the package's manifest's timestamp, if applicable, and the
     package's file's timestamp, if applicable.
 
+  tzoffset [number?]
+
+    The local time offset from UTC, i.e. local time - UTC, in seconds,
+    for the file's timestamp, if known.
+
   legal
   snapshot_hash
 
@@ -191,9 +196,18 @@ comment_encoding
   The encoding label of the comment of the member, used to decode
   bytes to obtain character string |comment|, if applicable.
 
-time [time?]
+mtime [time?]
 
-  The timestamp of the member, if known.
+  The modified time of the member, if known.
+
+birthtime [time?]
+
+  The created time of the member, if known.
+
+tzoffset [number?]
+
+  The local time offset from UTC, i.e. local time - UTC, in seconds,
+  for the member's timestamps, if known.
 
 is_directory [boolean]
 
@@ -233,3 +247,39 @@ raw_comment [bytes?]
   of the comment.  Missing when an archive-format-specified fixed
   encoding is used.
 
+zip_general_purpose_bit_flag [integer?]
+
+  The value of the general purpose bit flag of the member, if it is a
+  member of ZIP.
+
+zip_raw_last_mod_file_date_time [integer?]
+
+  The value of the last mod file date and last mod file time fields,
+  interpreted as an unsigned integer, of the member, if it is a member
+  of ZIP.
+
+zip_ntfs_mtime [number?]
+zip_ntfs_atime [number?]
+zip_ntfs_birthtime [number?]
+
+  The values of the 0x000A timestamp fields of the member, if it is a
+  member of ZIP and is specified.
+
+zip_ext_mtime [time?]
+zip_ext_atime [time?]
+zip_ext_birthtime [time?]
+
+  The values of the 0x5455 timestamp fields of the member, if it is a
+  member of ZIP and is specified.
+
+infozip_unix_mtime [time?]
+infozip_unix_atime [time?]
+
+  The values of the 0x5855 timestamp fields of the member, if it is a
+  member of ZIP and is specified.
+
+zip_unix_mtime [time?]
+zip_unix_atime [time?]
+
+  The values of the 0x000D timestamp fields of the member, if it is a
+  member of ZIP and is specified.

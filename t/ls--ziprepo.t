@@ -114,7 +114,7 @@ Test {
         is $item->{archive_item}->{path}, "abc.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc.dat";
         is $item->{archive_item}->{central}->{byte_length}, 3;
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
     return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
@@ -235,7 +235,7 @@ Test {
         is $item->{archive_item}->{path}, "abc.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc.dat";
         is $item->{archive_item}->{path_encoding}, 'ibm437';
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
   });
@@ -320,7 +320,7 @@ Test {
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
   });
@@ -406,7 +406,7 @@ Test {
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, "utf-8";
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
   });
@@ -492,7 +492,7 @@ Test {
         is $item->{archive_item}->{path}, "abc\x{03A3}\x{C7}\x{C7}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, "ibm437";
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
     return $current->check_files ([
@@ -585,7 +585,7 @@ Test {
         is $item->{archive_item}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
         is $item->{archive_item}->{path_encoding}, "shift_jis";
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
   });
@@ -1239,7 +1239,7 @@ Test {
         is $item->{archive_item}->{path}, "abc\x{4000}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc䀀.dat";
         is $item->{archive_item}->{path_encoding}, undef;
-        is $item->{archive_item}->{time}, 1766901800;
+        is $item->{archive_item}->{mtime}, 1766901800;
       }
     } $current->c;
     return $current->check_files ([
@@ -1265,6 +1265,215 @@ Test {
     ]);
   });
 } n => 59, name => 'insecure';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => 1766901900},
+        "a2.dat" => {text => "abc", timestamp => 1766901901},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, 1766901900;
+        is $item->{rev}->{timestamp}, 1766901900;
+        is $item->{archive_item}->{mtime}, 1766901900;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962720;
+        is $item->{archive_item}->{tzoffset}, undef;
+        is $item->{package_item}->{tzoffset}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901900;
+        is $item->{rev}->{timestamp}, 1766901900;
+        is $item->{archive_item}->{mtime}, 1766901900;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962720;
+        is $item->{archive_item}->{tzoffset}, undef;
+        is $item->{package_item}->{tzoffset}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766901900;
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is $item->{package_item}->{tzoffset}, undef;
+      }
+    } $current->c;
+  });
+} n => 24, name => 'local-time only';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => 1766901900,
+                     tzoffset => 3600},
+        "a2.dat" => {text => "abc", timestamp => 1766901901,
+                     tzoffset => -3600},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, 1766901900;
+        is $item->{rev}->{timestamp}, 1766901900;
+        is $item->{archive_item}->{mtime}, 1766901900;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536964768;
+        is $item->{archive_item}->{tzoffset}, 3600;
+        is $item->{package_item}->{tzoffset}, 3600;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901901;
+        is $item->{rev}->{timestamp}, 1766901901;
+        is $item->{archive_item}->{mtime}, 1766901901;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536960672;
+        is $item->{archive_item}->{tzoffset}, -3600;
+        is $item->{package_item}->{tzoffset}, -3600;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766901901;
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is abs $item->{package_item}->{tzoffset}, 3600;
+      }
+    } $current->c;
+  });
+} n => 24, name => 'has unixtime';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => '1766901900.123456700',
+                     tzoffset => 3600, ntfs => 1},
+        "a2.dat" => {text => "abc", timestamp => 1766901689,
+                     tzoffset => -3600, ntfs => 1,
+                     birthtime => '135356660.123456700'},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1, stdout => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, '1766901900.1234567';
+        is $item->{rev}->{timestamp}, '1766901900.1234567';
+        is $item->{archive_item}->{mtime}, '1766901900.1234567';
+        like $r->{stdout}, qr{"1766901900.1234567"};
+        unlike $r->{stdout}, qr{:1766901900};
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536964768;
+        is $item->{archive_item}->{tzoffset}, 3600;
+        is $item->{package_item}->{tzoffset}, 3600;
+        is $item->{archive_item}->{birthtime}, undef;
+        is $item->{archive_item}->{central}->{zip_ntfs_mtime}, "134113755001234567";
+        like $r->{stdout}, qr{"134113755001234567"};
+        unlike $r->{stdout}, qr{:134113755001234567};
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901689;
+        is $item->{rev}->{timestamp}, 1766901689;
+        is $item->{archive_item}->{mtime}, 1766901689;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536960558;
+        is $item->{archive_item}->{tzoffset}, -3600;
+        is $item->{package_item}->{tzoffset}, -3600;
+        is $item->{archive_item}->{birthtime}, '135356660.1234567';
+        like $r->{stdout}, qr{"135356660.1234567"};
+        unlike $r->{stdout}, qr{:135356660};
+        is $item->{archive_item}->{central}->{zip_ntfs_birthtime}, "117798302601234567";
+        like $r->{stdout}, qr{"117798302601234567"};
+        unlike $r->{stdout}, qr{:117798302601234567};
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, '1766901900.1234567';
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is abs $item->{package_item}->{tzoffset}, 3600;
+      }
+    } $current->c;
+  });
+} n => 36, name => 'has ntfstime';
 
 Run;
 

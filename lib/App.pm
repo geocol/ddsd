@@ -314,6 +314,24 @@ sub cleanup ($) {
   });
 } # cleanup
 
+package App::NumberString;
+## Wrap a number represented as a PV of an SV such that any numeric
+## operations on it does not generate IV, UV, or NV; otherwise, when
+## PV is converted to a number by Perl, the numeric value could be
+## ronded and the rounded value would be used upon JSON serialization.
+
+sub new ($$) { bless {pv => $_[1]}, $_[0] }
+
+use overload
+  '0+' => sub {
+    my $copy = $_[0]->{pv};
+    return 0 + $copy;
+  },
+  '""' => sub { "$_[0]->{pv}" },
+  fallback => 1;
+
+sub TO_JSON ($) { $_[0]->{pv} }
+
 package App::Error;
 use overload '""' => 'stringify',
     fallback => 1;
