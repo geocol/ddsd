@@ -1337,6 +1337,70 @@ Test {
     undef,
     {
       "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => 1766901900},
+        "a2.dat" => {text => "abc", timestamp => 1766901901},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--forced-tzoffset', -63464]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, 1766901900 - -63464;
+        is $item->{rev}->{timestamp}, 1766901900 - -63464;
+        is $item->{archive_item}->{mtime}, 1766901900 - -63464;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962720;
+        is $item->{archive_item}->{tzoffset}, -63464;
+        is $item->{package_item}->{tzoffset}, -63464;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901900 - -63464;
+        is $item->{rev}->{timestamp}, 1766901900 - -63464;
+        is $item->{archive_item}->{mtime}, 1766901900 - -63464;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962720;
+        is $item->{archive_item}->{tzoffset}, -63464;
+        is $item->{package_item}->{tzoffset}, -63464;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';            
+        is $item->{package_item}->{file_time}, 1766901900 - -63464;
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is $item->{package_item}->{tzoffset}, -63464;
+      }
+    } $current->c;
+  });
+} n => 24, name => 'local-time only with forced_tzoffset';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
         "a1.dat" => {text => "abc", timestamp => 1766901900,
                      tzoffset => 3600},
         "a2.dat" => {text => "abc", timestamp => 1766901901,
@@ -1395,6 +1459,72 @@ Test {
     } $current->c;
   });
 } n => 24, name => 'has unixtime';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => 1766901900,
+                     tzoffset => 3600},
+        "a2.dat" => {text => "abc", timestamp => 1766901901,
+                     tzoffset => -3600},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--forced-tzoffset', "+24554"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, 1766901900;
+        is $item->{rev}->{timestamp}, 1766901900;
+        is $item->{archive_item}->{mtime}, 1766901900;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536964768;
+        is $item->{archive_item}->{tzoffset}, 24554;
+        is $item->{package_item}->{tzoffset}, 24554;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901901;
+        is $item->{rev}->{timestamp}, 1766901901;
+        is $item->{archive_item}->{mtime}, 1766901901;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536960672;
+        is $item->{archive_item}->{tzoffset}, 24554;
+        is $item->{package_item}->{tzoffset}, 24554;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766901901;
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is $item->{package_item}->{tzoffset}, 24554;
+      }
+    } $current->c;
+  });
+} n => 24, name => 'has unixtime with tzoffset';
 
 Test {
   my $current = shift;

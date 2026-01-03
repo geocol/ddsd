@@ -84,6 +84,7 @@ sub list ($$;%) {
     input_file_name => $zip_path->absolute,
     url => (defined $args{url_string} ? $args{url_string} : undef),
     forced_encoding => $args{forced_encoding},
+    forced_tzoffset => $args{forced_tzoffset},
   }); # {files}
 } # list
 
@@ -123,7 +124,7 @@ sub read_json ($$$) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

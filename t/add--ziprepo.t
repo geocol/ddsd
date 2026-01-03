@@ -290,11 +290,47 @@ Test {
   });
 } n => 6, name => 'mime type 3';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "abc.txt" => {text => "abc"},
+      }},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => [
+      "https://hoge/$key.zip", '--min',
+      '--forced-encoding', "abcEfe-ewge",
+      '--forced-tzoffset', -46364.433,
+    ]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+         my $json = shift;
+         ok $json->{$key};
+         {
+           my $item = $json->{$key};
+           is $item->{type}, 'zip';
+           is $item->{forced_encoding}, "abcEfe-ewge";
+           is $item->{forced_tzoffset}, -46364.433;
+         }
+       }},
+    ]);
+  });
+} n => 6, name => '--forced-*';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2025-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

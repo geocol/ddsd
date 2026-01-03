@@ -98,11 +98,13 @@ sub get_repo_by_source ($$%) {
       }
       return ZipRepo->new_from_upstream
           ($upstream_repo, {url => $url},
-           forced_encoding => $source->{forced_encoding}); # or undef
+           forced_encoding => $source->{forced_encoding}, # or undef
+           forced_tzoffset => $source->{forced_tzoffset}); # or undef
     } elsif (defined $source->{file_path}) {
       return ZipRepo->new_from_upstream
           ($upstream_repo, {path_string => $source->{file_path}},
-           forced_encoding => $source->{forced_encoding}); # or undef
+           forced_encoding => $source->{forced_encoding}, # or undef
+           forced_tzoffset => $source->{forced_tzoffset}); # or undef
     } else {
       $logger->$bad_method ({
         type => 'bad source',
@@ -127,7 +129,7 @@ sub get_repo_by_source ($$%) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

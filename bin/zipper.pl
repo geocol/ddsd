@@ -36,6 +36,7 @@ sub print_info ($) {
   } # _ntfs2unixtime
 }
 
+## <https://wiki.suikawiki.org/n/FAT%E3%81%AE%E6%97%A5%E6%99%82%E5%BD%A2%E5%BC%8F>
 sub _from_dostime ($) {
   my $dos = $_[0];
   my $y = (($dos >> 25) & 0x7F) + 1980;
@@ -322,6 +323,8 @@ sub list ($) {
       }
     } # $meta_key
 
+    ## <https://wiki.suikawiki.org/n/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE%E6%99%82%E5%88%BB$47512>
+    #
     ## Use copies of mtime and birthtime for any numeric operations
     ## such that IV / UV / NV is not generated before the JSON
     ## stringification.
@@ -344,17 +347,26 @@ sub list ($) {
     }
     $mtime = $item->{mtime};
     if (defined $mtime) { ## If UTC mtime is known,
-      my $offset = $mod_dt->to_unix_number - $mtime;
-      if ($offset >= 0) {
-        $offset = int ( ($offset + 900/2) / 900 ) * 900;
-        undef $offset if $offset > 24*60*60;
+      if (defined $in->{forced_tzoffset}) {
+        $item->{tzoffset} = $in->{forced_tzoffset};
       } else {
-        $offset = -int ( (-$offset + 900/2) / 900 ) * 900;
-        undef $offset if $offset < -24*60*60;
+        my $offset = $mod_dt->to_unix_number - $mtime;
+        if ($offset >= 0) {
+          $offset = int ( ($offset + 900/2) / 900 ) * 900;
+          undef $offset if $offset > 24*60*60;
+        } else {
+          $offset = -int ( (-$offset + 900/2) / 900 ) * 900;
+          undef $offset if $offset < -24*60*60;
+        }
+        $item->{tzoffset} = $offset if defined $offset;
       }
-      $item->{tzoffset} = $offset if defined $offset;
     } else { ## If only local mtime is known,
-      $item->{mtime} = $mod_dt->to_unix_number; # XXX + forced tzoffset
+      if (defined $in->{forced_tzoffset}) {
+        $item->{tzoffset} = $in->{forced_tzoffset};
+        $item->{mtime} = $mod_dt->to_unix_number - $item->{tzoffset};
+      } else {
+        $item->{mtime} = $mod_dt->to_unix_number;
+      }
     }
     if ($item->{central}->{zip_ntfs_birthtime}) { # non-zero
       $item->{birthtime} = _ntfs2unixtime ($item->{central}->{zip_ntfs_birthtime});

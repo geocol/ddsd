@@ -19,6 +19,7 @@ sub new_from_upstream ($$$;%) {
     upstream_repo => $upstream_repo,
     upstream_args => $upstream_args,
     forced_encoding => $args{forced_encoding}, # or undef
+    forced_tzoffset => $args{forced_tzoffset}, # or undef
   }, $class;
 
   return $self;
@@ -176,6 +177,7 @@ sub get_item_list ($;%) {
         $self->set->app, $zip_path,
         url_string => ($upitem->{rev} || {})->{url}, # string or undef # XXX or parent url, if nested archive
         forced_encoding => $self->{forced_encoding}, # or undef
+        forced_tzoffset => $self->{forced_tzoffset}, # or undef
       )->catch (sub {
         my $e = $_[0];
         die $e unless UNIVERSAL::isa ($e, 'App::Error');

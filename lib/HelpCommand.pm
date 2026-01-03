@@ -8,7 +8,7 @@ push our @ISA, qw(Command);
 use ListWriter;
 
 my $HelpText = {
-  add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure] [--forced-encoding=<charset>]
+  add => qq{%%DDSD%% [<options>] add <url> [--single-file] [--name=<package>] [--insecure] [--forced-encoding=<charset>] [--forced-tzoffset=<number>]
 
 Add a package specified by the URL <url> to the local data repository
 set.
@@ -23,6 +23,12 @@ Arguments
                 The character encoding used to decode unlabelled file names
                 and comments in archive files (such as non-UTF-8-flagged
                 ZIP file names).  Defaulted to auto-detection.
+
+  --forced-tzoffset=<number>
+                The number of seconds of (local time - UTC), used to
+                interpret timestamps in local time (such as ZIP's
+                native timestamp fields).  If not specified,
+                auto-detected if possible.
 
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
