@@ -193,6 +193,7 @@ sub list ($) {
   my $meta = {};
   $meta->{raw_comment} = $zip->zipfileComment;
   push @$names1, $meta->{raw_comment} if $meta->{raw_comment} =~ /[^\x00-\x7F]/;
+  $meta->{tzoffset} = $in->{forced_tzoffset} if defined $in->{forced_tzoffset};
 
   my @list;
   for my $member (($zip->members)) {
@@ -358,7 +359,10 @@ sub list ($) {
           $offset = -int ( (-$offset + 900/2) / 900 ) * 900;
           undef $offset if $offset < -24*60*60;
         }
-        $item->{tzoffset} = $offset if defined $offset;
+        if (defined $offset) {
+          $item->{tzoffset} = $offset;
+          $meta->{tzoffset} //= $offset;
+        }
       }
     } else { ## If only local mtime is known,
       if (defined $in->{forced_tzoffset}) {
@@ -415,6 +419,7 @@ sub list ($) {
       # windows-1250 ibm852 ibm865 1*60*60/2*60*60
     }->{$charset};
     # XXX $url based guesses
+    $meta->{tzoffset} //= $tz_guessed;
 
     for my $item (@list) {
       if ($item->{central}->{zip_general_purpose_bit_flag} & 0x0800) { # UTF-8 flagged
@@ -450,9 +455,9 @@ sub list ($) {
         $item->{comment_encoding} = 'ibm437';
       }
 
-      if (defined $tz_guessed and not defined $item->{tzoffset}) {
-        $item->{tzoffset} = $tz_guessed;
-        $item->{mtime} -= $tz_guessed;
+      if (defined $meta->{tzoffset} and not defined $item->{tzoffset}) {
+        $item->{tzoffset} = $meta->{tzoffset};
+        $item->{mtime} -= $meta->{tzoffset};
       }
     } # $item
     if ($charset eq 'utf-8') {

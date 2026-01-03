@@ -1614,6 +1614,142 @@ Test {
     undef,
     {
       "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => '1766901900.123456700',
+                     tzoffset => 3600, ntfs => 1},
+        "a2.dat" => {text => "abc", timestamp => 1766901689, ntfs => 1},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1, stdout => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, '1766901900.1234567';
+        is $item->{rev}->{timestamp}, '1766901900.1234567';
+        is $item->{archive_item}->{mtime}, '1766901900.1234567';
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536964768;
+        is $item->{archive_item}->{tzoffset}, 3600;
+        is $item->{package_item}->{tzoffset}, 3600;
+        is $item->{archive_item}->{birthtime}, undef;
+        is $item->{archive_item}->{central}->{zip_ntfs_mtime}, "134113755001234567";
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901688 -3600;
+        is $item->{rev}->{timestamp}, 1766901688 -3600;
+        is $item->{archive_item}->{mtime}, 1766901688 -3600;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962606;
+        is $item->{archive_item}->{tzoffset}, 3600;
+        is $item->{package_item}->{tzoffset}, 3600;
+        is $item->{archive_item}->{birthtime}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, '1766901900.1234567';
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is $item->{package_item}->{tzoffset}, 3600;
+      }
+    } $current->c;
+  });
+} n => 27, name => 'tzoffset implied';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a1.dat" => {text => "abc", timestamp => '1766901900.123456700',
+                     tzoffset => 3600, ntfs => 1},
+        "a2.dat" => {text => "abc", timestamp => 1766901689, ntfs => 1},
+      }, timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip", '--forced-tzoffset', -12445]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1, stdout => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.dat";
+        is $item->{package_item}->{file_time}, '1766901900.1234567';
+        is $item->{rev}->{timestamp}, '1766901900.1234567';
+        is $item->{archive_item}->{mtime}, '1766901900.1234567';
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536964768;
+        is $item->{archive_item}->{tzoffset}, -12445;
+        is $item->{package_item}->{tzoffset}, -12445;
+        is $item->{archive_item}->{birthtime}, undef;
+        is $item->{archive_item}->{central}->{zip_ntfs_mtime}, "134113755001234567";
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.dat";
+        is $item->{package_item}->{file_time}, 1766901688 - -12445;
+        is $item->{rev}->{timestamp}, 1766901688 - -12445;
+        is $item->{archive_item}->{mtime}, 1766901688 - -12445;
+        is $item->{archive_item}->{central}->{zip_raw_last_mod_file_date_time}, 1536962606;
+        is $item->{archive_item}->{tzoffset}, -12445;
+        is $item->{package_item}->{tzoffset}, -12445;
+        is $item->{archive_item}->{birthtime}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{file_time}, 1766901688 - -12445;
+        is $item->{rev}->{http_last_modified}, 1766901872;
+        is $item->{package_item}->{tzoffset}, -12445;
+      }
+    } $current->c;
+  });
+} n => 27, name => 'tzoffset implied but forced';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
         "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat" => {text => "abc", timestamp => 1766901800,
                               byte_file_name => 1},
       }, timestamp => 1766900000},

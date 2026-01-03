@@ -202,6 +202,8 @@ sub get_item_list ($;%) {
 
       if ($args{with_props}) {
         $pack_file->{package_item}->{desc} = $info->{meta}->{comment};
+        $pack_file->{package_item}->{tzoffset} = $info->{meta}->{tzoffset}
+            if defined $info->{meta}->{tzoffset};
       }
       $pack_file->{archive_meta} = $info->{meta} if $args{with_source_meta};
       
@@ -288,7 +290,6 @@ sub get_item_list ($;%) {
         }
         if (defined $zipped_file->{tzoffset}) {
           $file->{package_item}->{tzoffset} = $zipped_file->{tzoffset};
-          $pack_file->{package_item}->{tzoffset} ||= $zipped_file->{tzoffset};
         } else {
           # XXX local time flag
         }
