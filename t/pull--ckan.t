@@ -440,6 +440,8 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
        }},
+      {path => "local/data/foo/package/package.ckan.json",
+       bytes => sub { }, timestamp => 1682033002},
       {path => $current->repo_path ('ckan', 'http://hoge/dataset/package-name-' . $key)->child ('index.json'), json => sub {
          my ($json, $path) = @_;
          is $json->{type}, 'ckan';
@@ -594,7 +596,7 @@ Test {
        text => sub { }, readonly => 1},
     ]);
   });
-} n => 56, name => 'last-modified';
+} n => 57, name => 'last-modified';
 
 Test {
   my $current = shift;
@@ -824,12 +826,12 @@ Test {
 } n => 16, name => ['many resources'];
 
 for my $in (
-  {url => undef},
-  {url => q<https://hoge.test/{foo}>},
-  {url => q<hoge://>},
-  {url => q<javascript:>},
-  {url => q<foo bar>},
-  {url => q<httPs://hoge:fuga>},
+  {url => undef, error => 1},
+  {url => q<https://hoge.test/{foo}>, error => 1},
+  {url => q<hoge://>, error => 1},
+  {url => q<javascript:>, error => 1},
+  {url => q<foo bar>, error => 1},
+  {url => q<httPs://hoge:fuga>, error => 1},
   {url => q<http://hoge/fuga/{key}/>},
   {url => q<http://hoge/fuga/{key}/.foo>},
   {url => q<http://hoge/fuga/{key}/-foo>},
@@ -844,7 +846,7 @@ for my $in (
   Test {
     my $current = shift;
     my $key = '' . rand;
-    $in->{url} =~ s{\{key\}}{$key};
+    $in->{url} =~ s{\{key\}}{$key} if defined $in->{url};
     return $current->prepare (
       {
         $key => {
@@ -870,14 +872,14 @@ for my $in (
         "http://foo.test/hoge123/" . $key => {
           text => "abc def",
         },
-        ($in->{url} =~ m{^https?://} ? ($in->{url} => {text => "xyz"}) : ()),
+        (($in->{url} // '') =~ m{^https?://} ? ($in->{url} => {text => "xyz"}) : ()),
       },
     )->then (sub {
       return $current->run ('pull', insecure => 1);
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 12;
+        is $r->{exit_code}, $in->{error} ? 12 : 0;
       } $current->c;
       return $current->check_files ([
         {path => "local/data/$key/index.json", json => sub {
@@ -1289,11 +1291,52 @@ Test {
   });
 } n => 6, name => 'gkan bad url';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'ckan',
+        url => 'https://hoge/dataset/package-name-' . $key,
+      },
+    },
+    {
+      "https://hoge/api/action/package_show?id=package-name-" . $key => {
+        json => {success => \1, result => {
+          title => "\x{4e00}",
+          resources => [
+            {id => 'hoge', url => "https://hoge/$key/hoge",
+             last_modified => "2049-01-04T23:42:01"},
+          ],
+          metadata_created => "2002-06-01T00:12:54",
+        }},
+      },
+      "https://hoge/$key/hoge" => {
+        text => "ab",
+      },
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->check_files ([
+      {path => 'local/data/foo/files/hoge', text => "ab",
+       timestamp => 2493416521},
+      {path => "local/data/foo/package/package.ckan.json", bytes => sub { },
+       timestamp => 1022890374},
+    ]);
+  });
+} n => 5, name => 'timestamp metadata';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

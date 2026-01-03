@@ -54,7 +54,17 @@ sub sync ($$$;%) {
         $items->{$file->{key}} = $item;
 
         return unless defined $file->{snapshot}->{file_name};
-        return $storage->hardlink_from ($name, $file->{path});
+        return $storage->hardlink_from ($name, $file->{path})->then (sub {
+          my $path = $storage->child_path ($name);
+          my $ff = Promised::File->new_from_path ($path);
+          my $ts = $file->{package_item}->{file_time}; 
+          return $ff->utime ($ts, $ts);
+          ## Snapshot file's timestamp is changed to item's timestamp
+          ## metadata.  As this file is a hardlink of the data file in
+          ## the local data repository set, when there are multiple
+          ## snapshots from same source, only one of their timestamps
+          ## can be used as the file's timestamp.
+        });
       } $files;
     })->then (sub { return $ix->save (readonly => 1) })->finally (sub { $ix->close })->then (sub {
       my $legal_path = $storage->{path}->child ('LICENSE');
@@ -78,7 +88,7 @@ sub sync ($$$;%) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

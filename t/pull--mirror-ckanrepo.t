@@ -24,6 +24,7 @@ Test {
     },
     "https://hoge/$key/abc.txt" => {
       text => "abc",
+      last_modified => -643643666,
     },
   })->then (sub {
     return $current->run ('pull');
@@ -77,8 +78,8 @@ Test {
   })->then (sub {
     return $current->check_files ([
       {path => "local/data/foo/index.json", json => sub {
-         my $json = shift;
-         is 0+keys %{$json->{items}}, 3;
+         my ($json, $path) = @_;
+         is 0+keys %{$json->{items}}, 3, $path;
          is $json->{items}->{'meta:ckan.json'}->{type}, 'meta';
          is $json->{items}->{'meta:ckan.json'}->{rev}->{sha256}, "4639625a084d7098a0cf0366ebc19b685103b9e97e85724c08a9d61e0bc2a86a";
          is $json->{items}->{"meta:activity.html"}->{type}, 'meta';
@@ -86,7 +87,8 @@ Test {
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
-      {path => "local/data/foo/files/abc.txt", text => "abc"},
+      {path => "local/data/foo/files/abc.txt", text => "abc",
+       timestamp => -643643666},
     ], app => 1);
   })->then (sub {
     return $current->get_access_count ("https://1.hoge/");
@@ -116,7 +118,8 @@ Test {
          is $json->{items}->{"file:index:0"}->{type}, 'file';
          is $json->{items}->{"file:index:0"}->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
        }},
-      {path => "local/data/foo/files/abc.txt", text => "abc"},
+      {path => "local/data/foo/files/abc.txt", text => "abc",
+       timestamp => -643643666},
     ], app => 1);
   })->then (sub {
     return $current->get_access_count ("https://1.hoge/$key/hash1.zip");
@@ -126,7 +129,7 @@ Test {
       is $count, 1, '2nd pull does not fetch zip';
     } $current->c;
   });
-} n => 22, name => 'directly';
+} n => 24, name => 'directly';
 
 Test {
   my $current = shift;

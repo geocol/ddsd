@@ -15,7 +15,7 @@ Test {
       },
     },
     {
-      "https://hoge/" . $key => {text => "r1"},
+      "https://hoge/" . $key => {text => "r1", last_modified => 5235555},
     },
   )->then (sub {
     return $current->run ('pull', additional => []);
@@ -41,10 +41,11 @@ Test {
            ok ! $file->{rev}->{insecure};
          }
        }},
-      {path => "local/data/$key/files/$key", text => "r1"},
+      {path => "local/data/$key/files/$key", text => "r1",
+       timestamp => 5235555},
     ]);
   });
-} n => 13, name => 'pull';
+} n => 14, name => 'pull';
 
 Test {
   my $current = shift;

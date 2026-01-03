@@ -20,7 +20,8 @@ Test {
     },
     {
       "https://hoge/$key.zip" => {zip => {
-        "abc.txt" => {text => "abc", timestamp => 1766890774},
+        "abc.txt" => {text => "abc", timestamp => 1766890774,
+                      tzoffset => 0},
         "xyz.txt" => {text => "xyz"},
       }},
     },
@@ -53,7 +54,7 @@ Test {
          }
        }},
       {path => "local/data/$key/files/abc.txt", text => "abc",
-       XXXtimestamp => 1766890774},
+       timestamp => 1766890774},
     ]);
   })->then (sub {
     return $current->run ('pull', additional => []);
@@ -84,7 +85,7 @@ Test {
          }
        }},
       {path => "local/data/$key/files/abc.txt", text => "abc",
-       XXXtimestamp => 1766890774},
+       timestamp => 1766890774},
       {path => $current->repo_path ('single', "https://hoge/$key.zip")->child ('index.json'), json => sub {
          my ($json, $path) = @_;
          is $json->{type}, 'single';
@@ -121,7 +122,7 @@ Test {
        }},
     ]);
   });
-} n => 53, name => 'pull';
+} n => 55, name => 'pull';
 
 Test {
   my $current = shift;
@@ -327,7 +328,8 @@ Test {
       undef,
       {
         "https://hoge/$key.zip" => {zip => {
-          "abc.txt" => {text => "xyz", timestamp => 1766890770},
+          "abc.txt" => {text => "xyz", timestamp => 1766890770,
+                        tzoffset => 0},
         }},
       },
     );
@@ -359,11 +361,11 @@ Test {
          }
        }},
       {path => "local/data/$key/files/abc.txt", text => "xyz",
-       XXXtimestamp => 1766890770},
+       timestamp => 1766890770},
       {path => "local/data/$key/files/xyz.txt", is_none => 1},
     ]);
   });
-} n => 17, name => 'pull, file changed';
+} n => 18, name => 'pull, file changed';
 
 Test {
   my $current = shift;
