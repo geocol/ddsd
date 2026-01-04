@@ -61,6 +61,7 @@ sub open_by_app_and_storage ($$$;%) {
     $self->{storage} = $storage;
     $self->{upstream_index} = $cargs{upstream_index}; # or undef
     $self->{upstream_item} = $cargs{upstream_item}; # or undef
+    $self->{path_index_key} = $cargs{path_index_key}; # or undef
   }; # $init
   
   my $init_empty = sub {
@@ -69,6 +70,7 @@ sub open_by_app_and_storage ($$$;%) {
     $self->{storage} = $storage;
     $self->{upstream_index} = $cargs{upstream_index}; # or undef
     $self->{upstream_item} = $cargs{upstream_item}; # or undef
+    $self->{path_index_key} = $cargs{path_index_key}; # or undef
   }; # $init_empty
 
   my $path = $storage->child_path ('index.json');
@@ -117,9 +119,9 @@ sub get_item ($%) {
     }
   } elsif (defined $args{path_string}) {
     if (defined $args{file_def}->{sha256}) {
-      $ref = $index->{path_sha256s}->{$args{path_string}, $args{file_def}->{sha256}};
+      $ref = $index->{path_sha256s}->{$self->{path_index_key}}->{$args{path_string}, $args{file_def}->{sha256}};
     } else {
-      $ref = $index->{paths}->{$args{path_string}};
+      $ref = $index->{paths}->{$self->{path_index_key}}->{$args{path_string}};
     }
   } elsif ($args{allow_no_item}) {
     #
@@ -540,14 +542,11 @@ sub put_zip_item ($$$$;%) {
   
   my $rev = {
     raw_path => $file->{archive_item}->{central}->{raw_path},
-    path => $file->{archive_item}->{path},
-    timestamp => $file->{archive_item}->{mtime},
+    timestamp => time,
     sha256 => $zipped->{sha256},
     length => $zipped->{length},
   };
   $rev->{insecure} = 1 if $args{insecure};
-  $rev->{path_encoding} = $file->{archive_item}->{path_encoding}
-      if defined $file->{archive_item}->{path_encoding};
 
   my $logger = $self->app->logger;
 
@@ -571,16 +570,34 @@ sub put_zip_item ($$$$;%) {
   $return->{new} = 1;
 
   $index->{raw_paths}->{$file->{archive_item}->{central}->{raw_path}} = $file->{key};
-  $index->{paths}->{$file->{archive_item}->{path}} = $file->{key};
+  $index->{paths}->{$self->{path_index_key}}->{$file->{archive_item}->{path}} = $file->{key};
   if (defined $rev->{sha256}) {
     $index->{raw_path_sha256s}->{$file->{archive_item}->{central}->{raw_path}, $rev->{sha256}} = $file->{key};
-    $index->{path_sha256s}->{$file->{archive_item}->{path}, $rev->{sha256}} = $file->{key};
+    $index->{path_sha256s}->{$self->{path_index_key}}->{$file->{archive_item}->{path}, $rev->{sha256}} = $file->{key};
   }
 
   return $p->then (sub {
     return $return;
   });
 } # put_zip_item
+
+sub update_zip_item_index ($$$%) {
+  my ($self, $file, $item, %args) = @_;
+  my $rev = $item->{rev};
+  
+  my $index = $self->index;
+  $self->touch;
+
+  ## |path| can depend on encoding sniffing algorithm, i.e. a future
+  ## version of ddsd can generate different text from earlier
+  ## versions.  Therefore |paths| index need to be updated when the
+  ## archive is |fetch|ed such that |ddsd pull| would resolve any
+  ## problem caused by incompatibility of updating ddsd.
+  $index->{paths}->{$self->{path_index_key}}->{$file->{archive_item}->{path}} = $file->{key};
+  if (defined $rev->{sha256}) {
+    $index->{path_sha256s}->{$self->{path_index_key}}->{$file->{archive_item}->{path}, $rev->{sha256}} = $file->{key};
+  }
+} # update_zip_item_index
 
 1;
 

@@ -66,7 +66,9 @@ archive_item [Archive Item]? (when with_source_meta => 1)
 
 rev
 
-    Physical properties of the file.
+    Physical properties of the file.  They are immutable
+    characteristics of the file as of when it is put into the local
+    data repository set for the first time.
 
   from_mirrorzip [boolean]
 
@@ -98,9 +100,10 @@ rev
 
   timestamp [time] (required)
 
-    The file's created time, if the file comes from HTTP.
-
-    The file's timestamp, if the file comes from an archive.
+    The time when the file is put into the local data repository set
+    for the first time.  For the file imported from a mirrorzip, it is
+    same as the mirrorzip's source file's |rev| object's |timestamp|
+    value.
 
   http_content_type
 
@@ -126,18 +129,9 @@ rev
     The original URL of the file before any redirect.  Required if
     |url| is specified.
 
-  path
-
-    The path to the file, if any.
-
   raw_path
 
     The raw path to the file, if any.
-
-  path_encoding
-
-    The encoding label of the path, used to obtain |path| from
-    |raw_path|, if applicable.
 
 package_item
 

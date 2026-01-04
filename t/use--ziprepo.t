@@ -39,10 +39,10 @@ Test {
            my $x = $json->{items}->{"file:abc.txt"};
            is $x->{files}->{data}, "files/abc.txt";
            is $x->{rev}->{length}, 6;
-           is $x->{rev}->{path}, "abc.txt";
+           is $x->{rev}->{path}, undef;
            is $x->{rev}->{raw_path}, "abc.txt";
            is $x->{rev}->{sha256}, 'c778006564571afe966b248a8c8bda7cf00232157408c0759920e0272ec6b773';
-           is $x->{rev}->{timestamp}, 4194819466;
+           ok $x->{rev}->{timestamp};
          }
        }},
       {path => "local/data/$key/LICENSE", file => 1},
@@ -102,10 +102,10 @@ Test {
            my $x = $json->{items}->{"file:abc.txt"};
            is $x->{files}->{data}, "files/abc.txt";
            is $x->{rev}->{length}, 6;
-           is $x->{rev}->{path}, "abc.txt";
+           is $x->{rev}->{path}, undef;
            is $x->{rev}->{raw_path}, "abc.txt";
            is $x->{rev}->{sha256}, 'c778006564571afe966b248a8c8bda7cf00232157408c0759920e0272ec6b773';
-           is $x->{rev}->{timestamp}, 4194819466;
+           ok $x->{rev}->{timestamp};
          }
        }},
       {path => "local/data/$key/LICENSE", file => 1},

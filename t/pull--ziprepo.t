@@ -45,11 +45,11 @@ Test {
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
            is $file->{rev}->{url}, undef;
-           is $file->{rev}->{path}, "abc.txt";
+           is $file->{rev}->{path}, undef;
            is $file->{rev}->{raw_path}, "abc.txt";
-           is $file->{rev}->{path_encoding}, "ibm437";
+           is $file->{rev}->{path_encoding}, undef;
            is $file->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
-           is $file->{rev}->{timestamp}, 1766890774;
+           ok $file->{rev}->{timestamp};
            ok ! $file->{rev}->{insecure};
          }
        }},
@@ -76,11 +76,11 @@ Test {
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
            is $file->{rev}->{url}, undef;
-           is $file->{rev}->{path}, "abc.txt";
+           is $file->{rev}->{path}, undef;
            is $file->{rev}->{raw_path}, "abc.txt";
-           is $file->{rev}->{path_encoding}, "ibm437";
+           is $file->{rev}->{path_encoding}, undef;
            is $file->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
-           is $file->{rev}->{timestamp}, 1766890774;
+           ok $file->{rev}->{timestamp};
            ok ! $file->{rev}->{insecure};
          }
        }},
@@ -94,13 +94,13 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           like $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"}, qr{^archive-[0-9a-z.]+$};
+           like $item->{files}->{'archive-zip'}, qr{^archive-[0-9a-z.]+$};
 
-           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $dir_path = $path->parent->child ($item->{files}->{'archive-zip'});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
-           is $json->{paths}->{"abc.txt"}, "file:abc.txt";
+           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:abc.txt";
            is $json->{raw_paths}->{"abc.txt"}, "file:abc.txt";
            {
              my $item = $json->{items}->{"file:abc.txt"};
@@ -108,10 +108,10 @@ Test {
              ok $item->{files}->{data};
              is $item->{rev}->{url}, undef;
              is $item->{rev}->{original_url}, undef;
-             is $item->{rev}->{path}, "abc.txt";
+             is $item->{rev}->{path}, undef;
              is $item->{rev}->{raw_path}, "abc.txt";
              is $item->{rev}->{length}, 3;
-             is $item->{rev}->{timestamp}, 1766890774;
+             ok $item->{rev}->{timestamp};
              is $item->{rev}->{sha256}, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
 
              my $file_path = $dir_path->child ($item->{files}->{data});
@@ -169,14 +169,14 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
+           ok $item->{files}->{'archive-zip'};
 
-           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $dir_path = $path->parent->child ($item->{files}->{'archive-zip'});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
-           is $json->{paths}->{"abc.txt"}, "file:abc.txt";
-           is $json->{paths}->{"xyz.txt"}, undef;
+           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:abc.txt";
+           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"xyz.txt"}, undef;
            ok $json->{items}->{"file:abc.txt"};
            is $json->{items}->{"file:xyz.txt"}, undef;
          }
@@ -230,9 +230,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
+           ok $item->{files}->{'archive-zip'};
 
-           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $dir_path = $path->parent->child ($item->{files}->{'archive-zip'});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -284,9 +284,9 @@ Test {
            my $item = $json->{items}->{$key};
            is $item->{type}, 'file';
            ok $item->{files}->{data};
-           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
+           ok $item->{files}->{'archive-zip'};
 
-           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $dir_path = $path->parent->child ($item->{files}->{'archive-zip'});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
@@ -352,11 +352,11 @@ Test {
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
            is $file->{rev}->{url}, undef;
-           is $file->{rev}->{path}, "abc.txt";
+           is $file->{rev}->{path}, undef;
            is $file->{rev}->{raw_path}, "abc.txt";
-           is $file->{rev}->{path_encoding}, 'ibm437';
+           is $file->{rev}->{path_encoding}, undef;
            is $file->{rev}->{sha256}, "3608bca1e44ea6c4d268eb6db02260269892c0b42b86bbf1e77a6fa16c3c9282";
-           is $file->{rev}->{timestamp}, 1766890770;
+           ok $file->{rev}->{timestamp};
            ok ! $file->{rev}->{insecure};
          }
        }},
@@ -643,21 +643,21 @@ Test {
          ok my $key = $json->{urls}->{"https://hoge/$key/hoge.zip"};
          {
            my $item = $json->{items}->{$key};
-           is $item->{type}, 'file';
+           is $item->{type}, 'file', $path;
            ok $item->{files}->{data};
-           ok $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"};
+           ok $item->{files}->{'archive-zip'};
 
-           my $dir_path = $path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+           my $dir_path = $path->parent->child ($item->{files}->{'archive-zip'});
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
-           ok my $key = $json->{paths}->{"fuga.zip"};
+           ok my $key = $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"fuga.zip"};
            {
              my $item = $json->{items}->{$key};
-             like $item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"}, qr{^\.\./archive-[0-9.]+$};
-             my $dir_path = $json_path->parent->child ($item->{files}->{"zip-bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"});
+             like $item->{files}->{'archive-zip'}, qr{^\.\./archive-[0-9.]+$};
+             my $dir_path = $json_path->parent->child ($item->{files}->{'archive-zip'});
              my $json_path = $dir_path->child ('index.json');
              my $json = json_bytes2perl $json_path->slurp;
-             ok my $key = $json->{paths}->{"abc.txt"};
+             ok my $key = $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"};
            }
          }
        }},
