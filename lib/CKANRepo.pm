@@ -355,48 +355,6 @@ my $ToComputedMIME = {};
   }
 }
 
-my $MIMEToExt = {};
-my $ExtToMIME = {};
-for (
-  ['image/vnd.dxf' => ['dxf']],
-  ['image/gif' => ['gif']],
-  ['image/jpeg' => ['jpeg', 'jpg']],
-  ['image/png' => ['png']],
-  ['image/tiff' => ['tiff', 'tif']],
-  ['audio/mpeg' => ['mp3']],
-  ['video/mp4' => ['mp4']],
-  ['text/csv' => ['csv']],
-  ['text/html' => ['html', 'htm']],
-  ['text/markdown' => ['md']],
-  ['text/plain' => ['txt']],
-  ['text/turtle' => ['ttl']],
-  ['text/xml' => ['xml']],
-  ['application/ai' => ['ai']],
-  ['application/vnd.android.package-archive' => ['apk']],
-  ['application/vnd.dbf' => ['dbf']],
-  ['application/dm' => ['dm']],
-  ['application/msword' => ['doc']],
-  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['docx']],
-  ['application/geo+json' => ['geojson', 'json'], ['geojson']],
-  ['application/json' => ['json']],
-  ['application/vnd.google-earth.kml+xml' => ['kml']],
-  ['application/pdf' => ['pdf']],
-  ['application/vnd.ms-powerpoint' => ['ppt']],
-  ['application/vnd.openxmlformats-officedocument.presentationml.presentation' => ['pptx']],
-  ['application/rdf+xml' => ['rdf', 'xml'], ['rdf']],
-  ['application/vnd.ms-excel' => ['xls']],
-  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx']],
-  ['application/vnd.ms-excel.sheet.macroEnabled.12' => ['xlsm']],
-  ['application/zip' => ['zip']],
-) {
-  my ($mime, $exts) = @{$_};
-  my $exts2 = $_->[2] // $exts;
-  $MIMEToExt->{$mime} = $exts;
-  for my $ext (@$exts2) {
-    $ExtToMIME->{$ext} = $mime;
-  }
-}
-
 sub get_item_list ($;%) {
   my ($self, %args) = @_;
   my $logger = $self->set->app->logger;
@@ -1007,20 +965,14 @@ sub get_item_list ($;%) {
               $cmime //= $proto_mime if $proto_mime ne ($pi->{mime} // '');
             }
             if (not defined $cmime and $ckan_mime eq '' and
-                $proto_mime eq '' and $ckan_format eq '' and
-                $pi->{title} =~ /\.([0-9A-Za-z]+)\z/) {
-              $cmime = $ExtToMIME->{lc $1};
+                $proto_mime eq '' and $ckan_format eq '') {
+              $cmime = FileTypes::get_mime_type_from_file_name $pi->{title};
             }
             $pi->{mime} = $cmime if defined $cmime;
           } # mime
-          if (not defined $pi->{file_name}) {
-            my $title = $pi->{title};
-            $title =~ tr/A-Z/a-z/;
-            for my $ext (@{$MIMEToExt->{$pi->{mime} // ''} // []}) {
-              if ($title =~ m{\.\Q$ext\E\z}) {
-                $pi->{file_name} = $pi->{title};
-                last;
-              }
+          if (not defined $pi->{file_name} and defined $pi->{title}) {
+            if (FileTypes::is_file_name_for_mime_type $pi->{title}, $pi->{mime} // 'application/octet-stream') {
+              $pi->{file_name} = $pi->{title};
             }
           }
         } # with_props
