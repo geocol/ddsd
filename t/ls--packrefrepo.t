@@ -598,16 +598,401 @@ Test {
         ok $item->{package_item}->{file_time};
         is ref $item->{package_item}->{legal}, 'ARRAY';
         is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "application/json";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/bar";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => ["foo", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, undef;
+        is $item->{package_item}->{title}, "\x{6000}";
+        is $item->{package_item}->{desc}, "\x{7000}";
+        is $item->{package_item}->{author}, "\x{8000}";
+        is $item->{package_item}->{org}, "\x{9000}";
+        is $item->{package_item}->{lang}, 'es';
+        is $item->{package_item}->{dir}, 'rtl';
+        is $item->{package_item}->{writing_mode}, 'vertical-rl';
+        ok $item->{package_item}->{file_time};
+        is ref $item->{package_item}->{legal}, 'ARRAY';
+        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "application/json";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/bar";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
       }
     } $current->c;
   });
-} n => 19, name => 'type=files referenced 2';
+} n => 83, name => 'type=files referenced 2';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+    },
+    {
+      "https://hoge/$key/pack.json" => {
+        text => qq{{
+          "type": "packref",
+          "source": {
+            "type": "files",
+            "files": {
+              "file:r:123": {"url": "https://hoge/$key/bar"}
+            }
+          },
+          "meta": {
+            "title": "\x{6000}",
+            "desc": "\x{7000}",
+            "author": "\x{8000}",
+            "org": "\x{9000}",
+            "lang": "es",
+            "dir": "rtl",
+            "writing_mode": "vertical-rl"
+          }
+        }},
+      },
+      "https://hoge/$key/bar" => {text => "xyz"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key/pack.json", "--min", "--name", $key]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, undef;
+        is $item->{package_item}->{title}, "\x{6000}";
+        is $item->{package_item}->{desc}, "\x{7000}";
+        is $item->{package_item}->{author}, "\x{8000}";
+        is $item->{package_item}->{org}, "\x{9000}";
+        is $item->{package_item}->{lang}, 'es';
+        is $item->{package_item}->{dir}, 'rtl';
+        is $item->{package_item}->{writing_mode}, 'vertical-rl';
+        ok $item->{package_item}->{file_time};
+        is ref $item->{package_item}->{legal}, 'ARRAY';
+        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "application/json";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        is $item->{package_item}->{file_time}, undef;
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, undef;
+        is $item->{package_item}->{title}, "\x{6000}";
+        is $item->{package_item}->{desc}, "\x{7000}";
+        is $item->{package_item}->{author}, "\x{8000}";
+        is $item->{package_item}->{org}, "\x{9000}";
+        is $item->{package_item}->{lang}, 'es';
+        is $item->{package_item}->{dir}, 'rtl';
+        is $item->{package_item}->{writing_mode}, 'vertical-rl';
+        ok $item->{package_item}->{file_time};
+        is ref $item->{package_item}->{legal}, 'ARRAY';
+        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "application/json";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{package_item}->{title}, "";
+        is $item->{package_item}->{file_time}, undef;
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, "https://hoge/$key/bar";
+      }
+    } $current->c;
+  });
+} n => 81, name => 'type=files no local data';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      foo => {
+        type => 'packref',
+        url => "https://hoge/$key/pack.json",
+      },
+    },
+    {
+      "https://hoge/$key/pack.json" => {
+        text => qq{{
+          "type": "packref",
+          "source": {
+            "type": "files",
+            "files": {
+              "file:r:123": {"url": "https://hoge/$key/bar.txt"}
+            }
+          },
+          "meta": {
+            "title": "\x{6000}",
+            "desc": "\x{7000}",
+            "author": "\x{8000}",
+            "org": "\x{9000}",
+            "lang": "es",
+            "dir": "rtl",
+            "writing_mode": "vertical-rl"
+          }
+        }},
+        mime => "text/plain",
+      },
+      "https://hoge/$key/bar.txt" => {text => "xyz"},
+    },
+  )->then (sub {
+    return $current->run ('pull');
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => ["foo", '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, undef;
+        is $item->{package_item}->{title}, "\x{6000}";
+        is $item->{package_item}->{desc}, "\x{7000}";
+        is $item->{package_item}->{author}, "\x{8000}";
+        is $item->{package_item}->{org}, "\x{9000}";
+        is $item->{package_item}->{lang}, 'es';
+        is $item->{package_item}->{dir}, 'rtl';
+        is $item->{package_item}->{writing_mode}, 'vertical-rl';
+        ok $item->{package_item}->{file_time};
+        is ref $item->{package_item}->{legal}, 'ARRAY';
+        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, "text/plain";
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "text/plain";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/bar.txt";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, 'text/plain';
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}, undef;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => ["foo", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{file}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{package_item}->{mime}, undef;
+        is $item->{package_item}->{title}, "\x{6000}";
+        is $item->{package_item}->{desc}, "\x{7000}";
+        is $item->{package_item}->{author}, "\x{8000}";
+        is $item->{package_item}->{org}, "\x{9000}";
+        is $item->{package_item}->{lang}, 'es';
+        is $item->{package_item}->{dir}, 'rtl';
+        is $item->{package_item}->{writing_mode}, 'vertical-rl';
+        ok $item->{package_item}->{file_time};
+        is ref $item->{package_item}->{legal}, 'ARRAY';
+        is 0+@{$item->{package_item}->{legal}}, 0;
+        is $item->{source}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'meta';
+        is $item->{key}, 'meta:packref.json';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/pack.json";
+        is $item->{rev}->{http_content_type}, "text/plain";
+        ok $item->{path};
+        is $item->{package_item}->{mime}, "text/plain";
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:r:123';
+        is $item->{file}, undef;
+        is $item->{rev}->{url}, "https://hoge/$key/bar.txt";
+        is $item->{rev}->{http_content_type}, undef;
+        ok $item->{path};
+        is $item->{package_item}->{mime}, 'text/plain';
+        is $item->{package_item}->{title}, "";
+        ok $item->{package_item}->{file_time};
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+      }
+    } $current->c;
+  });
+} n => 83, name => 'mime 1';
 
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

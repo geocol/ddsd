@@ -166,10 +166,10 @@ Test {
             url => "https://2.hoge/dataset/$key",
             skip_other_files => 1,
             files => {
-              package => {
+              "meta:package.ckan.json" => {
                 sha256 => "dbb997f2c34c915e733551336ba8a01e01a1265d1ddddb50181af37caca72246",
               },
-              "package:activity.html" => {},
+              "meta:activity.html" => {},
               "file:index:0" => {
                 sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
               },
@@ -188,7 +188,7 @@ Test {
       },
       $current->mirrors_url_prefix . 'hash-ckan-2.hoge.jsonl' => {
         jsonl => [
-          ["904a4013cee2be0fc0f575bbe7ac97ec5da7b56eccad2e19257e6ca91d9fd823",
+          ["a6d3608003dd94375459a4f270835001dc0a577f407e56d7e3694c1acdf1c6df",
            "https://2.hoge/$key/hash1.zip",
            $r->{json}->{sha256}, $r->{json}->{length}],
         ],
@@ -230,7 +230,6 @@ Test {
     return $current->check_files ([
       {path => "local/ddsd/states/packages.json", json => sub {
         my $json = shift;
-        use Data::Dumper;warn Dumper $json;
         is $json->{foo}->{ckan}->{"https://2.hoge/dataset/$key"}->{mirror_url}, "https://2.hoge/$key/hash1.zip";
       }},
     ], app => 1);
@@ -254,7 +253,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

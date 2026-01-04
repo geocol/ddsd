@@ -162,7 +162,14 @@ package_item
   author
   org
   
-  mime (required for |file|)
+  mime
+
+    The MIME type of the item, if applicable.
+
+    The value is computed from |Content-Type| header, file name
+    extensions of URLs and file names, package manifest's MIME type,
+    file format, and file name metadata, and data format as specified
+    by the source from which the item is referenced.
 
   file_time [time?]
 

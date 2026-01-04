@@ -745,14 +745,14 @@ Test {
   )->then (sub {
     return $current->run ('add', additional => [
       "https://hoge/$key", '--single-file',
-      '--name', $current->generate_text (t1 => {}),
+      '--name', "a\x{5000}\x{26012}",
     ]);
   })->then (sub {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
     } $current->c;
-    return $current->run ('ls', additional => [$current->o ('t1'), '--jsonl'], jsonl => 1);
+    return $current->run ('ls', additional => ["a\x{5000}\x{26012}", '--jsonl'], jsonl => 1);
   })->then (sub {
     my $r = $_[0];
     test {

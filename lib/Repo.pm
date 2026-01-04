@@ -1593,6 +1593,27 @@ sub _set_item_file_info ($$$$$%) {
              length $file->{rev}->{mime_filename};
     }
     $pi->{title} = '';
+    if ($args{compute_mime}) {
+      $pi->{mime} //= 'application/octet-stream';
+      $pi->{mime} = FileTypes::normalize_mime_type_string $pi->{mime};
+      if ($pi->{mime} eq 'application/octet-stream') {
+        if (defined $pi->{file_name}) {
+          my $cmime = FileTypes::get_mime_type_from_file_name $pi->{file_name};
+          $pi->{mime} = $cmime if defined $cmime;
+        } else {
+          my $file_name = defined $file->{rev} ? $file->{rev}->{url} : undef;
+          $file_name //= defined $file->{source} ? $file->{source}->{url} : undef;
+          if (defined $file_name) {
+            $file_name =~ s{#.*}{}s;
+            $file_name =~ s{\?.*}{}s;
+            if ($file_name =~ s{^[^:/]+://[^/]*/}{}) {
+              my $cmime = FileTypes::get_mime_type_from_file_name $file_name;
+              $pi->{mime} = $cmime if defined $cmime;
+            }
+          }
+        }
+      }
+    }
   } # with_props
 
   if ($args{skipped}) {

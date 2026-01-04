@@ -147,9 +147,10 @@ sub get_item_list ($;%) {
             if ($args{with_source_meta} or
                 ($file->{type} eq 'dataset' and $file->{set_type} eq 'sparql')) and
                     defined $url;
-        $self->_set_item_file_info ([url_string => $url->stringify],
-                                    $fdef, $in, $file, %args)
-            unless $skipped; # XXX tests for skipped
+        $self->_set_item_file_info
+            ([url_string => $url->stringify],
+             $fdef, $in, $file, %args, skipped => $skipped,
+             compute_mime => 1);
 
         if (defined $file->{package_item}->{file_time}) {
           $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};

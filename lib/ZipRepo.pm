@@ -10,6 +10,7 @@ push our @ISA, qw(Repo);
 
 use Zipper;
 use RepoIndexFile;
+use FileTypes;
 
 sub new_from_upstream ($$$;%) {
   my ($class, $upstream_repo, $upstream_args, %args) = @_;
@@ -175,6 +176,7 @@ sub get_item_list ($;%) {
     for (keys %{$upitem->{package_item} or {}}) {
       $pack_file->{package_item}->{$_} = $upitem->{package_item}->{$_};
     }
+    $pack_file->{package_item}->{mime} = FileTypes::force_zip_mime_type $pack_file->{package_item}->{mime};
 
     my $zip_path = $zipix->upstream_index->get_path_of ($upitem, 'data'); # or throw
     return Promise->all ([
@@ -267,26 +269,28 @@ sub get_item_list ($;%) {
             ([raw_path_string => $zipped_file->{central}->{raw_path}],
              $fdef, $zipix, $file, %args)
             unless $skipped;
-
-        $file->{source}->{file_name} = $zipped_file->{path};
-        $file->{package_item}->{mime} = 'application/octet-stream';
-        $file->{package_item}->{title} = '';
         $file->{archive_item} = $zipped_file if $args{with_source_meta};
         if ($args{with_props}) {
-          $file->{package_item}->{desc} = $zipped_file->{comment} // '';
-        }
+          my $pi = $file->{package_item};
+          $pi->{file_name} = $zipped_file->{path};
+          {
+            my $cmime = FileTypes::get_mime_type_from_file_name $pi->{file_name};
+            $pi->{mime} = $cmime // 'application/octet-stream';
+          }
+          $pi->{desc} = $zipped_file->{comment} // '';
 
-        $file->{package_item}->{file_time} = App::NumberString->new ($zipped_file->{mtime});
-        if (defined $file->{package_item}->{file_time}) {
-          $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
-          $pack_file->{package_item}->{file_time} = $file->{package_item}->{file_time}
-              if $pack_file->{package_item}->{file_time} < $file->{package_item}->{file_time};
-        }
-        if (defined $zipped_file->{tzoffset}) {
-          $file->{package_item}->{tzoffset} = $zipped_file->{tzoffset};
-        } else {
-          # XXX local time flag
-        }
+          $pi->{file_time} = App::NumberString->new ($zipped_file->{mtime});
+          if (defined $pi->{file_time}) {
+            $pack_file->{package_item}->{file_time} //= $pi->{file_time};
+            $pack_file->{package_item}->{file_time} = $pi->{file_time}
+                if $pack_file->{package_item}->{file_time} < $pi->{file_time};
+          }
+          if (defined $zipped_file->{tzoffset}) {
+            $pi->{tzoffset} = $zipped_file->{tzoffset};
+          } else {
+            # XXX local time flag
+          }
+        } # props
         
         push @$files, $file;
       } # $zipped_file
@@ -299,6 +303,9 @@ sub get_item_list ($;%) {
         $self->_set_snapshot_hash ($files);
       }
 
+      if (defined $pack_file->{package_item}->{rev}) {
+        $pack_file->{package_item}->{file_time} //= $pack_file->{package_item}->{rev}->{timestamp};        
+      }
       $pack_file->{package_item}->{file_time} //= time;
     } # with_props
   })->then (sub {

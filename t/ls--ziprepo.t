@@ -1837,6 +1837,76 @@ Test {
   });
 } n => 40, name => 'different options';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => {
+        "a0.abcdef" => {bytes => "x"},
+        "a1.txt" => {bytes => "x"},
+        "a2.PNg" => {bytes => "x"},
+        "a3.html/foo" => {bytes => "x"},
+      }, timestamp => 1766901872, mime => 'application/octet-stream'},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1, stdout => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      $r->{jsonl} = [sort { $a->{key} cmp $b->{key} } @{$r->{jsonl}}];
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a0.abcdef";
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{rev}->{http_content_type}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a1.txt";
+        is $item->{package_item}->{mime}, 'text/plain';
+        is $item->{rev}->{http_content_type}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a2.PNg";
+        is $item->{package_item}->{mime}, 'image/png';
+        is $item->{rev}->{http_content_type}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{type}, 'file';
+        is $item->{key}, "file:a3.html/foo";
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{rev}->{http_content_type}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[-1];
+        is $item->{type}, 'package';
+        is $item->{package_item}->{mime}, 'application/zip';
+        is $item->{rev}->{http_content_type}, 'application/octet-stream';
+      }
+    } $current->c;
+  });
+} n => 22, name => 'mime types';
+
 Run;
 
 =head1 LICENSE

@@ -78,7 +78,7 @@ sub fetch ($;%) {
         $as->{next}->(undef, undef, {key => $file->{key}, url => $file->{source}->{url}});
         return if $file->{type} eq 'package';
 
-        my $url = $file->{source}->{url};
+        my $url = Web::URL->parse_string ($file->{source}->{url});
         if (not defined $url or not $url->is_http_s) {
           $args{has_error}->();
           $as->message ({
@@ -172,13 +172,12 @@ sub get_item_list ($;%) {
       };
       push @$files, $file;
       $fs->{$file_key} = $file;
-      if ($args{with_source_meta}) {
-        $file->{source}->{url} = $url;
-      }
-      # XXX skipped
+      $file->{source}->{url} = $url->stringify if $args{with_source_meta};
+      my $skipped = $file_defs->{$file_key}->{skip};
       my $item = $self->_set_item_file_info
           ([url_string => $url->stringify],
-           $file_defs->{$file_key}, $in, $file, %args);
+           $file_defs->{$file_key}, $in, $file, %args,
+           skipped => $skipped, compute_mime => 1);
       $items->{$file_key} = $item; # or undef
     } # for
 
@@ -236,7 +235,7 @@ sub get_item_list ($;%) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

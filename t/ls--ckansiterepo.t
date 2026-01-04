@@ -62,7 +62,7 @@ Test {
         is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'text/html';
-        like $item->{path}, qr{^/.+/local/data/hoge/files/index.html$}; # XXX platform
+        like $item->{path}, qr{.+/local/data/hoge/files/index.html$};
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
         ok $item->{rev}->{sha256};
@@ -81,7 +81,7 @@ Test {
         is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'text/css';
-        like $item->{path}, qr{^/.+/local/data/hoge/files/about.html$}; # XXX platform
+        like $item->{path}, qr{.+/local/data/hoge/files/about.html$};
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
         ok $item->{rev}->{sha256};
@@ -100,7 +100,7 @@ Test {
         is $item->{file}, undef;
         is $item->{package_item}->{title}, '';
         is $item->{package_item}->{mime}, 'application/octet-stream';
-        like $item->{path}, qr{^/.+/local/data/hoge/files/package_list.json$}; # XXX platform
+        like $item->{path}, qr{.+/local/data/hoge/files/package_list.json$};
         ok $item->{rev}->{http_date};
         ok $item->{rev}->{length};
         ok $item->{rev}->{sha256};
@@ -113,8 +113,237 @@ Test {
         is $item->{ckan_resource}, undef;
       }
     } $current->c;
+    return $current->run ('ls', additional => ["hoge", '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 4;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{package_item}->{mime}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+        is $item->{file}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:index.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'text/html';
+        like $item->{path}, qr{.+/local/data/hoge/files/index.html$};
+        ok $item->{rev}->{http_date};
+        ok $item->{rev}->{length};
+        ok $item->{rev}->{sha256};
+        ok $item->{rev}->{timestamp};
+        is $item->{rev}->{url}, "https://hoge/$key/";
+        is $item->{rev}->{original_url}, $item->{rev}->{url};
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:about.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'text/css';
+        like $item->{path}, qr{.+/local/data/hoge/files/about.html$};
+        ok $item->{rev}->{http_date};
+        ok $item->{rev}->{length};
+        ok $item->{rev}->{sha256};
+        ok $item->{rev}->{timestamp};
+        is $item->{rev}->{url}, "https://hoge/$key/about";
+        is $item->{rev}->{original_url}, $item->{rev}->{url};
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:package_list.json';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        like $item->{path}, qr{.+/local/data/hoge/files/package_list.json$};
+        ok $item->{rev}->{http_date};
+        ok $item->{rev}->{length};
+        ok $item->{rev}->{sha256};
+        ok $item->{rev}->{timestamp};
+        is $item->{rev}->{url}, "https://hoge/$key/api/action/package_list";
+        is $item->{rev}->{original_url}, $item->{rev}->{url};
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, $item->{rev}->{url};
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+    } $current->c;
   });
-} n => 65, name => 'ls --jsonl';
+} n => 129, name => 'ls --jsonl';
+
+Test {
+  my $current = shift;
+  my $key = rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'ckansite',
+        url => "https://hoge/$key/",
+      },
+    },
+    {
+    },
+  )->then (sub {
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 4;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{package_item}->{mime}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+        is $item->{file}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:index.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:about.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:package_list.json';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 4;
+      {
+        my $item = $r->{jsonl}->[0];
+        is $item->{type}, 'package';
+        is $item->{key}, 'package';
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{lang}, '';
+        is $item->{package_item}->{dir}, 'auto';
+        is $item->{package_item}->{writing_mode}, 'horizontal-tb';
+        is $item->{package_item}->{mime}, undef;
+        is $item->{rev}, undef;
+        is $item->{path}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}, undef;
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+        is $item->{file}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[1];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:index.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, "https://hoge/$key/";
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[2];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:about.html';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, "https://hoge/$key/about";
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{type}, 'file';
+        is $item->{key}, 'file:package_list.json';
+        is $item->{file}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{package_item}->{mime}, 'application/octet-stream';
+        is $item->{path}, undef;
+        is $item->{rev}, undef;
+        is $item->{parsed}, undef;
+        is $item->{source}->{url}, "https://hoge/$key/api/action/package_list";
+        is $item->{ckan_package}, undef;
+        is $item->{ckan_resource}, undef;
+      }
+    } $current->c;
+  });
+} n => 98, name => 'no local data';
 
 Test {
   my $current = shift;
@@ -436,7 +665,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

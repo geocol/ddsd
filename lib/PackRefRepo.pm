@@ -390,7 +390,8 @@ sub get_item_list ($;%) {
                  $packref_fdef, $in, $file, %args,
                  default_mime => 'application/json',
                  default_directory_name => 'package',
-                 default_file_name => 'packref.json');
+                 default_file_name => 'packref.json',
+                 compute_mime => 1);
 
             if (defined $file->{package_item}->{file_time}) {
               $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
@@ -454,8 +455,8 @@ sub get_item_list ($;%) {
                  defined $url;
           $self->_set_item_file_info
               (defined $url ? [url_string => $url->stringify] : undef,
-               $fdef, $in, $file, %args)
-              unless $skipped; # XXX tests for skipped
+               $fdef, $in, $file, %args,
+               skipped => $skipped, compute_mime => 1);
 
           if (defined $file->{package_item}->{file_time}) {
             $pack_file->{package_item}->{file_time} //= $file->{package_item}->{file_time};
@@ -495,7 +496,7 @@ sub get_item_list ($;%) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
