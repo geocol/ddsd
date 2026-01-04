@@ -1553,7 +1553,7 @@ sub _set_item_file_info ($$$$$%) {
   my ($self, $item_desc, $fdef, $ix, $file, %args) = @_;
 
   my $item;
-  if (defined $item_desc and defined $ix) {
+  if (defined $item_desc and defined $ix and not $args{skipped}) {
     my $item_key;
     ($item_key, $item) = $ix->get_item (@$item_desc, file_def => $fdef);
     if (defined $item) {
@@ -1573,8 +1573,10 @@ sub _set_item_file_info ($$$$$%) {
   } # $item_desc
 
   my $pi = $file->{package_item} = {};
-  if ($file->{type} eq 'file' or $file->{type} eq 'meta' or
-      $file->{type} eq 'part') {
+  if ($args{skipped}) {
+    #
+  } elsif ($file->{type} eq 'file' or $file->{type} eq 'meta' or
+           $file->{type} eq 'part') {
     $pi->{mime} = $args{default_mime} // 'application/octet-stream';
     $pi->{mime} = $file->{rev}->{http_content_type}
         if defined $file->{rev} and defined $file->{rev}->{http_content_type};
@@ -1586,11 +1588,16 @@ sub _set_item_file_info ($$$$$%) {
       $pi->{file_time} = $file->{rev}->{http_last_modified} //
                          $file->{rev}->{http_date} //
                          $file->{rev}->{timestamp};
+      $pi->{file_name} = $file->{rev}->{mime_filename}
+          if defined $file->{rev}->{mime_filename} and
+             length $file->{rev}->{mime_filename};
     }
     $pi->{title} = '';
   } # with_props
 
-  if (defined $fdef and defined $fdef->{name}) {
+  if ($args{skipped}) {
+    #
+  } elsif (defined $fdef and defined $fdef->{name}) {
     $file->{file}->{directory} = 'files';
     $file->{file}->{name} = $fdef->{name};
   } else {
@@ -1642,7 +1649,7 @@ sub _expand_dataset ($$$$$$%) {
                 push @$files, $f;
     }
 
-    $file->{source}->{base_url} = delete $file->{source}->{url};
+    $file->{package_item}->{file_name} = delete $file->{source}->{url};
     $file->{set_expanded} = \1;
   } elsif ($file->{set_type} eq 'fiware-ngsi') {
     if ($args{report_unexpandable_set_type}) {
@@ -1828,17 +1835,14 @@ sub construct_file_list ($$;%) {
             $name = "$dir/$file->{file}->{name}";
           }
         } else {
-          if ((defined $file->{rev} and
-               defined $file->{rev}->{mime_filename}) or
-              (defined $file->{source}->{file_name})) {
-            $name = (defined $file->{rev} ? $file->{rev}->{mime_filename} : undef) // $file->{source}->{file_name};
+          if (defined $file->{package_item}->{file_name}) {
+            $name = $file->{package_item}->{file_name};
             $name =~ s{^.*[/\\]}{}s;
             $name = encode_web_utf8 $name;
             $name =~ s/%([0-9A-Fa-f]{2})/pack 'C', hex $1/ge;
             $name = decode_web_utf8 $name;
-          } elsif (defined $file_u or
-                   (defined $file->{source} and defined $file->{source}->{base_url})) {
-            $name = $file_u // $file->{source}->{base_url};
+          } elsif (defined $file_u) {
+            $name = $file_u;
             $name =~ s{#.*}{}s;
             $name =~ s{\?.*}{}s;
             $name =~ s{^.*[/\\]}{}s;
@@ -1991,7 +1995,7 @@ sub construct_file_list ($$;%) {
           defined $file->{snapshot}->{file_name}) {
         $key_to_dir_name->{$file->{key}} = $file->{snapshot}->{file_name};
       }
-    }
+    } # $file
     return $files;
   });
 } # construct_file_list

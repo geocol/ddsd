@@ -93,7 +93,6 @@ sub fetch ($;%) {
         return $self->_fetch_file (
           $url, $file_defs->{$file->{key}},
           %args,
-          mime => $file->{source}->{mime},
           has_error => $args{has_error},
           index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
           set_repo_type => 1,

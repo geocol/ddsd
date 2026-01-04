@@ -44,6 +44,7 @@ Test {
         is $item->{package_item}->{file_time}, 1766901872;
         is $item->{package_item}->{legal}, undef;
         ok $item->{package_item}->{snapshot_hash};
+        is $item->{package_item}->{file_name}, undef;
         is $item->{archive_meta}, undef;
         is $item->{rev}->{url}, "https://hoge/$key.zip";
         is $item->{rev}->{original_url}, "https://hoge/$key.zip";
@@ -63,6 +64,7 @@ Test {
         is $item->{package_item}->{title}, "";
         is $item->{package_item}->{file_time}, 1766901800;
         is $item->{package_item}->{legal}, undef;
+        is $item->{package_item}->{file_name}, "abc.dat";
         is $item->{rev}, undef;
         is $item->{archive_item}, undef;
       }
@@ -239,7 +241,7 @@ Test {
       }
     } $current->c;
   });
-} n => 169, name => 'ok';
+} n => 171, name => 'ok';
 
 Test {
   my $current = shift;
@@ -583,6 +585,7 @@ Test {
         is $item->{rev}->{http_last_modified}, undef;
         ok $item->{rev}->{timestamp};
         is $item->{rev}->{sha256}, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        is $item->{package_item}->{file_name}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         is $item->{archive_item}->{path}, "abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         is $item->{archive_item}->{central}->{raw_path}, "abc\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x82\xA2\x9A\xA2.dat";
         is $item->{archive_item}->{path_encoding}, "shift_jis";
@@ -591,7 +594,7 @@ Test {
       }
     } $current->c;
   });
-} n => 52, name => 'sjis';
+} n => 53, name => 'sjis';
 
 Test {
   my $current = shift;

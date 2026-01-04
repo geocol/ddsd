@@ -157,6 +157,9 @@ return sub {
             ['last-modified', Web::DateTime->new_from_unix_time ($def->{last_modified} // $def->{timestamp})->to_http_date_string]
             if defined $def->{last_modified} or defined $def->{timestamp};
         push @{$Meta->{$u}->{headers} ||= []},
+            ['content-disposition', 'attachment; filename="'.$def->{mime_filename}.'"']
+            if defined $def->{mime_filename}; # XXX non-ascii
+        push @{$Meta->{$u}->{headers} ||= []},
             ['date', Web::DateTime->new_from_unix_time ($def->{date})->to_http_date_string]
             if defined $def->{date};
       }, sub {

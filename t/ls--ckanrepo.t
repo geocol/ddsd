@@ -323,11 +323,180 @@ Test {
   });
 } n => 13, name => 'snapshot_hash 1';
 
+Test {
+  my $current = shift;
+  my $key = rand;
+  use utf8;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/dataset/$key" => {
+        text => qq{<html lang="ja_FR"><link rel="stylesheet" type="text/css" href="/foo/bar/main-rtl.min.css" /><meta name="generator" content="ckan 1.2.3"><body data-site-root="https://hoge/" xxx="">},
+      },
+      "https://hoge/api/action/package_show?id=$key" => {
+        json => {success => \1, result => {
+          resources => [
+            {url => "https://hoge/$key.1/"},
+            {url => "https://hoge/$key.2/"},
+            {url => "https://hoge/$key.3/", name => "abc.html", mimetype => "image/png"},
+            {url => "https://hoge/$key.4/", name => "abc.html"},
+            {url => "https://hoge/$key.5/", name => "abc.html", mimetype => "text/html"},
+            {url => "https://hoge/$key.6/", name => "abc.html", mimetype => "text/html"},
+          ],
+        }},
+      },
+      "https://hoge/$key.1/" => {text => 1},
+      "https://hoge/$key.2/" => {text => 1, mime_filename => "abc.txt"},
+      "https://hoge/$key.3/" => {text => 1},
+      "https://hoge/$key.4/" => {text => 1, mime => "text/html"},
+      "https://hoge/$key.5/" => {text => 1},
+      "https://hoge/$key.6/" => {text => 1, mime_filename => "foo.html"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/dataset/$key", '--min']);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3+6;
+      for (3..4) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[5];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}, undef;
+      }
+      for (6..8) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, 'abc.html';
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}, undef;
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3+6;
+      for (3..4) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[5];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}, undef;
+      }
+      for (6..8) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, 'abc.html';
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}, undef;
+      }
+    } $current->c;
+    return $current->run ('use', additional => [$key, '--all'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3+6;
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[4];
+        is $item->{package_item}->{file_name}, 'abc.txt';
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}->{mime_filename}, "abc.txt";
+      }
+      {
+        my $item = $r->{jsonl}->[5];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      for (6, 7) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, 'abc.html';
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[8];
+        is $item->{package_item}->{file_name}, 'foo.html';
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, 'foo.html';
+      }
+    } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl', '--with-source-meta'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      is 0+@{$r->{jsonl}}, 3+6;
+      {
+        my $item = $r->{jsonl}->[3];
+        is $item->{package_item}->{file_name}, undef;
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[4];
+        is $item->{package_item}->{file_name}, 'abc.txt';
+        is $item->{package_item}->{title}, '';
+        is $item->{rev}->{mime_filename}, "abc.txt";
+      }
+      {
+        my $item = $r->{jsonl}->[5];
+        is $item->{package_item}->{file_name}, undef, 5;
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      for (6..7) {
+        my $item = $r->{jsonl}->[$_];
+        is $item->{package_item}->{file_name}, 'abc.html';
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, undef;
+      }
+      {
+        my $item = $r->{jsonl}->[8];
+        is $item->{package_item}->{file_name}, 'foo.html', 8;
+        is $item->{package_item}->{title}, 'abc.html';
+        is $item->{rev}->{mime_filename}, 'foo.html';
+      }
+    } $current->c;
+  });
+} n => 82, name => 'file names';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

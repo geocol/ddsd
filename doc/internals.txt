@@ -64,6 +64,14 @@ archive_item [Archive Item]? (when with_source_meta => 1)
     Properties of the file from the archive, if it is a |file|
     representing a file in an archive file.
 
+source (when with_source_meta => 1)
+
+    Properties of the data source of the file.
+
+  url
+
+    The URL of the file to be fetched, if any.
+
 rev
 
     Physical properties of the file.  They are immutable
@@ -136,6 +144,11 @@ rev
 package_item
 
     Computed properties of the item.
+
+  file_name [text?]
+
+    The file name of the item, if any.  It may or may not have path to
+    the file in some platform conventions.
 
   title [text] (required)
   lang

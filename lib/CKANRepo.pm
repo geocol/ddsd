@@ -282,7 +282,6 @@ sub fetch ($;%) {
         return $self->_fetch_file (
           $url, $file_defs->{$file->{key}},
           %args,
-          mime => $file->{source}->{mime},
           dest_type => ($file->{key} =~ /^meta:/ ? 'meta' : undef),
           has_error => $he,
           index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
@@ -447,7 +446,7 @@ sub get_item_list ($;%) {
         $file->{file}->{name} = $file_defs->{'meta:ckan.json'}->{name};
       }
       push @$files, $file0, $file;
-    }
+    } # $with_package
     
     my $item;
     my $item_key;
@@ -613,7 +612,8 @@ sub get_item_list ($;%) {
               defined $pack->{metadata_created}) {
             my $dtp = Web::DateTime::Parser->new;
             $dtp->onerror (sub { });
-            my $dt = $dtp->parse_local_date_and_time_string ($pack->{metadata_created});
+            my $dt = $dtp->parse_local_date_and_time_string
+                ($pack->{metadata_created});
             if (defined $dt) {
               $pi->{file_time} = $dt->to_unix_number;
             }
@@ -628,22 +628,22 @@ sub get_item_list ($;%) {
           $pi0->{title} = $pi->{title};
           $pi0->{legal} = [];
 
-        if (defined $acts_bytes) {
-          if ($acts_bytes =~ m{<html lang="([^"&]+)">}) {
-            $pi0->{lang} = $1;
-            $pi0->{lang} =~ tr/A-Z_/a-z-/;
-          }
+          if (defined $acts_bytes) {
+            if ($acts_bytes =~ m{<html lang="([^"&]+)">}) {
+              $pi0->{lang} = $1;
+              $pi0->{lang} =~ tr/A-Z_/a-z-/;
+            }
           
-          if ($acts_bytes =~ m{<link rel="stylesheet"[^<>]*href="[^"]+/main(-rtl|)\.min\.css"\s*/>}) {
-            ## CKAN (original)
-            $pi0->{dir} = $1 ? 'rtl' : 'ltr';
-          } elsif ($acts_bytes =~ m{<link href="[^"]*/gkan/[^"]*" rel="stylesheet"\s*/>}) {
-            ## GKAN
-            $pi0->{dir} = 'ltr';
-          }
+            if ($acts_bytes =~ m{<link rel="stylesheet"[^<>]*href="[^"]+/main(-rtl|)\.min\.css"\s*/>}) {
+              ## CKAN (original)
+              $pi0->{dir} = $1 ? 'rtl' : 'ltr';
+            } elsif ($acts_bytes =~ m{<link href="[^"]*/gkan/[^"]*" rel="stylesheet"\s*/>}) {
+              ## GKAN
+              $pi0->{dir} = 'ltr';
+            }
 
-          $pi0->{writing_mode} = 'horizontal-tb';
-        } # $acts_bytes
+            $pi0->{writing_mode} = 'horizontal-tb';
+          } # $acts_bytes
 
           my $extras_copyright = undef;
           if (defined $pack->{extras} and ref $pack->{extras} eq 'ARRAY') {
@@ -777,11 +777,11 @@ sub get_item_list ($;%) {
             $v->{insecure} = 1 if $package_insecure;
           }
 
-        my $has_sokuryouhou = 0;
-        if (defined $pack->{notes}) {
-          use utf8;
-          if ($pack->{notes} =~ m{\[[^\[\]]+利用規約\]\((https://[^()]+)\)}) {
-            ## <https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-073229_g2-000011>
+          my $has_sokuryouhou = 0;
+          if (defined $pack->{notes}) {
+            use utf8;
+            if ($pack->{notes} =~ m{\[[^\[\]]+利用規約\]\((https://[^()]+)\)}) {
+              ## <https://catalog.registries.digital.go.jp/rc/dataset/ba-o1-073229_g2-000011>
             my $u = $1;
             push @{$pi0->{legal}}, {type => 'license',
                                     key => '-ddsd-ckan-package',
@@ -832,18 +832,18 @@ sub get_item_list ($;%) {
             }
           }
         }
-        if (defined $pack->{title}) {
-          use utf8;
-          if (not $has_sokuryouhou and $pack->{title} =~ /測量成果/) {
-            push @{$pi0->{legal}}, {type => 'license',
-                                   key => '-ddsd-jp-sokuryouhou',
-                                   source_type => 'package',
-                                   source_url => $self->{api_url}};
+          if (defined $pack->{title}) {
+            use utf8;
+            if (not $has_sokuryouhou and $pack->{title} =~ /測量成果/) {
+              push @{$pi0->{legal}}, {type => 'license',
+                                      key => '-ddsd-jp-sokuryouhou',
+                                      source_type => 'package',
+                                      source_url => $self->{api_url}};
+            }
           }
-        }
 
-        for my $pl (@{$pi0->{legal}}) {
-          next unless $pl->{extracted_url};
+          for my $pl (@{$pi0->{legal}}) {
+            next unless $pl->{extracted_url};
           
           for my $l (@$legal) {
             next unless defined $l and ref $l eq 'HASH';
@@ -863,14 +863,14 @@ sub get_item_list ($;%) {
               last;
             }
           }
-        } # $pl
+          } # $pl
 
-        if (defined $log_bytes) {
-          $self->_parse_log_legal ($log_bytes => $pi0->{legal});
-        } # $log_bytes
-      } # with_props
-    } # $with_package
-
+          if (defined $log_bytes) {
+            $self->_parse_log_legal ($log_bytes => $pi0->{legal});
+          } # $log_bytes
+        } # with_props
+      } # $with_package
+      
       my $reses = $pack->get_resources;
       my $i = -1;
       my $found = {};
@@ -945,8 +945,8 @@ sub get_item_list ($;%) {
         
         $self->_set_item_file_info
             ((defined $url ? [url_string => $url->stringify] : undef),
-             $file_defs->{$file->{key}}, $in, $file, %args)
-            unless $skipped; # XXX tests for skipped
+             $file_defs->{$file->{key}}, $in, $file, %args,
+             skipped => $skipped);
         if ($args{with_props}) {
           my $pi = $file->{package_item};
           {
@@ -983,8 +983,8 @@ sub get_item_list ($;%) {
             my $file_name = $res->{url};
             $file_name = $file->{rev}->{url} if defined $file->{rev};
             my $ext = '';
-            if (defined $file->{rev} and $file->{rev}->{mime_filename}) {
-              $file_name = $file->{rev}->{mime_filename};
+            if (defined $pi->{file_name}) {
+              $file_name = $pi->{file_name};
             } elsif (defined $file_name) {
               $file_name =~ s{#.*}{}s;
               $file_name =~ s{\?.*}{}s;
@@ -1013,12 +1013,12 @@ sub get_item_list ($;%) {
             }
             $pi->{mime} = $cmime if defined $cmime;
           } # mime
-          {
+          if (not defined $pi->{file_name}) {
             my $title = $pi->{title};
             $title =~ tr/A-Z/a-z/;
             for my $ext (@{$MIMEToExt->{$pi->{mime} // ''} // []}) {
               if ($title =~ m{\.\Q$ext\E\z}) {
-                $file->{source}->{file_name} = $pi->{title};
+                $pi->{file_name} = $pi->{title};
                 last;
               }
             }
@@ -1062,7 +1062,7 @@ sub _get_item ($$$) {
 
 =head1 LICENSE
 
-Copyright 2024-2025 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

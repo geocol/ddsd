@@ -46,10 +46,10 @@ Test {
     return $current->check_files ([
       {path => "foo.zip", zip => sub {
          my $files = shift;
-         ok $files->{"index.json"}->{size};
-         ok $files->{"LICENSE"}->{size};
-         is $files->{'data/18ac3e7343f016890c510e93f935261169d9e3f565436429830faf0934f4f8e4.dat'}->{size}, 1;
-         is $files->{'data/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.dat'}->{size}, 1;
+         ok $files->{"index.json"}->{central}->{byte_length};
+         ok $files->{"LICENSE"}->{central}->{byte_length};
+         is $files->{'data/18ac3e7343f016890c510e93f935261169d9e3f565436429830faf0934f4f8e4.dat'}->{central}->{byte_length}, 1;
+         is $files->{'data/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.dat'}->{central}->{byte_length}, 1;
          is 0+(grep { m{^data/} } keys %$files), 17;
        }},
     ]);
@@ -60,7 +60,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

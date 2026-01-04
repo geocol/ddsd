@@ -206,7 +206,6 @@ sub fetch ($;%) {
                 $args{has_error}->();
                 $ret->{broken} = 1;
               },
-              mime => $file->{source}->{mime},
               insecure => $insecure,
               index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
               skip_if_found => $args{no_update},
@@ -453,8 +452,9 @@ sub get_item_list ($;%) {
               if ($args{with_source_meta} or
                   ($file->{type} eq 'dataset' and $file->{set_type} eq 'sparql')) and
                  defined $url;
-          $self->_set_item_file_info ([url_string => $url->stringify],
-                                      $fdef, $in, $file, %args)
+          $self->_set_item_file_info
+              (defined $url ? [url_string => $url->stringify] : undef,
+               $fdef, $in, $file, %args)
               unless $skipped; # XXX tests for skipped
 
           if (defined $file->{package_item}->{file_time}) {

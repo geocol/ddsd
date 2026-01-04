@@ -338,7 +338,7 @@ for (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 12;
+        is $r->{exit_code}, 0;
       } $current->c;
       return $current->check_files ([
         {path => "config/ddsd/packages.json", json => sub {
@@ -364,7 +364,7 @@ for (
         {path => "local/data/$key/files/$out_name", text => "r1"},
       ]);
     });
-  } n => 7, name => ['replaced name', $in_name];
+  } n => 7, name => ['replaced name 1', $in_name];
 }
 
 for (
@@ -440,7 +440,7 @@ for (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 12;
+        is $r->{exit_code}, 0;
       } $current->c;
       return $current->check_files ([
         {path => "config/ddsd/packages.json", json => sub {
@@ -521,7 +521,7 @@ for my $in_name (
     })->then (sub {
       my $r = $_[0];
       test {
-        is $r->{exit_code}, 12;
+        is $r->{exit_code}, 0;
       } $current->c;
       return $current->check_files ([
         {path => "config/ddsd/packages.json", json => sub {
@@ -594,6 +594,7 @@ for my $in_name (
   "x\x{FFFF}y\x{E000}c",
   "ab c\x{2028}\x{2066}",
   "f\x{FE00}oo\x{034F}\x{200D}b\x{0600}",
+  "\x{0345}",
 ) {
   Test {
     my $current = shift;
@@ -629,7 +630,7 @@ for my $in_name (
         {path => "local/data/$in_name", is_none => 1},
       ]);
     });
-  } n => 2, name => ['bad name 2', $in_name];
+  } n => 2, name => ['bad name 2 (data area name)', $in_name];
 }
 
 for (
@@ -649,8 +650,8 @@ for (
   #["\x{00df}", "ss"],
   ["\x{00df}", "\x{1e9e}"],
   #["ss", "\x{1e9e}"],
-  ["\x{0345}", "\x{03b9}"],
-  ["\x{0345}", "\x{0399}"],
+  ["a\x{0345}", "a\x{03b9}"],
+  ["a\x{0345}", "a\x{0399}"],
   ["\x{03a3}", "\x{03c3}"],
   ["\x{03a3}", "\x{03c2}"],
 ) {
@@ -813,7 +814,7 @@ Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

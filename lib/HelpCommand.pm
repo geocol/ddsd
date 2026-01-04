@@ -40,7 +40,14 @@ Arguments
   --single-file Add the URL as a single file (as oppose to as a package
                 manifest).
 
-}, # XXX exit code
+Exit statuses
+
+  0             The package has been added successfully.
+  12            The package has been added but some files in the package
+                cannot be fetched or extracted from the source.
+  Otherwise     There are something wrong.
+
+},
   ls => qq{%%DDSD%% [<options>] ls [<package>] [--jsonl] [--with-source-meta] [--with-item-meta]
 
 Show the list of data packages in the local data repository or files
@@ -162,6 +169,13 @@ Options
 
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
+Exit statuses
+
+  0             The file has been activated.
+  12            The file has been activated but it cannot be fetched or
+                extracted from the source.
+  Otherwise     There are something wrong.
+
 }, # XXX exit code
   unuse => qq{%%DDSD%% [<options>] unuse <package> <id>
 
@@ -233,6 +247,8 @@ Exit statuses
   12            The command has been done, but some of files or metadata
                 are not available.
   Otherwise     There are something wrong.
+
+  See command's help for command-specific details.
 
 ");
   }
