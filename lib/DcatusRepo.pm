@@ -34,6 +34,30 @@ sub new_from_upstream ($$$;%) {
 } # new_from_upstream
 
 sub type () { "dcatus" }
+
+sub _upstream_mirror_def ($) {
+  my $self = $_[0];
+  return {
+    type => $self->{upstream_repo}->type,
+    url => $self->{upstream_args}->{url}->stringify,
+  };
+} # _upstream_mirror_def
+
+sub _find_mirror ($$$) {
+  my ($self, $key, $def) = @_;
+  my $updef = $self->_upstream_mirror_def;
+  return $self->{upstream_repo}->_find_mirror ($key, $updef)->then (sub {
+    return $self->SUPER::_find_mirror ($key, $def);
+  });
+} # _find_mirror
+
+sub _use_mirror ($$$) {
+  my ($self, $key, $def) = @_;
+  my $updef = $self->_upstream_mirror_def;
+  return $self->{upstream_repo}->_use_mirror ($key, $updef)->then (sub {
+    return $self->SUPER::_use_mirror ($key, $def);
+  });
+} # _use_mirror
 sub is_nested ($) { 1 }
 
 sub feed_url ($) {

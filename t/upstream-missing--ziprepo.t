@@ -46,12 +46,16 @@ Test {
   my $current = shift;
   return $mk->($current)->then (sub {
     my $key = shift;
-    return $current->run ('pull');
+    my $repo_root = $current->app_path (0)->child ('local/ddsd/repo/single');
+    return $current->run ('pull')->then (sub { [$repo_root, $_[0]] });
   })->then (sub {
-    my $r = $_[0];
-    test { ok $r->{exit_code} == 0 || $r->{exit_code} == 12 } $current->c;
+    my ($repo_root, $r) = @{$_[0]};
+    test {
+      is $r->{exit_code}, 0;
+      ok $repo_root->is_dir;
+    } $current->c;
   });
-} n => 2, name => 'pull zip without upstream does not crash';
+} n => 3, name => 'pull zip fetches upstream when missing';
 
 Test {
   my $current = shift;
@@ -71,12 +75,16 @@ Test {
   my $current = shift;
   return $mk->($current)->then (sub {
     my $key = shift;
-    return $current->run ('use', additional => [$key, '--all']);
+    my $repo_root = $current->app_path (0)->child ('local/ddsd/repo/single');
+    return $current->run ('use', additional => [$key, '--all'])->then (sub { [$repo_root, $_[0]] });
   })->then (sub {
-    my $r = $_[0];
-    test { ok $r->{exit_code} == 0 || $r->{exit_code} == 12 } $current->c;
+    my ($repo_root, $r) = @{$_[0]};
+    test {
+      is $r->{exit_code}, 0;
+      ok $repo_root->is_dir;
+    } $current->c;
   });
- } n => 2, name => 'use zip without upstream does not crash';
+} n => 3, name => 'use zip fetches upstream when missing';
 
 Test {
   my $current = shift;

@@ -42,14 +42,15 @@ Test {
       system ('chmod', '-R', 'u+w', $repo_root->stringify);
       $repo_root->remove_tree;
     }
-    return $current->run ('use', additional => [$key, '--all']);
+    return $current->run ('use', additional => [$key, '--all'])->then (sub { [$repo_root, $_[0]] });
   })->then (sub {
-    my $r = $_[0];
+    my ($repo_root, $r) = @{$_[0]};
     test {
-      ok $r->{exit_code} == 12;
+      is $r->{exit_code}, 0;
+      ok $repo_root->is_dir;
     } $current->c;
   });
-} n => 2, name => 'use dcatus without upstream does not crash';
+} n => 3, name => 'use dcatus fetches upstream when missing';
 
 Run;
 

@@ -107,6 +107,30 @@ sub _find_mirror ($$$) {
     return $self->__find_mirror ($def);
   })->then (sub {
     my ($mirror_url, $mirror_sha256) = @{$_[0] // []};
+    my $found_by_lookup = defined $mirror_url;
+    return Promise->resolve ([$mirror_url, $mirror_sha256, $found_by_lookup])->then (sub {
+      my ($mirror_url, $mirror_sha256, $found_by_lookup) = @{$_[0]};
+      return [$mirror_url, $mirror_sha256, $found_by_lookup]
+          if $found_by_lookup or not defined $def->{url};
+      # Fallback to existing state.
+      require PackageStateListFile;
+      return PackageStateListFile->open_by_app ($self->set->app, allow_missing => 1)->then (sub {
+        my $states = $_[0];
+        my $ss = $states->get ($key);
+        my $murl;
+        my $msha;
+        if (defined $ss->{$def->{type}} and ref $ss->{$def->{type}} eq 'HASH' and
+            defined $ss->{$def->{type}}->{$def->{url}} and ref $ss->{$def->{type}}->{$def->{url}} eq 'HASH' and
+            defined $ss->{$def->{type}}->{$def->{url}}->{mirror_url}) {
+          $murl = Web::URL->parse_string ($ss->{$def->{type}}->{$def->{url}}->{mirror_url});
+          $msha = $ss->{$def->{type}}->{$def->{url}}->{mirror_sha256};
+          undef $murl unless defined $murl and $murl->is_http_s;
+        }
+        return $states->close->then (sub { [$murl, $msha, 0] });
+      });
+    });
+  })->then (sub {
+    my ($mirror_url, $mirror_sha256, $found_by_lookup) = @{$_[0] // []};
     if (defined $mirror_url) {
       $self->{mirror_url} = $mirror_url;
       $self->{mirror_sha256} = $mirror_sha256;
@@ -259,7 +283,7 @@ sub _fetch_file_from_mirrorzip ($$$%) {
         cacert => $args{cacert},
         insecure => $args{insecure},
         sha256 => 1,
-        file_def => {sha256 => $self->{mirror_sha256} // ''},
+        (length ($self->{mirror_sha256} // '') ? (file_def => {sha256 => $self->{mirror_sha256}}) : ()),
         logger => $logger,
       )->then (sub {
         my $r = $_[0];
