@@ -141,11 +141,15 @@ sub prepare ($$$;%) {
     $remote->{$self->legal_url_prefix . 'packref.json'} //= {
       json => {type => 'packref', source => {type => 'files', files => {
         'file:r:ckan.json' => {url => 'ckan.json'},
+        'file:r:dcatus.json' => {url => 'dcatus.json'},
         'file:r:websites.json' => {url => 'websites.json'},
         'file:r:info.json' => {url => 'info.json'},
       }}},
     };
     $remote->{$self->legal_url_prefix . 'ckan.json'} //= {
+      json => [],
+    };
+    $remote->{$self->legal_url_prefix . 'dcatus.json'} //= {
       json => [],
     };
     $remote->{$self->legal_url_prefix . 'websites.json'} //= {
@@ -159,6 +163,7 @@ sub prepare ($$$;%) {
         map { 
           (
             "file:r:ckan-$_.hoge" => {url => $self->mirrors_url_prefix."hash-ckan-$_.hoge.jsonl"},
+            "file:r:dcatus-$_.hoge" => {url => $self->mirrors_url_prefix."hash-dcatus-$_.hoge.jsonl"},
             "file:r:ckansite-$_.hoge" => {url => $self->mirrors_url_prefix."hash-ckansite-$_.hoge.jsonl"},
             "file:r:packref-$_.hoge" => {url => $self->mirrors_url_prefix."hash-packref-$_.hoge.jsonl"},
           );
@@ -167,6 +172,7 @@ sub prepare ($$$;%) {
     };
     for (1..9) {
       $remote->{$self->mirrors_url_prefix."hash-ckan-$_.hoge.jsonl"} //= {text => ''};
+      $remote->{$self->mirrors_url_prefix."hash-dcatus-$_.hoge.jsonl"} //= {text => ''};
       $remote->{$self->mirrors_url_prefix."hash-ckansite-$_.hoge.jsonl"} //= {text => ''};
       $remote->{$self->mirrors_url_prefix."hash-packref-$_.hoge.jsonl"} //= {text => ''};
     }
@@ -454,7 +460,7 @@ sub close ($) {
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

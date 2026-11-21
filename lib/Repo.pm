@@ -1047,7 +1047,7 @@ sub get_legal ($;%) {
     });
   }
 
-  if (defined $repo->{upstream_repo}) {
+  if (defined $repo->{upstream_repo} and not $repo->{_no_upstream_legal}) {
     return $repo->{upstream_repo}->get_legal (%args);
   }
   

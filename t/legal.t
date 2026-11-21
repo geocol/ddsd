@@ -4155,11 +4155,40 @@ Test {
   });
 } n => 12, name => 'alt fallback license from packref';
 
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $name = "\x{5000}\x{210E0}abc";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => [
+      "https://hoge/$key", '--single-file',
+      '--name', $name,
+    ]);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+    } $current->c;
+    return $current->run ('legal', additional => [$name, '--json'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      my $item = $r->{jsonl}->[0];
+      is 0+@{$item->{legal}}, 2;
+    } $current->c;
+  });
+} n => 2, name => 'non-ascii repo name';
+
 Run;
 
 =head1 LICENSE
 
-Copyright 2024 Wakaba <wakaba@suikawiki.org>.
+Copyright 2024-2026 Wakaba <wakaba@suikawiki.org>.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

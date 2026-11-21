@@ -491,21 +491,56 @@ sub get_item_list ($;%) {
       }
       if ($args{with_props}) {
         $pi0->{legal} = [];
-        if (defined $ds and defined $ds->{license} and length $ds->{license}) {
-          push @{$pi0->{legal}}, {
-            type => 'license',
-            key => '-ddsd-dcatus-license',
-            source_type => 'package',
-            source_url => (defined $self->feed_url ? $self->feed_url->stringify : $self->{id}),
-            license_url => $ds->{license},
-          };
-        }
-        if (defined $item and defined $item->{files}->{log}) {
-          return Promised::File->new_from_path ($in->{storage}->child_path ($item->{files}->{log}))->read_byte_string->then (sub {
-            $self->_parse_log_legal ($_[0] => $pi0->{legal});
-            return $ds;
-          }, sub { return $ds });
-        }
+        my $set_legal = sub {
+          if (defined $ds and defined $ds->{license} and length $ds->{license}) {
+            my $matched;
+            my $defs = $_[0];
+            $defs = [] unless defined $defs and ref $defs eq 'ARRAY';
+            for my $l (@$defs) {
+              next unless defined $l and ref $l eq 'HASH';
+              my $has_some = 0;
+              if (not defined $l->{url} and not defined $ds->{license}) {
+                #
+              } elsif (defined $l->{url} and defined $ds->{license} and
+                       $l->{url} eq $ds->{license}) {
+                $has_some = 1;
+              } else {
+                next;
+              }
+              next unless $has_some;
+              next if defined $l->{extracted_url};
+              next if defined $l->{licenses};
+              if (defined $l->{is}) {
+                push @{$pi0->{legal}}, {
+                  type => ($l->{db} ? 'db_license' : 'license'),
+                  key => $l->{is},
+                  source_type => 'package',
+                  source_url => (defined $self->feed_url ? $self->feed_url->stringify : $self->{id}),
+                  license_url => $ds->{license},
+                };
+                $matched = 1;
+                last;
+              }
+            }
+            unless ($matched) {
+              push @{$pi0->{legal}}, {
+                type => 'license',
+                key => '-ddsd-dcatus-license',
+                source_type => 'package',
+                source_url => (defined $self->feed_url ? $self->feed_url->stringify : $self->{id}),
+                license_url => $ds->{license},
+              };
+            }
+          }
+          if (defined $item and defined $item->{files}->{log}) {
+            return Promised::File->new_from_path ($in->{storage}->child_path ($item->{files}->{log}))->read_byte_string->then (sub {
+              $self->_parse_log_legal ($_[0] => $pi0->{legal});
+              return $ds;
+            }, sub { return $ds });
+          }
+          return $ds;
+        };
+        return $self->set->app->get_legal_json ('dcatus.json')->then ($set_legal, sub { $set_legal->([]) });
       }
     }
     return $ds;
@@ -597,7 +632,7 @@ sub get_item_list ($;%) {
 
 sub get_legal ($;%) {
   my ($self, %args) = @_;
-  local $self->{upstream_repo} = undef;
+  local $self->{_no_upstream_legal} = 1;
   return $self->SUPER::get_legal (%args);
 } # get_legal
 
