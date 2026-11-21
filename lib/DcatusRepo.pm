@@ -493,9 +493,11 @@ sub get_item_list ($;%) {
         $pi0->{legal} = [];
         my $set_legal = sub {
           if (defined $ds and defined $ds->{license} and length $ds->{license}) {
-            my $matched;
             my $defs = $_[0];
             $defs = [] unless defined $defs and ref $defs eq 'ARRAY';
+            
+            my $u = (defined $self->feed_url ? $self->feed_url->stringify : $self->{id});
+            my $matched;
             for my $l (@$defs) {
               next unless defined $l and ref $l eq 'HASH';
               my $has_some = 0;
@@ -515,7 +517,7 @@ sub get_item_list ($;%) {
                   type => ($l->{db} ? 'db_license' : 'license'),
                   key => $l->{is},
                   source_type => 'package',
-                  source_url => (defined $self->feed_url ? $self->feed_url->stringify : $self->{id}),
+                  source_url => $u,
                   license_url => $ds->{license},
                 };
                 $matched = 1;
@@ -527,9 +529,20 @@ sub get_item_list ($;%) {
                 type => 'license',
                 key => '-ddsd-dcatus-license',
                 source_type => 'package',
-                source_url => (defined $self->feed_url ? $self->feed_url->stringify : $self->{id}),
+                source_url => $u,
                 license_url => $ds->{license},
               };
+            }
+
+            use utf8;
+            ## <https://www.digital.go.jp/policies/base_registry_address_tos>
+            if (($ds->{landingPage} // $self->{id}) =~ /digital.go.jp/ and $pi->{title} =~ /地番マスター/) {
+              push @{$pi0->{legal}}, {type => 'license',
+                                      key => '-ddsd-dcatus-dataset',
+                                      source_type => 'package',
+                                      source_url => $u,
+                                      extracted_url => "https://www.geospatial.jp/ckan/dataset/houmusyouchizu-riyoukiyaku/resource/47871bf1-4c85-48f7-a8fe-b27c6643c1c5",
+                                      notes => $pi->{title}};
             }
           }
           if (defined $item and defined $item->{files}->{log}) {

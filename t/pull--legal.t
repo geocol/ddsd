@@ -102,7 +102,7 @@ Test {
       {path => 'local/data', is_none => 1},
       {path => 'local/ddsd/data/legal/index.json', json => sub {
          my $json = shift;
-         is 0+keys %{$json->{items}}, 1;
+         is 0+keys %{$json->{items}}, 3;
          is $json->{items}->{'file:r:ckan.json'}->{files}->{data}, 'files/abc';
        }},
       {path => 'local/ddsd/data/legal/files/abc', text => 'ABC'},
