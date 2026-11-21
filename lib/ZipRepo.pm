@@ -73,8 +73,10 @@ sub lock_index ($) {
     my $upitem = $self->{upstream_repo}->_get_item
         ($upix, $self->{upstream_args});
     if (not defined $upitem) {
-      # XXX This will create a broken index file...
-      return $self->SUPER::lock_index;
+      return $self->set->app->logger->throw ({
+        type => 'no local copy available',
+        (defined $self->{upstream_args}->{url} ? (url => $self->{upstream_args}->{url}->stringify) : ()),
+      });
     }
 
     my $storage = $upix->get_storage_of
@@ -331,7 +333,10 @@ sub _extract_files ($$;%) {
   return $self->lock_index->then (sub {
     my $zipix = $_[0];
     my $upitem = $zipix->upstream_item;
-    return unless defined $upitem;
+    unless (defined $upitem) {
+      $args{has_error}->() if $args{has_error};
+      return;
+    }
 
     $zipix->ensure_type ('archive');
     my $zip_path = $zipix->upstream_index->get_path_of ($upitem, 'data'); # or throw
@@ -375,6 +380,11 @@ sub _extract_files ($$;%) {
           }
       } $files;
     })->then (sub { $zipix->save })->finally (sub { $zipix->close });
+  }, sub {
+    my $e = shift;
+    $logger->message ({ type => 'zip lock failed', error => ''.$e });
+    $args{has_error}->() if $args{has_error};
+    return undef;
   });
 } # _extract_files
 

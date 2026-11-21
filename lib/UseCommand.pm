@@ -92,7 +92,7 @@ sub run ($$$$;%) {
         });
         return $repo->construct_file_list (
           $def,
-          has_error => sub { },
+          has_error => sub { $self->has_error (1) },
           init_by_default => $mode eq 'use',
           init_key => $file_key, # or undef
           init_no_skip_marking => 1,
@@ -109,7 +109,7 @@ sub run ($$$$;%) {
   })->then (sub {
     return $repo->construct_file_list (
       $def,
-      has_error => sub { },
+      has_error => sub { $self->has_error (1) },
       extract => $mode eq 'use',
       data_area_key => $da_name,
     );

@@ -102,7 +102,7 @@ sub run ($$;%) {
     return PackageListFile->open_by_app ($self->app, allow_missing => 1)->then (sub {
       $plist = $_[0];
       my $logger = $self->app->logger;
-      
+
       $def = $plist->get_def ($args{data_repo_name});
       return $logger->throw ({
         type => 'data area key not found',
@@ -138,7 +138,7 @@ sub run ($$;%) {
           with_props => 1,
           with_snapshot_hash => 1,
           with_skipped => 1, # XXX only locally-skipped
-          has_error => sub { },
+          has_error => sub { $self->has_error (1) },
           data_area_key => $args{data_repo_name},
         );
       })->then (sub {

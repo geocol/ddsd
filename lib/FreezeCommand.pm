@@ -24,7 +24,7 @@ sub run ($$;%) {
         ($def, path => $plist->path);
     return $repo->construct_file_list (
       $def,
-      has_error => sub { },
+      has_error => sub { $self->has_error (1) },
       data_area_key => $da_name,
     )->then (sub {
       my $files = shift;

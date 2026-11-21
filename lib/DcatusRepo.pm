@@ -43,6 +43,9 @@ sub feed_url ($) {
 
 sub read_index ($) {
   my $self = $_[0];
+  unless (defined $self->{upstream_repo}) {
+    return $self->SUPER::read_index;
+  }
   return $self->{upstream_repo}->read_index->then (sub {
     my $upix = $_[0];
     my $upitem = $self->{upstream_repo}->_get_item
@@ -80,12 +83,21 @@ sub read_index ($) {
 
 sub lock_index ($) {
   my $self = $_[0];
+  unless (defined $self->{upstream_repo}) {
+    return $self->set->app->logger->throw ({
+      type => 'no local copy available',
+      (defined $self->{upstream_args}->{url} ? (url => $self->{upstream_args}->{url}->stringify) : ()),
+    });
+  }
   return $self->{upstream_repo}->lock_index->then (sub {
     my $upix = $_[0];
     my $upitem = $self->{upstream_repo}->_get_item
         ($upix, $self->{upstream_args});
     if (not defined $upitem) {
-      return $self->SUPER::lock_index;
+      return $self->set->app->logger->throw ({
+        type => 'no local copy available',
+        (defined $self->{upstream_args}->{url} ? (url => $self->{upstream_args}->{url}->stringify) : ()),
+      });
     }
 
     my $storage = $upix->get_storage_of
@@ -250,7 +262,13 @@ sub fetch ($;%) {
           )->then (sub {
             $ret->{has_package} = 1;
           })->then (sub { $own->save })->finally (sub { $own->close; undef $tmp });
-        })->then (sub { return $ds });
+        })->then (sub { return $ds }, sub {
+          my $e = shift;
+          $logger->message ({ type => 'dcatus lock failed', error => ''.$e });
+          $args{has_error}->() if $args{has_error};
+          $ret->{broken} = 1;
+          return $ret;
+        });
       }, sub {
         my $e = shift;
         $logger->message ({
@@ -406,11 +424,22 @@ sub get_item_list ($;%) {
     } else {
       # Fallback: read from upstream feed
       $ds_promise = Promise->resolve->then (sub {
-        return undef unless defined $upitem;
+        unless (defined $upitem) {
+          $logger->message ({
+            type => 'no local copy available',
+            (defined $self->feed_url ? (url => $self->feed_url->stringify) : ()),
+            key => 'meta:dcat-us.json',
+          });
+          $args{has_error}->() if $args{has_error};
+          return undef;
+        }
         my $path = $in->upstream_index->get_path_of ($upitem, 'data');
         return Promised::File->new_from_path ($path)->read_byte_string->then (sub {
           return $self->_parse_feed ($_[0]);
-        }, sub { return undef });
+        }, sub {
+          $args{has_error}->() if $args{has_error};
+          return undef;
+        });
       });
     }
 
@@ -541,6 +570,12 @@ sub get_item_list ($;%) {
     return $files;
   });
 } # get_item_list
+
+sub get_legal ($;%) {
+  my ($self, %args) = @_;
+  local $self->{upstream_repo} = undef;
+  return $self->SUPER::get_legal (%args);
+} # get_legal
 
 sub _get_item ($$$) {
   my ($self, $ix, $args) = @_;

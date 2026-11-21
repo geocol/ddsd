@@ -237,7 +237,9 @@ sub main ($$$$$$$) {
        my $data_repo_name = decode_web_utf8 $args->[0];
        require FreezeCommand;
        my $cmd = FreezeCommand->new_from_app ($self);
-       return $cmd->run ($data_repo_name);
+       return $cmd->run ($data_repo_name)->then (sub {
+         $exit = 12 if $cmd->has_error;
+       });
      } elsif ($sub eq 'ls') {
        my %args;
        if (@$args) {
@@ -252,7 +254,9 @@ sub main ($$$$$$$) {
        return $cmd->run ($out, %args,
                          jsonl => $opts->{jsonl},
                          with_source_meta => $opts->{with_source_meta},
-                         with_item_meta => $opts->{with_item_meta});
+                         with_item_meta => $opts->{with_item_meta})->then (sub {
+         $exit = 12 if $cmd->has_error;
+       });
      } elsif ($sub eq 'legal') {
        $self->{logger}->throw ({
          type => 'Bad arguments',
@@ -261,7 +265,9 @@ sub main ($$$$$$$) {
        my $data_repo_name = decode_web_utf8 $args->[0];
        require LegalCommand;
        my $cmd = LegalCommand->new_from_app ($self);
-       return $cmd->run ($out, $data_repo_name, json => $opts->{json});
+       return $cmd->run ($out, $data_repo_name, json => $opts->{json})->then (sub {
+         $exit = 12 if $cmd->has_error;
+       });
      } elsif ($sub eq 'export') {
        $self->{logger}->throw ({
          type => 'Bad arguments',
@@ -271,7 +277,9 @@ sub main ($$$$$$$) {
        my $out_file_name = decode_web_utf8 $args->[2];
        require ExportCommand;
        my $cmd = ExportCommand->new_from_app ($self);
-       return $cmd->run ($args->[0], $data_repo_name, $out_file_name, $out);
+       return $cmd->run ($args->[0], $data_repo_name, $out_file_name, $out)->then (sub {
+         $exit = 12 if $cmd->has_error;
+       });
      } elsif ($sub eq 'help') {
        if (not defined $opts->{help_command} and @$args) {
          $opts->{help_command} = shift @$args;
