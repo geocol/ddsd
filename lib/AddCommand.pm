@@ -55,23 +55,23 @@ sub run ($$;%) {
         last DEF;
       }
 
-    if (defined $r->{json}) {
-      if (ref $r->{json} eq 'HASH' and
-          defined $r->{json}->{type} and
-          $r->{json}->{type} eq 'packref') {
-        $def = {
-          type => 'packref',
-          url => $url->stringify,
-        };
-      }
+      if (defined $r->{json}) {
+        if (ref $r->{json} eq 'HASH' and
+            defined $r->{json}->{type} and
+            $r->{json}->{type} eq 'packref') {
+          $def = {
+            type => 'packref',
+            url => $url->stringify,
+          };
+        }
 
-      if ($r->{url}->path =~ m{([^/]+)\z}) {
-        my $n = percent_decode_c $1;
-        $n =~ s/\.json\z//;
-        $name = $n;
-      }
+        if ($r->{url}->path =~ m{([^/]+)\z}) {
+          my $n = percent_decode_c $1;
+          $n =~ s/\.json\z//;
+          $name = $n;
+        }
 
-    } elsif ($r->{is_html} and
+      } elsif ($r->{is_html} and
              do {
                if ($r->{body_bytes} =~ m{<meta name="generator" content="(ckan[^"]+)"}) {
                  1;
@@ -128,18 +128,52 @@ sub run ($$;%) {
         };
         $name = $r->{url}->host->to_ascii;
       }
-    } elsif ($r->{url}->get_origin->to_ascii eq 'https://search.ckan.jp') {
-      if ($r->{url}->path =~ m{^/datasets/([^/]+)}) {
-        $def = {
-          type => 'ckan',
-          url => $r->{url}->get_origin->to_ascii . '/datasets/' . $1,
-        };
-        $name = percent_decode_c $1;
-      } else {
-        $def = {
-          type => 'ckansite',
-          url => 'https://search.ckan.jp/',
-        };
+      } elsif ($r->{url}->get_origin->to_ascii eq 'https://search.ckan.jp') {
+        if ($r->{url}->path =~ m{^/datasets/([^/]+)}) {
+          $def = {
+            type => 'ckan',
+            url => $r->{url}->get_origin->to_ascii . '/datasets/' . $1,
+          };
+          $name = percent_decode_c $1;
+        } else {
+          $def = {
+            type => 'ckansite',
+            url => 'https://search.ckan.jp/',
+          };
+          $name = $r->{url}->host->to_ascii,
+        }
+      } elsif ($r->{is_html} and
+               do {
+                 if ($r->{body_bytes} =~ m{<link rel="stylesheet" href="https://hubcdn.arcgis.com/}) {
+                   1;
+                 } else {
+                   0;
+                 }
+               }) {
+        $logger->info ({
+          type => 'arcgis generated page detected',
+          value => $1,
+          url => $r->{url}->stringify,
+        });
+        my $feed_url = $r->{url}->get_origin->to_ascii . '/api/feed/dcat-us/1.1.json';
+        if ($r->{url}->path =~ m{^/documents/([0-9a-f]+)}) {
+          $def = {
+            type => 'dcatus',
+            source => {
+              type => 'single',
+              url => $feed_url,
+            },
+            id => "https://www.arcgis.com/home/item.html?id=$1",
+          };
+          $name = $1;
+        } else {
+          $def = {
+            type => 'dcatus',
+            source => {
+              type => 'single',
+              url => $feed_url,
+            },
+          };
           $name = $r->{url}->host->to_ascii,
         }
       }

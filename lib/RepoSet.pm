@@ -75,6 +75,38 @@ sub get_repo_by_source ($$%) {
       return undef;
     }
     return SingleRepo->new_from_set_and_url ($self, $url);
+  } elsif ($type eq 'dcatus') {
+    require DcatusRepo;
+    my $id = $source->{id} // '';
+    unless (length $id) {
+      $logger->$bad_method ({
+        type => 'bad source',
+        %$el,
+        source => $source,
+      });
+      return undef;
+    }
+    if (defined $source->{source} and ref $source->{source} eq 'HASH') {
+      my $upstream_repo = $self->get_repo_by_source ($source->{source}, %args);
+      return undef unless defined $upstream_repo;
+      my $upstream_url = Web::URL->parse_string ($source->{source}->{url} // '');
+      if (defined $upstream_url) {
+        return DcatusRepo->new_from_upstream
+            ($upstream_repo, {url => $upstream_url}, id => $id);
+      }
+      $logger->$bad_method ({
+        type => 'bad source',
+        %$el,
+        source => $source,
+      });
+      return undef;
+    }
+    $logger->$bad_method ({
+      type => 'bad source',
+      %$el,
+      source => $source,
+    });
+    return undef;
   } elsif ($type eq 'zip') {
     unless (defined $source->{source} and ref $source->{source} eq 'HASH') {
       $logger->$bad_method ({
