@@ -58,6 +58,7 @@ Test {
       },
       "https://hoge/$key/abc.txt" => {
         text => "ABC",
+        last_modified => -643643666,
       },
       "https://1.hoge/api/action/package_show?id=$key" => {
         text => qq{ {"success": true, "result": {"resources": [{"url": "https://hoge/$key/abc.txt"}]}} },
@@ -151,6 +152,7 @@ Test {
     },
     "https://hoge/$key/abc.txt" => {
       text => "abc",
+      last_modified => -643643666,
     },
   })->then (sub {
     return $current->run ('pull');
@@ -191,6 +193,7 @@ Test {
       },
       "https://hoge/$key/abc.txt" => {
         text => "ABC",
+        last_modified => -643643666,
       },
       "https://2.hoge/api/action/package_show?id=$key" => {
         text => qq{ {"success": true, "result": {"resources": [{"url": "https://hoge/$key/abc.txt"}]}} },
@@ -377,6 +380,7 @@ Test {
     },
     "https://hoge/$key/abc.txt" => {
       text => "abc",
+      last_modified => -643643666,
     },
   })->then (sub {
     return $current->run ('pull');
@@ -408,6 +412,7 @@ Test {
       },
       "https://hoge/$key/abc.txt" => {
         text => "ABC",
+        last_modified => -643643666,
       },
       "https://4.hoge/api/action/package_show?id=$key" => {
         text => qq{ {"success": true, "result": {"resources": [{"url": "https://hoge/$key/abc.txt"}]}} },

@@ -57,8 +57,8 @@ sub sync ($$$;%) {
         return $storage->hardlink_from ($name, $file->{path})->then (sub {
           my $path = $storage->child_path ($name);
           my $ff = Promised::File->new_from_path ($path);
-          my $ts = $file->{package_item}->{file_time}; 
-          return $ff->utime ($ts, $ts);
+          my $ts = $file->{package_item}->{file_time};
+          return defined $ts ? $ff->utime ($ts, $ts) : Promise->resolve;
           ## Snapshot file's timestamp is changed to item's timestamp
           ## metadata.  As this file is a hardlink of the data file in
           ## the local data repository set, when there are multiple

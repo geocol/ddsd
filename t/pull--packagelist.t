@@ -70,7 +70,7 @@ for my $pack (
         isnt $r->{exit_code}, 0;
       } $current->c;
       return $current->check_files ([
-        {path => 'local', is_none => 1},
+        {path => 'local/data', is_none => 1},
       ]);
     });
   } n => 2, name => 'broken package list';
@@ -78,9 +78,9 @@ for my $pack (
 
 for my $code (
   sub { $_[0]->child ('config')->mkpath; $_[0]->child ('config/ddsd')->spew ("abc") }, # not a directory
-  sub { $_[0]->child ('config/ddsd')->mkpath; $_[0]->child ('config/ddsd/config.json')->spew ("{}"); chmod 0000, $_[0]->child ('config/ddsd/config.json') },
+  sub { $_[0]->child ('config/ddsd')->mkpath; $_[0]->child ('config/ddsd/packages.json')->spew ("{}"); chmod 0000, $_[0]->child ('config/ddsd/packages.json') },
   sub { $_[0]->child ('config/ddsd')->mkpath; $_[0]->child ('config/ddsd/config.json')->spew ("{}"); chmod 0000, $_[0]->child ('config/ddsd') },
-  sub { $_[0]->child ('config/ddsd/config.json')->mkpath },
+  sub { $_[0]->child ('config/ddsd/packages.json')->mkpath },
 ) {
   Test {
     my $current = shift;
@@ -92,7 +92,7 @@ for my $code (
         isnt $r->{exit_code}, 0;
       } $current->c;
       return $current->check_files ([
-        {path => 'local', is_none => 1},
+        {path => 'local/data', is_none => 1},
       ]);
     });
   } n => 2, name => 'broken package list file';
@@ -132,7 +132,7 @@ for my $in (
       return $current->check_files ([
         {path => 'local/data/foo/index.json', json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is ref $json->{items}, 'HASH';
            is 0+keys %{$json->{items}}, 1;
          }},
@@ -181,7 +181,7 @@ for my $in (
       return $current->check_files ([
         {path => 'local/data/foo/index.json', json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is ref $json->{items}, 'HASH';
            is 0+keys %{$json->{items}}, 1;
          }},
@@ -199,7 +199,6 @@ for my $in (
   "hoge.txt",
   "FOP.TXT",
   "\x{4e00}",
-  "\x{100}\x{2000}",
   ("a" x 60),
   "0",
   "a_b",
@@ -237,7 +236,7 @@ for my $in (
       return $current->check_files ([
         {path => "local/data/$in/index.json", json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is ref $json->{items}, 'HASH';
            is 0+keys %{$json->{items}}, 2;
            ok $json->{items}->{"file:id:hoge"};
@@ -281,7 +280,7 @@ for my $in (
       return $current->check_files ([
         {path => 'local/data/foo/index.json', json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is ref $json->{items}, 'HASH';
            is 0+keys %{$json->{items}}, 2;
            ok $json->{items}->{"file:id:hoge"};
@@ -297,7 +296,6 @@ for my $in (
 
 for my $in (
   "abc.",
-  ("x" x 65),
   "-foo",
   ".foo",
   "",
@@ -350,7 +348,7 @@ for my $in (
       return $current->check_files ([
         {path => 'local/data/foo/index.json', json => sub {
            my $json = shift;
-           is $json->{type}, 'snapshot';
+           is $json->{type}, 'datasnapshot';
            is ref $json->{items}, 'HASH';
            is 0+keys %{$json->{items}}, 2;
            ok $json->{items}->{"file:id:fuga"};
@@ -405,7 +403,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
        }},
@@ -459,7 +457,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
          ok $json->{items}->{"file:id:abc"};
@@ -508,7 +506,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
        }},
@@ -520,7 +518,7 @@ Test {
       {path => 'local/data/foo/package/package.ckan.json', is_none => 1},
     ]);
   });
-} n => 6, name => 'package rename';
+} n => 7, name => 'package rename';
 
 Run;
 

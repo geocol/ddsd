@@ -87,7 +87,16 @@ sub _open_by_app_and_path ($$$;%) {
   }, sub { # no container directory or permission error
     my $e = $_[0];
     if ($args{allow_missing}) {
-      return $args{init_empty}->($self, format => $args{format});
+      my $errno = UNIVERSAL::can ($e, 'errno') ? $e->errno : undef;
+      $errno = 0+$errno if defined $errno;
+      my $enoent = (defined $errno and $errno == 2);
+      $enoent ||= ('' . $e) =~ /No such file or directory/;
+      my $enotdir = (defined $errno and $errno == 20);
+      $enotdir ||= ('' . $e) =~ /Not a directory/;
+      if ($enoent or not $enotdir) {
+        return $args{init_empty}->($self, format => $args{format});
+      }
+      # ENOTDIR: broken path component, fall through to throw
     }
     my $parent_path = $path->parent;
     my $parent_file = Promised::File->new_from_path ($parent_path);
@@ -137,7 +146,14 @@ sub _open_by_app_and_path ($$$;%) {
 sub app ($) { $_[0]->{app} } 
 sub path ($) { $_[0]->{path} }
 
-sub touch ($) { $_[0]->{touched} = 1 }
+sub touch ($) {
+  my $self = $_[0];
+  #$self->app->logger->info ({
+  #  type => 'touched for file', format => $self->{format},
+  #  path => $self->path->absolute,
+  #});
+  $self->{touched} = 1;
+} # touch
 
 sub save ($;%) {
   my ($self, %args) = @_;
@@ -152,6 +168,7 @@ sub save ($;%) {
     return $self->{file}->write_byte_string
         (perl2json_bytes_for_record $self->{json});
   })->then (sub {
+    delete $self->{touched};
     return $self->{file}->chmod (0444) if $args{readonly};
   });
 } # save
@@ -159,6 +176,11 @@ sub save ($;%) {
 sub close ($) {
   my $self = $_[0];
   return $self->{done}->finally (sub {
+    return $self->app->logger->throw ({
+      type => 'file not saved', format => $self->{format},
+      path => $self->path->absolute,
+    }) if $self->{touched};
+  })->finally (sub {
     $self->{lock}->abort if defined $self->{lock};
     delete $self->{lock};
   });

@@ -84,6 +84,8 @@ sub run ($;%) {
             data_area_key => $key,
           )->then (sub {
             my $files = shift;
+            my $has_snaps = grep { defined $_->{snapshot}->{file_name} or defined $_->{snapshot}->{dup_file_name} } @$files;
+            return if $self->has_error and not $has_snaps;
             return $da_repo->sync ($repo, $files, data_area_key => $key);
           })->finally (sub {
             return $da_repo->close;

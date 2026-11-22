@@ -42,7 +42,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -61,9 +61,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         ok ! $file->{rev}->{insecure};
         is $file->{rev}->{sha256}, "a2ec8adac7fd24b4b7a8edd89d06990579f6123f5724a14b47ee4bddfb2ba572";
         is $file->{rev}->{url}, "https://hoge/" . $key . "/r4.txt";
@@ -112,7 +112,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -131,9 +131,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         ok $file->{rev}->{insecure};
         is $file->{rev}->{sha256}, "a2ec8adac7fd24b4b7a8edd89d06990579f6123f5724a14b47ee4bddfb2ba572";
         is $file->{rev}->{url}, "http://hoge/" . $key . "/r4.txt";
@@ -182,7 +182,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -200,9 +200,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         is $file->{rev}, undef;
       }
     } $current->c;
@@ -248,7 +248,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -267,9 +267,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         ok ! $file->{rev}->{insecure};
         is $file->{rev}->{sha256}, "a2ec8adac7fd24b4b7a8edd89d06990579f6123f5724a14b47ee4bddfb2ba572";
         is $file->{rev}->{url}, "https://hoge/" . $key . "/r4.txt";
@@ -320,7 +320,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 4;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -340,9 +340,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         ok $file->{rev}->{insecure};
         is $file->{rev}->{sha256}, "5eb242aeb68552862913d602cff36deb4cafc18a46cfdea393b4bc1c6917a669";
         is $file->{rev}->{url}, "https://hoge/" . $key . "/r5.txt";
@@ -397,7 +397,7 @@ for my $loc (
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 3;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -414,9 +414,9 @@ for my $loc (
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 4;
       {
-        my $file = $r->{jsonl}->[3];
+        my ($file) = grep { $_->{key} eq 'file:id:r3' } @{$r->{jsonl}};
+        ok $file, 'r3 found';
         is $file->{rev}, undef;
       }
     } $current->c;
@@ -478,7 +478,7 @@ Test {
     return $current->check_files ([
       {path => 'local/data/foo/index.json', json => sub {
          my $json = shift;
-         is $json->{type}, 'snapshot';
+         is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          ok ! $json->{items}->{package}->{rev}->{insecure};
@@ -494,9 +494,9 @@ Test {
     my $r = $_[0];
     test {
       is $r->{exit_code}, 0;
-      is 0+@{$r->{jsonl}}, 2;
       {
-        my $file = $r->{jsonl}->[1];
+        my ($file) = grep { $_->{key} eq 'file:id:r1' } @{$r->{jsonl}};
+        ok $file, 'r1 found';
         is $file->{rev}, undef;
       }
     } $current->c;

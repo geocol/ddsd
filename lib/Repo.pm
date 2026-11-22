@@ -1733,6 +1733,7 @@ sub construct_file_list ($$;%) {
     my $found = {};
     my $found_n2u = {};
     my $found_u = {};
+    my $found_conflict = {};
     my $mod = {};
     my $skipped = {};
     for my $file (@$files) {
@@ -1851,7 +1852,7 @@ sub construct_file_list ($$;%) {
               next;
             }
             if (not FileNames::is_free_file_name $file->{file}->{name}) {
-              #$args{has_error}->();
+              $args{has_error}->();
               $logger->message ({
                 type => 'not a safe file name',
                 key => $file->{key},
@@ -1867,7 +1868,7 @@ sub construct_file_list ($$;%) {
           } else {
             my $dir = $file->{file}->{directory} // 'files';
             if (not FileNames::is_free_file_name $file->{file}->{name}) {
-              #$args{has_error}->();
+              $args{has_error}->();
               $logger->message ({
                 type => 'not a safe file name',
                 key => $file->{key},
@@ -1897,6 +1898,13 @@ sub construct_file_list ($$;%) {
           } else {
             $name = $file->{id}; # or undef
           }
+          my $explicit_def_name = 0;
+          if (defined $def->{files} and
+              defined $def->{files}->{$file->{key}} and
+              defined $def->{files}->{$file->{key}}->{name}) {
+            $name = $def->{files}->{$file->{key}}->{name};
+            $explicit_def_name = 1;
+          }
           my $name0 = $name;
           if (defined $name) {
             $name = FileNames::escape_file_name $name;
@@ -1904,7 +1912,9 @@ sub construct_file_list ($$;%) {
           }
           undef $name unless FileNames::is_free_file_name $name;
           if (defined $name and not $name eq $name0) {
-            if ($args{init_by_default}) {
+            if ($explicit_def_name) {
+              undef $name;
+            } elsif ($args{init_by_default}) {
               if (defined $args{init_key}) {
                 if ($args{init_key} eq $file->{key}) {
                   $mod->{"files/$name"} = 1;
@@ -1919,15 +1929,13 @@ sub construct_file_list ($$;%) {
             }
           }
           unless (defined $name) {
-            #$args{has_error}->();
             $logger->message ({
               type => 'not a safe file name',
               key => $file->{key},
               value => $name0,
               _ => 'name0',
             });
-            $skipped->{$file->{key}} = 1;
-            next;
+            # Leave file_name undef so init_by_default can assign a numeric fallback.
           }
           $name = "files/$name" if defined $name;
         }
@@ -1937,7 +1945,15 @@ sub construct_file_list ($$;%) {
       if (defined $name) {
         my $name_f = FileNames::normalize_for_duplicate_check $name;
         $found->{$name_f}++;
-        $found_n2u->{$name_f} //= $file_u if defined $file_u;
+        if (defined $file_u) {
+          if (defined $found_n2u->{$name_f} and $found_n2u->{$name_f} ne $file_u) {
+            $found_conflict->{$name_f} = 1;
+          } else {
+            $found_n2u->{$name_f} //= $file_u;
+          }
+        } else {
+          $found_conflict->{$name_f} = 1 if defined $found_n2u->{$name_f};
+        }
         $file->{snapshot}->{file_u} = $file_u; # or undef
         $file->{snapshot}->{file_name} = $name;
       }
@@ -2007,18 +2023,22 @@ sub construct_file_list ($$;%) {
       } else {
         if (defined $file->{snapshot}->{file_name} and
             $found->{FileNames::normalize_for_duplicate_check $file->{snapshot}->{file_name}} > 1) {
+          my $name_f = FileNames::normalize_for_duplicate_check $file->{snapshot}->{file_name};
           my $not_dup = 0;
-          if (defined $file->{snapshot}->{file_u}) {
-            my $u = $found_n2u->{FileNames::normalize_for_duplicate_check $file->{snapshot}->{file_name}};
-            if (defined $u and $file->{snapshot}->{file_u} eq $u and
-                $found_u2->{$u}++) {
-              $logger->info ({
-                type => 'duplicate source url',
-                key => $file->{key},
-                url => $u,
-              });
-              $file->{snapshot}->{dup_file_name} = delete $file->{snapshot}->{file_name};
-              next;
+          if (not $found_conflict->{$name_f} and defined $file->{snapshot}->{file_u}) {
+            my $u = $found_n2u->{$name_f};
+            if (defined $u and $file->{snapshot}->{file_u} eq $u) {
+              if ($found_u2->{$u}++) {
+                $logger->info ({
+                  type => 'duplicate source url',
+                  key => $file->{key},
+                  url => $u,
+                });
+                $file->{snapshot}->{dup_file_name} = delete $file->{snapshot}->{file_name};
+                next;
+              } else {
+                $not_dup = 1;
+              }
             } else {
               #$not_dup = 1;
             }

@@ -39,7 +39,7 @@ sub construct_file_list_of ($$$;%) {
     my $files = [];
     for my $file (@$all_files) {
       if (not defined $file->{path}) { # no copy available
-          unless ($file->{key} =~ /^package:/) {
+          unless ($file->{type} eq 'package') {
             $args{has_error}->();
             $logger->message ({
               type => 'no local copy available',

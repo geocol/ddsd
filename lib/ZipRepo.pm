@@ -293,11 +293,10 @@ sub get_item_list ($;%) {
 
         $self->_set_item_file_info
             ([raw_path_string => $zipped_file->{central}->{raw_path}],
-             $fdef, $zipix, $file, %args)
-            unless $skipped;
+             $fdef, $zipix, $file, %args, skipped => $skipped);
         $file->{archive_item} = $zipped_file if $args{with_source_meta};
         if ($args{with_props}) {
-          my $pi = $file->{package_item};
+          my $pi = $file->{package_item} ||= {};
           $pi->{file_name} = $zipped_file->{path};
           {
             my $cmime = FileTypes::get_mime_type_from_file_name $pi->{file_name};

@@ -118,13 +118,10 @@ for my $pi (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', json => sub {
-           my $json = $_[0];
-           is 0+keys %{$json->{items}}, 0;
-         }},
+        {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 3, name => ['bad package location 4', %$pi];
+  } n => 2, name => ['bad package location 4', %$pi];
 } # $pi
 
 for my $pack (
@@ -155,13 +152,10 @@ for my $pack (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', json => sub {
-           my $json = $_[0];
-           is 0+keys %{$json->{items}}, 0;
-         }},
+        {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 3, name => 'broken packages 1';
+  } n => 2, name => 'broken packages 1';
 
   Test {
     my $current = shift;
@@ -180,13 +174,10 @@ for my $pack (
         is $r->{exit_code}, 12;
       } $current->c;
       return $current->check_files ([
-        {path => 'local/data/foo/index.json', json => sub {
-           my $json = $_[0];
-           is 0+keys %{$json->{items}}, 0;
-         }},
+        {path => 'local/data/foo/index.json', is_none => 1},
       ]);
     });
-  } n => 3, name => 'broken packages 2';
+  } n => 2, name => 'broken packages 2';
 } # $pack
 
 for my $pack (
@@ -671,13 +662,10 @@ Test {
       is $r->{exit_code}, 12;
     } $current->c;
     return $current->check_files ([
-      {path => 'local/data/foo/index.json', json => sub {
-         my $json = $_[0];
-         is 0+keys %{$json->{items}}, 0;
-       }},
+      {path => 'local/data/foo/index.json', is_none => 1},
     ]);
   });
-} n => 3, name => 'HTTPS, no root CA cert, not --insecure';
+} n => 2, name => 'HTTPS, no root CA cert, not --insecure';
 
 Test {
   my $current = shift;
