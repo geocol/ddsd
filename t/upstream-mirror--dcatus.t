@@ -53,6 +53,9 @@ Test {
     }, {
       $feed_url => { status => 404, text => '' },
       $dist_url => { bytes => "PK\x03\x04fake" },
+      "https://hoge/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head></html>},
+      },
       "https://hoge/mirror/upstream.zip" => {
         file => $current->app_path (0)->child ('upstream.zip'),
       },

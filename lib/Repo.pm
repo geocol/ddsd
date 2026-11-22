@@ -667,6 +667,7 @@ sub _fetch_post_legal ($%) {
     'meta:ckan.json' => {}, # CKANRepo
     'meta:index.html' => {}, # CKANRepo
     'meta:activity.html' => {}, # CKANRepo
+    'meta:landing.html' => {}, # DcatusRepo
     'meta:packref.json' => {}, # PackRefRepo
   };
   my $terms_url;
@@ -719,8 +720,7 @@ sub _fetch_post_legal ($%) {
     })->then (sub {
       my $terms_source_key;
       for my $file (@$all_files) {
-        if ($file_defs->{$file->{key}} and
-            defined $file->{parsed}->{site_terms_url}) {
+        if (defined $file->{parsed}->{site_terms_url}) {
           $terms_url = $file->{parsed}->{site_terms_url};
           $terms_source_key = $file->{key};
           last;
@@ -883,6 +883,7 @@ sub _set_snapshot_hash ($$;%) {
     }->{$_->{type}};
   } @$files) {
     next if $file->{key} eq 'meta:activity.html';
+    next if $file->{key} eq 'meta:landing.html';
     push @item, [$file->{key}, $file->{rev}->{sha256}];
   }
 
@@ -904,6 +905,7 @@ sub _get_source_snapshot_hash ($$) {
   my @item;
   for my $file_key (keys %{$source->{files}}) {
     next if $file_key eq 'meta:activity.html';
+    next if $file_key eq 'meta:landing.html';
     my $sha = $source->{files}->{$file_key}->{sha256};
     return undef if not defined $sha;
     push @item, [$file_key, $sha];
@@ -922,31 +924,61 @@ sub _extract_files ($$;%) {
 
 sub _sniff_terms_url_in_html ($$$) {
   # bytes
+  my $self = $_[0];
   my $base_url = $_[2];
+  my $bytes = $_[1] // '';
 
-  ## <https://city.himeji.gkan.jp/gkan/dataset/jinkouidou>
-  ## <https://data.gsj.jp/gkan/dataset/>
-  ## <https://odcs.bodik.jp/[0-9]+/tos/>
-  ## <https://portal-data.city.kanazawa.ishikawa.jp/>
-  ## <https://ckan.pref.akita.lg.jp/dataset/050008_sicyouson_009>
-  ## <https://catalog.opendata.pref.kanagawa.jp/dataset>
-  if ($_[1] =~ m{<a href="([^"]+)"[^<>]*>(?:オープンデータ利用規約|データ利用規約|利用規約|サイトについて（利用規約）)</a>}) {
-    my $url = Web::URL->parse_string ($1, $base_url);
+  my $check = sub {
+    my ($href) = @_;
+    return undef unless defined $href and length $href;
+    my $u = $href;
+    $u =~ s/&amp;/&/g;
+    my $url = Web::URL->parse_string ($u, $base_url);
     return $url if defined $url and $url->is_http_s;
+    return undef;
+  };
+
+  for my $s ($bytes) {
+    ## <https://city.himeji.gkan.jp/gkan/dataset/jinkouidou>
+    ## <https://data.gsj.jp/gkan/dataset/>
+    ## <https://odcs.bodik.jp/[0-9]+/tos/>
+    ## <https://portal-data.city.kanazawa.ishikawa.jp/>
+    ## <https://ckan.pref.akita.lg.jp/dataset/050008_sicyouson_009>
+    ## <https://catalog.opendata.pref.kanagawa.jp/dataset>
+    if ($s =~ m{<a [^<>]*href=["']([^"']+)["'][^<>]*>(?:オープンデータ利用規約|データ利用規約|利用規約|サイトについて（利用規約）)</a>}) {
+      my $url = $check->($1);
+      return $url if defined $url;
+    }
+
+    ## <https://opendata.city.sagamihara.kanagawa.jp/>
+    if ($s =~ m{<a [^<>]*href=["']([^"']+)["'][^<>]*>[^<>&]*オープンデータ 利用規約</a>}) {
+      my $url = $check->($1);
+      return $url if defined $url;
+    }
+
+    ## <https://data.city.ikoma.lg.jp/>
+    if ($s =~ m{<a [^<>]*href=["']([^"']+)["'][^<>]*>ご利用について</a>}) {
+      my $url = $check->($1);
+      return $url if defined $url;
+    }
+
+    ## Generic: anchor text contains 利用規約
+    while ($s =~ m{<a [^<>]*href=["']([^"']+)["'][^<>]*>([^<>]*利用規約[^<>]*)</a>}g) {
+      my $url = $check->($1);
+      return $url if defined $url;
+    }
   }
 
-  ## <https://opendata.city.sagamihara.kanagawa.jp/>
-  if ($_[1] =~ m{<a href="([^"]+)"[^<>]*>[^<>&]*オープンデータ 利用規約</a>}) {
-    my $url = Web::URL->parse_string ($1, $base_url);
-    return $url if defined $url and $url->is_http_s;
+  # Fallback: percent-encoded HTML (e.g. ArcGIS Hub embedded JSON)
+  if (index ($bytes, '%') >= 0) {
+    my $decoded = $bytes;
+    $decoded =~ s/%([0-9A-Fa-f]{2})/pack 'C', hex $1/ge;
+    $decoded =~ s/\\(["\x27])/$1/g;
+    if ($decoded ne $bytes) {
+      return $self->_sniff_terms_url_in_html ($decoded, $base_url);
+    }
   }
 
-  ## <https://data.city.ikoma.lg.jp/>
-  if ($_[1] =~ m{<a href="(/policy)">ご利用について</a>}) {
-    my $url = Web::URL->parse_string ($1, $base_url);
-    return $url if defined $url and $url->is_http_s;
-  }
-  
   return undef;
 } # _sniff_terms_url_in_html
 
@@ -1617,7 +1649,7 @@ sub _set_item_file_info ($$$$$%) {
              length $file->{rev}->{mime_filename};
     }
     $pi->{title} = '';
-    if ($args{compute_mime}) {
+    if ($args{compute_mime} and ($file->{type} eq 'file' or $file->{type} eq 'meta' or $file->{type} eq 'part')) {
       $pi->{mime} //= 'application/octet-stream';
       $pi->{mime} = FileTypes::normalize_mime_type_string $pi->{mime};
       if ($pi->{mime} eq 'application/octet-stream') {
@@ -1746,7 +1778,6 @@ sub construct_file_list ($$;%) {
           } else {
             $def->{files}->{$file->{key}}->{skip} = \1;
             $skipped->{$file->{key}} = 1;
-            $logger->count (['add_skipped']);
           }
           next;
         }
@@ -1764,7 +1795,6 @@ sub construct_file_list ($$;%) {
               unless ($file->{set_type} eq 'sparql') {
                 $def->{files}->{$file->{key}}->{skip} = \1;
                 $skipped->{$file->{key}} = 1;
-                $logger->count (['add_skipped']);
                 next;
               }
             }
@@ -1792,7 +1822,6 @@ sub construct_file_list ($$;%) {
               } else {
                 $def->{files}->{$file->{key}}->{skip} = \1;
                 $skipped->{$file->{key}} = 1;
-                $logger->count (['add_skipped']);
               }
               next;
             }

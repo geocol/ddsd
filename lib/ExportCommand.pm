@@ -63,9 +63,10 @@ sub run_mirror_zip ($$$$) {
         return $da_repo->prepare_files ($repo, $files, data_area_key => $data_repo_name);
       })->then (sub {
         my $map = $_[0];
-        return $logger->throw ({
-          type => 'export failed',
-        }) if $self->has_error;
+        if ($self->has_error) {
+          $logger->info ({ type => 'export failed' });
+          return;
+        }
         return $out_dir->mkpath->then (sub {
           return Zipper->create (
             $self->app,

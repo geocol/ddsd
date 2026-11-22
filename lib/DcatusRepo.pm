@@ -177,37 +177,6 @@ sub _dist_url ($$) {
   return undef;
 } # _dist_url
 
-sub _dist_is_html_page ($$$) {
-  my ($self, $dist, $ds) = @_;
-  return 0 unless defined $dist and ref $dist eq 'HASH';
-  my $format = ($dist->{format} // '');
-  my $mt = ($dist->{mediaType} // '');
-  my $title = ($dist->{title} // '');
-  my $url = $dist->{downloadURL} // $dist->{accessURL} // '';
-  my $url2 = $url;
-  tr/A-Z/a-z/ for $format, $mt, $title, $url2;
-  my $lp = $ds->{landingPage} // '';
-
-  if ($mt eq 'text/html' and $format eq 'web page' and
-      $title eq 'arcgis hub dataset') {
-    return 1;
-  }
-  return 0;
-
-  #if ($mt eq 'text/html' or $format eq 'web page' or $format eq 'html') {
-  #  return 1;
-  #}
-  #if (length $lp and $url eq $lp) {
-  #  return 1;
-  #}
-  #if ($title =~ /arcgis hub dataset/ or $title =~ /web page/) {
-  #  if ($url2 =~ /\.(?:zip|csv|json|geojson|xlsx?|xml|rdf|ttl|pdf|shp|kml|kmz)(?:[?#].*)?$/) {
-  #    return 0;
-  #  }
-  #  return 1 if $mt eq '' or $mt eq 'text/html';
-  #}
-  #return 0;
-} # _dist_is_html_page
 
 sub _dist_file_key ($$$) {
   my ($self, $dist, $i) = @_;
@@ -284,6 +253,7 @@ sub fetch ($;%) {
             type => 'meta',
             logger => $logger,
           )->then (sub {
+            my $r = $_[0];
             $ret->{has_package} = 1;
           })->then (sub { $own->save })->finally (sub { $own->close; undef $tmp });
         })->then (sub { return $ds }, sub {
@@ -320,7 +290,8 @@ sub fetch ($;%) {
       my $all_files = shift;
       my $files = [];
       for my $file (@$all_files) {
-        next if $file->{type} eq 'meta' or $file->{type} eq 'package';
+        next if $file->{type} eq 'package';
+        next if $file->{type} eq 'meta' and $file->{key} ne 'meta:landing.html';
         next if $args{skip_other_files} and not defined $file_defs->{$file->{key}};
         next if defined $file_defs->{$file->{key}} and $file_defs->{$file->{key}}->{skip};
         if ($args{min}) {
@@ -367,6 +338,19 @@ sub fetch ($;%) {
         });
       } $files;
     })->then ($as->{ok}, $as->{ng});
+  })->then (sub {
+    return $ret if $ret->{broken} or $ret->{_skip};
+    return $self->read_index->then (sub {
+      my $in = $_[0];
+      my ($item_key, $item) = $in->get_item (url_string => $self->{id});
+      return undef unless defined $item_key;
+      return $self->_fetch_post_legal (
+        %args,
+        dest_item_key => $item_key,
+        site_legal_key_url => $self->feed_url // Web::URL->parse_string ($self->{id}),
+        logger => $logger,
+      );
+    });
   })->then (sub {
     return $ret;
   });
@@ -464,6 +448,51 @@ sub get_item_list ($;%) {
           $args{has_error}->() if $args{has_error};
           return undef;
         });
+      })->then (sub {
+        my $ds = shift;
+        return undef unless defined $ds and ref $ds eq 'HASH';
+        # Store extracted dataset so subsequent lookups/finds work
+        my $ds_bytes = perl2json_bytes_for_record $ds;
+        return $self->lock_index->then (sub {
+          my $own = $_[0];
+          $own->ensure_type ($self->type);
+          my $url = Web::URL->parse_string ($self->{id});
+          my $tmp = Path::Tiny->tempfile;
+          $tmp->spew_raw ($ds_bytes);
+          return $own->put_response (
+            {
+              url => $url,
+              original_url => $url,
+              path => $tmp,
+              length => length $ds_bytes,
+              sha256 => Digest::SHA::sha256_hex ($ds_bytes),
+              timestamp => time,
+              fetch_time => time,
+              res => bless {status => 200, status_text => 'OK', headers => []}, 'DcatusRepo::_FakeRes',
+            },
+            type => 'meta',
+            logger => $logger,
+          )->then (sub {
+            my $r = $_[0];
+            if ($with_package) {
+              my $file = $files->[1];
+              $file->{item_key} = $r->{key} if $args{with_item_key} and defined $r->{key};
+              if ($args{with_path} and defined $r->{key}) {
+                my ($ik, $it) = $own->get_item (url_string => $self->{id},
+                                                file_def => $file_defs->{'meta:dcat-us.json'});
+                if (defined $it and defined $it->{files}->{data}) {
+                  my $storage = $own->{storage};
+                  $file->{path} = $storage->child_path ($it->{files}->{data});
+                  $file->{meta_path} = $storage->child_path ($it->{files}->{meta})
+                      if defined $it->{files}->{meta};
+                  $file->{log_path} = $storage->child_path ($it->{files}->{log})
+                      if defined $it->{files}->{log};
+                  $file->{rev} = $it->{rev} if defined $it->{rev};
+                }
+              }
+            }
+          })->then (sub { $own->save })->finally (sub { $own->close; undef $tmp });
+        })->then (sub { return $ds }, sub { return $ds }); # best-effort
       });
     }
 
@@ -560,7 +589,15 @@ sub get_item_list ($;%) {
   })->then (sub {
     my $ds = shift;
     return $files unless defined $ds;
-    return $files if $args{skip_other_files} and not grep { $_ ne 'meta:dcat-us.json' and $_ ne 'package' } keys %$file_defs;
+    return $files if $args{skip_other_files} and
+        not grep { $_ ne 'meta:dcat-us.json' and $_ ne 'package' and $_ ne 'meta:landing.html' } keys %$file_defs and
+        not $args{requires_legal};
+
+    my $landing_url = Web::URL->parse_string ($ds->{landingPage} // '');
+    $landing_url = undef unless defined $landing_url and $landing_url->is_http_s;
+    my $landing_canon = defined $landing_url ? $landing_url->get_origin->to_ascii . $landing_url->pathquery : undef;
+    my $landing_file;
+    my $landing_item;
 
     my $dists = $ds->{distribution};
     $dists = [] unless defined $dists and ref $dists eq 'ARRAY';
@@ -568,30 +605,79 @@ sub get_item_list ($;%) {
     for my $dist (@$dists) {
       $i++;
       next unless defined $dist and ref $dist eq 'HASH';
-      next if $self->_dist_is_html_page ($dist, $ds);
       my $url = $self->_dist_url ($dist);
       next unless defined $url;
-      next if $url->stringify =~ m<\{>;
 
-      my $file_key = $self->_dist_file_key ($dist, $i);
-      if ($args{skip_other_files} and not defined $file_defs->{$file_key}) { next; }
+      my $url_canon = $url->get_origin->to_ascii . $url->pathquery;
+      my $is_landing = defined $landing_canon && $url_canon eq $landing_canon;
+      my $file_key = $is_landing ? 'meta:landing.html' : $self->_dist_file_key ($dist, $i);
+      my $want_landing = $is_landing && ((not $args{skip_other_files}) || $args{requires_legal} || defined $file_defs->{'meta:landing.html'});
+      if ($is_landing and not $want_landing) { $is_landing = 0; $file_key = $self->_dist_file_key ($dist, $i); }
+      if ($args{skip_other_files} and not defined $file_defs->{$file_key} and not $is_landing) { next; }
       my $skipped;
       if (defined $file_defs->{$file_key} and $file_defs->{$file_key}->{skip}) {
         $skipped = 1;
         next unless $args{with_skipped};
       }
 
-      my $file = {
-        type => 'file',
-        key => $file_key,
-        source => { url => $url->stringify },
-      };
+      my $file;
+      if ($is_landing) {
+        next if defined $landing_file;
+        $file = $landing_file = {
+          type => 'meta',
+          key => 'meta:landing.html',
+          source => { url => $url->stringify },
+          package_item => {
+            mime => 'text/html;charset=utf-8',
+            title => '',
+          },
+          file => {
+            directory => 'package',
+            name => 'landing.html',
+          },
+        };
+        if (defined $file_defs->{'meta:landing.html'} and
+            defined $file_defs->{'meta:landing.html'}->{name}) {
+          $file->{file}->{directory} = 'files';
+          $file->{file}->{name} = $file_defs->{'meta:landing.html'}->{name};
+        }
+      } else {
+        $file = {
+          type => 'file',
+          key => $file_key,
+          source => { url => $url->stringify },
+        };
+      }
       $self->_set_item_file_info
           ([url_string => $url->stringify],
            $file_defs->{$file_key}, $in, $file, %args,
-           skipped => $skipped, compute_mime => 1);
+           skipped => $skipped, compute_mime => !$is_landing);
 
-      if ($args{with_props}) {
+      if ($is_landing) {
+        $landing_item = $in->get_item (url_string => $url->stringify,
+                                       file_def => $file_defs->{'meta:landing.html'});
+        $landing_item = $landing_item->[1] if ref $landing_item eq 'ARRAY';
+        if (defined $landing_item and not $skipped) {
+          $file->{rev} = $landing_item->{rev};
+          if (defined $file->{rev} and defined $file->{rev}->{http_content_type}) {
+            $file->{package_item}->{mime} = $file->{rev}->{http_content_type};
+          }
+          if (defined $file->{rev}) {
+            $file->{package_item}->{file_time} = $file->{rev}->{http_last_modified}
+                // $file->{rev}->{http_date} // $file->{rev}->{timestamp};
+          }
+          if ($args{with_path} and defined $landing_item->{files}) {
+            $file->{path} = $in->{storage}->child_path ($landing_item->{files}->{data})
+                if defined $landing_item->{files}->{data};
+            $file->{meta_path} = $in->{storage}->child_path ($landing_item->{files}->{meta})
+                if defined $landing_item->{files}->{meta};
+            $file->{log_path} = $in->{storage}->child_path ($landing_item->{files}->{log})
+                if defined $landing_item->{files}->{log};
+          }
+        }
+      }
+
+      if ($args{with_props} and not $is_landing) {
         my $pi = $file->{package_item};
         $pi->{title} = $dist->{title} // '';
         if (not defined $pi->{file_time}) {
@@ -629,6 +715,61 @@ sub get_item_list ($;%) {
       push @$files, $file;
     }
 
+    if (defined $landing_url and not defined $landing_file) {
+      my $file_key = 'meta:landing.html';
+      my $want = (not $args{skip_other_files}) || $args{requires_legal} || defined $file_defs->{$file_key};
+      my $skipped = 0;
+      if (defined $file_defs->{$file_key} and $file_defs->{$file_key}->{skip}) {
+        $skipped = 1;
+      }
+      if ($want and (not $skipped or $args{with_skipped})) {
+          $landing_file = {
+            type => 'meta',
+            key => 'meta:landing.html',
+            source => { url => $landing_url->stringify },
+            package_item => {
+              mime => 'text/html;charset=utf-8',
+              title => '',
+            },
+            file => {
+              directory => 'package',
+              name => 'landing.html',
+            },
+          };
+          if (defined $file_defs->{'meta:landing.html'} and
+              defined $file_defs->{'meta:landing.html'}->{name}) {
+            $landing_file->{file}->{directory} = 'files';
+            $landing_file->{file}->{name} = $file_defs->{'meta:landing.html'}->{name};
+          }
+          $self->_set_item_file_info
+              ([url_string => $landing_url->stringify],
+               $file_defs->{'meta:landing.html'}, $in, $landing_file, %args,
+               skipped => $skipped);
+          $landing_item = $in->get_item (url_string => $landing_url->stringify,
+                                         file_def => $file_defs->{'meta:landing.html'});
+          $landing_item = $landing_item->[1] if ref $landing_item eq 'ARRAY';
+          if (defined $landing_item and not $skipped) {
+            $landing_file->{rev} = $landing_item->{rev};
+            if (defined $landing_file->{rev} and defined $landing_file->{rev}->{http_content_type}) {
+              $landing_file->{package_item}->{mime} = $landing_file->{rev}->{http_content_type};
+            }
+            if (defined $landing_file->{rev}) {
+              $landing_file->{package_item}->{file_time} = $landing_file->{rev}->{http_last_modified}
+                  // $landing_file->{rev}->{http_date} // $landing_file->{rev}->{timestamp};
+            }
+            if ($args{with_path} and defined $landing_item->{files}) {
+              $landing_file->{path} = $in->{storage}->child_path ($landing_item->{files}->{data})
+                  if defined $landing_item->{files}->{data};
+              $landing_file->{meta_path} = $in->{storage}->child_path ($landing_item->{files}->{meta})
+                  if defined $landing_item->{files}->{meta};
+              $landing_file->{log_path} = $in->{storage}->child_path ($landing_item->{files}->{log})
+                  if defined $landing_item->{files}->{log};
+            }
+          }
+          push @$files, $landing_file;
+        }
+    }
+
     if ($args{with_props} or $args{with_snapshot_hash}) {
       if ($args{with_snapshot_hash}) {
         unshift @$files, { type => 'package', key => 'package', package_item => {} }
@@ -637,6 +778,32 @@ sub get_item_list ($;%) {
       }
       $files->[0]->{package_item}->{file_time} //= time
           if @$files and $files->[0]->{type} eq 'package';
+    }
+
+    # sniff site terms from landing page
+    if (defined $landing_file and ($args{with_props} or $args{requires_legal})) {
+      my $lf = $landing_file;
+      my $read_p = Promise->resolve (undef);
+      if (defined $lf->{path}) {
+        $read_p = Promised::File->new_from_path ($lf->{path})->read_byte_string->catch (sub { undef });
+      } elsif (defined $in and defined $lf->{source}->{url}) {
+        my $litem = $in->get_item (url_string => $lf->{source}->{url},
+                                   file_def => $file_defs->{'meta:landing.html'});
+        $litem = $litem->[1] if ref $litem eq 'ARRAY';
+        if (defined $litem and defined $litem->{files} and defined $litem->{files}->{data}) {
+          my $p = $in->{storage}->child_path ($litem->{files}->{data});
+          $read_p = Promised::File->new_from_path ($p)->read_byte_string->catch (sub { undef });
+        }
+      }
+      return $read_p->then (sub {
+        my $bytes = shift;
+        if (defined $bytes) {
+          my $base_url = Web::URL->parse_string ($lf->{rev}->{url} // $lf->{source}->{url});
+          my $url = $self->_sniff_terms_url_in_html ($bytes, $base_url);
+          $lf->{parsed}->{site_terms_url} = $url if defined $url;
+        }
+        return $files;
+      });
     }
 
     return $files;

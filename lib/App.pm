@@ -278,7 +278,7 @@ sub main ($$$$$$$) {
        require ExportCommand;
        my $cmd = ExportCommand->new_from_app ($self);
        return $cmd->run ($args->[0], $data_repo_name, $out_file_name, $out)->then (sub {
-         $exit = 12 if $cmd->has_error;
+         $exit = 1 if $cmd->has_error;
        });
      } elsif ($sub eq 'help') {
        if (not defined $opts->{help_command} and @$args) {

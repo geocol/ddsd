@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Path::Tiny;
+BEGIN { $ENV{TEST_MAX_CONCUR} = 1 }
 use lib glob path (__FILE__)->parent->parent->child ('t_deps/lib');
 use Tests;
 
