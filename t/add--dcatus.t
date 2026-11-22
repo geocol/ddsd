@@ -150,7 +150,61 @@ Test {
        }},
     ]);
   });
-} n => 11, name => 'two datasets share feed upstream';
+ } n => 11, name => 'two datasets share feed upstream';
+
+Test {
+  my $current = shift;
+  my $feed_url = "https://hoge/api/feed/dcat-us/1.1.json";
+  return $current->prepare (undef, {
+    $feed_url => {
+      json => { dataset => [] },
+    },
+  })->then (sub {
+    return $current->run ('add', additional => [$feed_url]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+         my $json = shift;
+         my @keys = keys %$json;
+         is 0+@keys, 1;
+         my $k = $keys[0];
+         is $json->{$k}->{type}, 'single';
+         is $json->{$k}->{url}, $feed_url;
+       }},
+    ]);
+  });
+} n => 5, name => 'add dcatus feed without id becomes single';
+
+Test {
+  my $current = shift;
+  my $top_url = "https://hoge/";
+  my $feed_url = "https://hoge/api/feed/dcat-us/1.1.json";
+  return $current->prepare (undef, {
+    $top_url => {
+      text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+    },
+    $feed_url => {
+      json => { dataset => [] },
+    },
+  })->then (sub {
+    return $current->run ('add', additional => [$top_url]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->check_files ([
+      {path => "config/ddsd/packages.json", json => sub {
+         my $json = shift;
+         my @keys = keys %$json;
+         is 0+@keys, 1;
+         my $k = $keys[0];
+         is $json->{$k}->{type}, 'single';
+         is $json->{$k}->{url}, $feed_url;
+       }},
+    ]);
+  });
+} n => 5, name => 'top page URL';
 
 Run;
 

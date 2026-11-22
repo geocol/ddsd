@@ -56,9 +56,16 @@ sub run ($$;%) {
       }
 
       if (defined $r->{json}) {
-        if (ref $r->{json} eq 'HASH' and
-            defined $r->{json}->{type} and
-            $r->{json}->{type} eq 'packref') {
+        if ($r->{url}->path eq '/api/feed/dcat-us/1.1.json') {
+          $def = {
+            type => 'single',
+            url => $r->{url}->get_origin->to_ascii . $r->{url}->path,
+          };
+          $name = $r->{url}->host->to_ascii;
+          last DEF;
+        } elsif (ref $r->{json} eq 'HASH' and
+                 defined $r->{json}->{type} and
+                 $r->{json}->{type} eq 'packref') {
           $def = {
             type => 'packref',
             url => $url->stringify,
@@ -166,15 +173,12 @@ sub run ($$;%) {
             id => "https://www.arcgis.com/home/item.html?id=$1",
           };
           $name = $1;
-        } else {
+        } elsif ($r->{url}->path =~ m{^/$}) {
           $def = {
-            type => 'dcatus',
-            source => {
-              type => 'single',
-              url => $feed_url,
-            },
+            type => 'single',
+            url => $feed_url,
           };
-          $name = $r->{url}->host->to_ascii,
+          $name = $r->{url}->host->to_ascii;
         }
       }
       last DEF if defined $def;
