@@ -123,6 +123,7 @@ sub main ($$$$$$$) {
       'with-source-meta' => \$opts->{with_source_meta},
       'with-item-meta' => \$opts->{with_item_meta},
       'min' => \$opts->{min},
+      'skip-if-new' => \$opts->{skip_if_new},
       'all' => \$opts->{all},
       'single-file' => \$opts->{single_file},
       'forced-encoding=s' => \$opts->{forced_encoding},
@@ -190,6 +191,7 @@ sub main ($$$$$$$) {
        my $cmd = PullCommand->new_from_app ($self);
        return $cmd->run (
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
+         skip_if_new => $opts->{skip_if_new},
        )->then (sub {
          $exit = 12 if $cmd->has_error;
        });
@@ -204,6 +206,7 @@ sub main ($$$$$$$) {
        return $cmd->run (
          $url_string,
          min => $opts->{min},
+         skip_if_new => $opts->{skip_if_new},
          single_file => $opts->{single_file},
          name => $opts->{name},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
@@ -225,6 +228,7 @@ sub main ($$$$$$$) {
          $sub, $data_repo_name, $file_key,
          all => $opts->{all},
          name => $opts->{name},
+         skip_if_new => $opts->{skip_if_new},
          cacert => $opts->{cacert}, insecure => $opts->{insecure},
        )->then (sub {
          $exit = 12 if $cmd->has_error;

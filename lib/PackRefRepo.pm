@@ -52,7 +52,7 @@ sub fetch ($;%) {
     dest_type => 'package',
     set_repo_type => 1,
     skip_if_found => $args{no_update},
-    skip_if_new => $args{is_special_repo},
+    skip_if_new => ($args{skip_if_new} || $args{is_special_repo}),
     force_fetch => (defined $x),
     fetch_log => $x, # or undef
     check_is_new_insecure => $args{is_special_repo},
@@ -209,7 +209,7 @@ sub fetch ($;%) {
               insecure => $insecure,
               index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
               skip_if_found => $args{no_update},
-              skip_if_new => $args{is_special_repo},
+              skip_if_new => ($args{skip_if_new} || $args{is_special_repo}),
               logger => $as,
             )->then (sub {
               my $r = $_[0];

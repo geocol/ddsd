@@ -234,7 +234,50 @@ Test {
       {path => "local/data/$key/files/abc.txt", text => "abc"},
     ]);
   });
-} n => 6, name => 'sha256 limited';
+ } n => 6, name => 'sha256 limited';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    {
+      $key => {
+        type => 'single',
+        url => "https://hoge/$key",
+      },
+    },
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('pull', additional => []);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->get_access_count ("https://hoge/$key");
+  })->then (sub {
+    my $count = $_[0];
+    test { is $count, 1 } $current->c;
+    return $current->prepare (
+      undef,
+      {
+        "https://hoge/" . $key => {text => "r2"},
+      },
+    );
+  })->then (sub {
+    return $current->run ('pull', additional => ['--skip-if-new']);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->get_access_count ("https://hoge/$key");
+  })->then (sub {
+    my $count = $_[0];
+    test { is $count, 1 } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/$key", text => "r1"},
+    ]);
+  });
+} n => 5, name => '--skip-if-new skips recent fetch';
 
 Run;
 

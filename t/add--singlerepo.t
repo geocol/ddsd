@@ -177,7 +177,46 @@ Test {
       {path => "local/data/$key2/files/$key", text => "r1"},
     ]);
   });
-} n => 13, name => '--name';
+ } n => 13, name => '--name';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  my $key2 = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file', '--name', $key]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->get_access_count ("https://hoge/$key");
+  })->then (sub {
+    my $count = $_[0];
+    test { is $count, 1 } $current->c;
+    return $current->prepare (
+      undef,
+      {
+        "https://hoge/" . $key => {text => "r2"},
+      },
+    );
+  })->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file', '--name', $key2, '--skip-if-new']);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->get_access_count ("https://hoge/$key");
+  })->then (sub {
+    my $count = $_[0];
+    test { is $count, 1 } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key2/files/$key", text => "r1"},
+    ]);
+  });
+} n => 5, name => '--skip-if-new';
 
 Run;
 

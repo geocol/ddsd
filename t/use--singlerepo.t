@@ -45,7 +45,30 @@ Test {
       {path => "local/data/$key/files/$key", text => "r1"},
     ]);
   });
-} n => 14, name => '--min then all';
+ } n => 14, name => '--min then all';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/" . $key => {text => "r1"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key", '--single-file', '--min']);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->run ('use', additional => [$key, '--all', '--skip-if-new']);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->check_files ([
+      {path => "local/data/$key/files/$key", text => "r1"},
+    ]);
+  });
+} n => 3, name => '--min then all with --skip-if-new';
 
 Run;
 

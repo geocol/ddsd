@@ -97,7 +97,7 @@ sub fetch ($;%) {
           index_seen => 1, rev => $file->{rev}, item_key => $file->{item_key},
           set_repo_type => 1,
           skip_if_found => $args{no_update},
-          skip_if_new => $args{is_special_repo},
+          skip_if_new => ($args{skip_if_new} || $args{is_special_repo}),
           fetch_log => $args{is_special_repo} ? {} : undef,
           logger => $as,
         )->then (sub {

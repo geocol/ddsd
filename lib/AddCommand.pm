@@ -243,6 +243,7 @@ sub run ($$;%) {
         cacert => $args{cacert},
         insecure => $args{insecure} || $def->{insecure},
         min => 1, requires_package => 1,
+        skip_if_new => $args{skip_if_new},
         has_error => sub { $self->has_error (1) },
         #file_defs
         data_area_key => $name,

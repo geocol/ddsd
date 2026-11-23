@@ -107,7 +107,7 @@ sub fetch ($;%) {
       dest_type => 'meta',
       set_repo_type => 1,
       skip_if_found => $args{no_update},
-      skip_if_new => $args{is_special_repo},
+      skip_if_new => ($args{skip_if_new} || $args{is_special_repo}),
       force_fetch => (defined $x),
       fetch_log => $x, # or undef
       logger => $logger,

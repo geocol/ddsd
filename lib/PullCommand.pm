@@ -51,6 +51,7 @@ sub run ($;%) {
             file_defs => $def->{files},
             has_error => sub { $self->has_error (1) },
             skip_other_files => $def->{skip_other_files},
+            skip_if_new => $args{skip_if_new},
             data_area_key => $key,
             logger => $as,
           );
