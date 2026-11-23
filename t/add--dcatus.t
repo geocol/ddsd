@@ -206,6 +206,58 @@ Test {
   });
 } n => 5, name => 'top page URL';
 
+Test {
+  my $current = shift;
+  my $key = 'aabbccddeeff00112233445566778899';
+  my $ds_id = "https://www.arcgis.com/home/item.html?id=$key";
+  my $feed_url = "https://hoge2/api/feed/dcat-us/1.1.json";
+  my $dist_url = "https://hoge2/data/file1.csv";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge2/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+      },
+      $feed_url => {
+        json => {
+          dataset => [
+            {
+              identifier => $ds_id,
+              landingPage => "https://hoge2/documents/$key",
+              title => 'Date test',
+              modified => '2024-01-02T03:04:05Z',
+              distribution => [
+                {
+                  title => 'Data file',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => $dist_url,
+                  issued => '2023-01-01T00:00:00Z',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      $dist_url => {text => "a,b\nc,d\n"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge2/documents/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      ok @files;
+      is $files[0]->{package_item}->{file_time}, 1704164645;
+    } $current->c;
+  });
+} n => 4, name => 'modified/issued parsed as file_time';
+
 Run;
 
 =head1 LICENSE
