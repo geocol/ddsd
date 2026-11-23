@@ -178,12 +178,6 @@ sub _dist_url ($$) {
 } # _dist_url
 
 
-sub _dist_file_key ($$$) {
-  my ($self, $dist, $i) = @_;
-  my $url = $dist->{downloadURL} // $dist->{accessURL} // '';
-  my $sha = substr sha256_hex (encode_web_utf8 $url), 0, 16;
-  return "file:distribution-$sha";
-} # _dist_file_key
 
 {
   package DcatusRepo::_FakeRes;
@@ -313,11 +307,22 @@ sub fetch ($;%) {
         my $file = shift;
         $as->{next}->(undef, undef, {key => $file->{key}});
         my $u = $file->{source}->{url};
-        unless (defined $u) { $args{has_error}->() if $args{has_error}; return; }
+        unless (defined $u) {
+          $args{has_error}->() if $args{has_error};
+          $as->message ({
+            type => 'broken file', format => 'DCAT-US distribution',
+            key => 'url',
+            file => $file,
+          });
+          return;
+        }
         my $url = Web::URL->parse_string ($u);
         if (not defined $url or not $url->is_http_s) {
           $args{has_error}->() if $args{has_error};
-          $as->message ({ type => 'bad URL', value => $u, key => 'url', file => $file });
+          $as->message ({
+            type => 'bad URL', format => 'DCAT-US distribution',
+            value => $u, key => 'url', file => $file,
+          });
           return;
         }
 
@@ -602,17 +607,44 @@ sub get_item_list ($;%) {
     my $dists = $ds->{distribution};
     $dists = [] unless defined $dists and ref $dists eq 'ARRAY';
     my $i = 0;
+    my $seen = {};
     for my $dist (@$dists) {
       $i++;
       next unless defined $dist and ref $dist eq 'HASH';
-      my $url = $self->_dist_url ($dist);
-      next unless defined $url;
+      my $raw_url;
+      my $bad_url;
+      for my $k (qw(downloadURL accessURL)) {
+        my $u = $dist->{$k};
+        next unless defined $u and length $u;
+        my $parsed = Web::URL->parse_string ($u);
+        if (defined $parsed and $parsed->is_http_s) {
+          $raw_url = $u;
+          last;
+        } else {
+          $bad_url = $u;
+        }
+      }
+      my $specified_url = $raw_url // $bad_url;
+      my $url = defined $specified_url ? Web::URL->parse_string ($specified_url) : undef;
 
-      my $url_canon = $url->get_origin->to_ascii . $url->pathquery;
-      my $is_landing = defined $landing_canon && $url_canon eq $landing_canon;
-      my $file_key = $is_landing ? 'meta:landing.html' : $self->_dist_file_key ($dist, $i);
+      my $url_canon = (defined $url and $url->is_http_s)
+          ? $url->get_origin->to_ascii . $url->pathquery : undef;
+      my $is_landing = defined $landing_canon && defined $url_canon && $url_canon eq $landing_canon;
       my $want_landing = $is_landing && ((not $args{skip_other_files}) || $args{requires_legal} || defined $file_defs->{'meta:landing.html'});
-      if ($is_landing and not $want_landing) { $is_landing = 0; $file_key = $self->_dist_file_key ($dist, $i); }
+      if ($is_landing and not $want_landing) { $is_landing = 0; }
+      my $file_key;
+      if ($is_landing) {
+        $file_key = 'meta:landing.html';
+      } elsif (defined $specified_url) {
+        $file_key = 'file:url:' . $specified_url;
+        if ($seen->{$file_key}) {
+          $file_key = 'file:index:' . $i;
+        }
+        $seen->{$file_key} = 1;
+      } else {
+        $file_key = 'file:index:' . $i;
+        $seen->{$file_key} = 1;
+      }
       if ($args{skip_other_files} and not defined $file_defs->{$file_key} and not $is_landing) { next; }
       my $skipped;
       if (defined $file_defs->{$file_key} and $file_defs->{$file_key}->{skip}) {
@@ -642,20 +674,23 @@ sub get_item_list ($;%) {
           $file->{file}->{name} = $file_defs->{'meta:landing.html'}->{name};
         }
       } else {
+        my $source_url = defined $url ? $url->stringify : $specified_url;
         $file = {
           type => 'file',
           key => $file_key,
-          source => { url => $url->stringify },
+          (defined $source_url ? (source => { url => $source_url }) : ()),
         };
       }
+      my $source_url = defined $url ? $url->stringify : $specified_url;
       $self->_set_item_file_info
-          ([url_string => $url->stringify],
+          ((defined $source_url ? [url_string => $source_url] : undef),
            $file_defs->{$file_key}, $in, $file, %args,
            skipped => $skipped, compute_mime => !$is_landing);
 
       if ($is_landing) {
-        $landing_item = $in->get_item (url_string => $url->stringify,
-                                       file_def => $file_defs->{'meta:landing.html'});
+        $landing_item = $in->get_item
+            (url_string => $url->stringify,
+             file_def => $file_defs->{'meta:landing.html'});
         $landing_item = $landing_item->[1] if ref $landing_item eq 'ARRAY';
         if (defined $landing_item and not $skipped) {
           $file->{rev} = $landing_item->{rev};

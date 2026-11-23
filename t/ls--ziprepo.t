@@ -57,7 +57,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, 'file:abc.dat';
+        is $item->{key}, 'file:path:abc.dat';
         is $item->{file}, undef;
         is $item->{path}, undef;
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -105,7 +105,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, 'file:abc.dat';
+        is $item->{key}, 'file:path:abc.dat';
         is $item->{file}, undef;
         is $item->{path}, undef;
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -160,7 +160,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, 'file:abc.dat';
+        is $item->{key}, 'file:path:abc.dat';
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -216,7 +216,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, 'file:abc.dat';
+        is $item->{key}, 'file:path:abc.dat';
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -301,7 +301,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{4000}.dat";
+        is $item->{key}, "file:path:abc\x{4000}.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc\x{4000}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -387,7 +387,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{4000}.dat";
+        is $item->{key}, "file:path:abc\x{4000}.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc\x{4000}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -473,7 +473,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{03A3}\x{C7}\x{C7}.dat";
+        is $item->{key}, "file:path:abc\x{03A3}\x{C7}\x{C7}.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc\x{03A3}\x{C7}\x{C7}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -567,7 +567,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
+        is $item->{key}, "file:path:abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -630,7 +630,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/def.dat";
+        is $item->{key}, "file:path:abc/def.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/def.dat$};
         is $item->{rev}->{path}, undef;
@@ -644,7 +644,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/xyz/a.dat";
+        is $item->{key}, "file:path:abc/xyz/a.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/a.dat$};
         is $item->{rev}->{path}, undef;
@@ -691,7 +691,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/def\x{4000}.dat";
+        is $item->{key}, "file:path:abc/def\x{4000}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "abc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -713,7 +713,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/def\x{4000}.dat";
+        is $item->{key}, "file:path:abc/def\x{4000}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "abc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -757,7 +757,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/def\x{4E00}.dat";
+        is $item->{key}, "file:path:abc/def\x{4E00}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "abc/def\xe4\xb8\x80.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -806,7 +806,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{key}, "file:path:\x{FEFF}abc/def\x{4000}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -828,7 +828,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:\x{FEFF}abc/def\x{4000}.dat";
+        is $item->{key}, "file:path:\x{FEFF}abc/def\x{4000}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def䀀.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -873,7 +873,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:\x{FEFF}abc/def\x{4E00}.dat";
+        is $item->{key}, "file:path:\x{FEFF}abc/def\x{4E00}.dat";
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "\xEF\xBB\xBFabc/def\xe4\xb8\x80.dat";
         is $item->{rev}->{path_encoding}, undef;
@@ -1033,7 +1033,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc/def.dat";
+        is $item->{key}, "file:path:abc/def.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/def.dat$};
         is $item->{rev}->{path}, undef;
@@ -1085,7 +1085,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:ab\\c.dat";
+        is $item->{key}, "file:path:ab\\c.dat";
         like $item->{path}, qr{files/c.dat$};
         is $item->{rev}->{path}, undef;
         is $item->{rev}->{raw_path}, "ab\\c.dat";
@@ -1097,7 +1097,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:b/con/con.dat";
+        is $item->{key}, "file:path:b/con/con.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/[0-9]+$};
         is $item->{rev}->{path}, undef;
@@ -1110,7 +1110,7 @@ Test {
       {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'file';
-        is $item->{key}, "file:c//";
+        is $item->{key}, "file:path:c//";
         is $item->{file}, undef;
         like $item->{path}, qr{files/[0-9]+$};
         is $item->{rev}->{path}, undef;
@@ -1123,7 +1123,7 @@ Test {
       {
         my $item = $r->{jsonl}->[3];
         is $item->{type}, 'file';
-        is $item->{key}, "file:d\x00";
+        is $item->{key}, "file:path:d\x00";
         is $item->{file}, undef;
         like $item->{path}, qr{files/d_$};
         is $item->{rev}->{path}, undef;
@@ -1136,7 +1136,7 @@ Test {
       {
         my $item = $r->{jsonl}->[4];
         is $item->{type}, 'file';
-        is $item->{key}, "file:eF";
+        is $item->{key}, "file:path:eF";
         is $item->{file}, undef;
         like $item->{path}, qr{files/eF-[0-9]+$};
         is $item->{rev}->{path}, undef;
@@ -1149,7 +1149,7 @@ Test {
       {
         my $item = $r->{jsonl}->[5];
         is $item->{type}, 'file';
-        is $item->{key}, "file:ef";
+        is $item->{key}, "file:path:ef";
         is $item->{file}, undef;
         like $item->{path}, qr{files/ef-[0-9]+$};
         is $item->{rev}->{path}, undef;
@@ -1222,7 +1222,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{4000}.dat";
+        is $item->{key}, "file:path:abc\x{4000}.dat";
         is $item->{file}, undef;
         like $item->{path}, qr{files/abc\x{4000}.dat$};
         is $item->{package_item}->{mime}, 'application/octet-stream';
@@ -1262,7 +1262,7 @@ Test {
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            {
-             my $item = $json->{items}->{"file:abc\x{4000}.dat"};
+             my $item = $json->{items}->{"file:path:abc\x{4000}.dat"};
              ok $item->{rev}->{insecure};
            }
          }
@@ -1304,7 +1304,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, 1766901900;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900;
@@ -1315,7 +1315,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901900;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900;
@@ -1368,7 +1368,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, 1766901900 - -63464;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900 - -63464;
@@ -1379,7 +1379,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901900 - -63464;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900 - -63464;
@@ -1434,7 +1434,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, 1766901900;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900;
@@ -1445,7 +1445,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901901;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901901;
@@ -1500,7 +1500,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, 1766901900;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901900;
@@ -1511,7 +1511,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901901;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901901;
@@ -1567,7 +1567,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, '1766901900.1234567';
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, '1766901900.1234567';
@@ -1584,7 +1584,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901689;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901689;
@@ -1644,7 +1644,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, '1766901900.1234567';
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, '1766901900.1234567';
@@ -1657,7 +1657,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901688 -3600;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901688 -3600;
@@ -1712,7 +1712,7 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.dat";
+        is $item->{key}, "file:path:a1.dat";
         is $item->{package_item}->{file_time}, '1766901900.1234567';
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, '1766901900.1234567';
@@ -1725,7 +1725,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.dat";
+        is $item->{key}, "file:path:a2.dat";
         is $item->{package_item}->{file_time}, 1766901688 - -12445;
         ok $item->{rev}->{timestamp};
         is $item->{archive_item}->{mtime}, 1766901688 - -12445;
@@ -1790,7 +1790,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
+        is $item->{key}, "file:path:abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat";
         like $item->{path}, qr{files/abc\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{3044}\x{5713}.dat$}, $item->{path};
         is $item->{package_item}->{file_time}, 1766901800 -12345;
         is $item->{rev}->{path}, undef;
@@ -1820,7 +1820,7 @@ Test {
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat";
+        is $item->{key}, "file:path:abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat";
         like $item->{path}, qr{files/abc\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{201A}\xA2\x{0161}\xA2.dat$}, $item->{path};
         is $item->{package_item}->{file_time}, 1766901800;
         is $item->{rev}->{path}, undef;
@@ -1872,28 +1872,28 @@ Test {
       {
         my $item = $r->{jsonl}->[0];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a0.abcdef";
+        is $item->{key}, "file:path:a0.abcdef";
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{rev}->{http_content_type}, undef;
       }
       {
         my $item = $r->{jsonl}->[1];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a1.txt";
+        is $item->{key}, "file:path:a1.txt";
         is $item->{package_item}->{mime}, 'text/plain';
         is $item->{rev}->{http_content_type}, undef;
       }
       {
         my $item = $r->{jsonl}->[2];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a2.PNg";
+        is $item->{key}, "file:path:a2.PNg";
         is $item->{package_item}->{mime}, 'image/png';
         is $item->{rev}->{http_content_type}, undef;
       }
       {
         my $item = $r->{jsonl}->[3];
         is $item->{type}, 'file';
-        is $item->{key}, "file:a3.html/foo";
+        is $item->{key}, "file:path:a3.html/foo";
         is $item->{package_item}->{mime}, 'application/octet-stream';
         is $item->{rev}->{http_content_type}, undef;
       }
@@ -1905,7 +1905,38 @@ Test {
       }
     } $current->c;
   });
-} n => 22, name => 'mime types';
+ } n => 22, name => 'mime types';
+
+Test {
+  my $current = shift;
+  my $key = '' . rand;
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge/$key.zip" => {zip => [
+        {file_name => "a/\x{65E5}\x{672C}\x{8A9E}.txt", text => "x", timestamp => 1766901800},
+        {file_name => "dup.txt", text => "1", timestamp => 1766901801},
+        {file_name => "dup.txt", text => "2", timestamp => 1766901802},
+      ], timestamp => 1766901872},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge/$key.zip"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      is 0+@files, 3;
+      is $files[0]->{key}, "file:path:a/\x{65E5}\x{672C}\x{8A9E}.txt";
+      is $files[1]->{key}, "file:path:dup.txt";
+      is $files[2]->{key}, "file:index:0";
+    } $current->c;
+  });
+} n => 6, name => 'file:path string keys, non-ascii, duplicate -> file:index';
 
 Run;
 

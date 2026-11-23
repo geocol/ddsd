@@ -34,9 +34,9 @@ Test {
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
-         ok $json->{items}->{"file:xyz.txt"};
+         ok $json->{items}->{"file:path:xyz.txt"};
          {
-           my $x = $json->{items}->{"file:abc.txt"};
+           my $x = $json->{items}->{"file:path:abc.txt"};
            is $x->{files}->{data}, "files/abc.txt";
            is $x->{rev}->{length}, 6;
            is $x->{rev}->{path}, undef;
@@ -58,10 +58,10 @@ Test {
            is $item->{source}->{url}, "https://hoge/$key.zip";
            is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 2;
-           ok $item->{files}->{"file:abc.txt"};
-           ok $item->{files}->{"file:xyz.txt"};
-           ok ! $item->{files}->{"file:abc.txt"}->{skip};
-           ok ! $item->{files}->{"file:xyz.txt"}->{skip};
+           ok $item->{files}->{"file:path:abc.txt"};
+           ok $item->{files}->{"file:path:xyz.txt"};
+           ok ! $item->{files}->{"file:path:abc.txt"}->{skip};
+           ok ! $item->{files}->{"file:path:xyz.txt"}->{skip};
          }
        }},
     ]);
@@ -86,7 +86,7 @@ Test {
     test {
       is $r->{exit_code}, 0;
     } $current->c;
-    return $current->run ('use', additional => [$key, "file:abc.txt"]);
+    return $current->run ('use', additional => [$key, "file:path:abc.txt"]);
   })->then (sub {
     my $r = $_[0];
     test {
@@ -99,7 +99,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          {
-           my $x = $json->{items}->{"file:abc.txt"};
+           my $x = $json->{items}->{"file:path:abc.txt"};
            is $x->{files}->{data}, "files/abc.txt";
            is $x->{rev}->{length}, 6;
            is $x->{rev}->{path}, undef;
@@ -121,9 +121,9 @@ Test {
            is $item->{source}->{url}, "https://hoge/$key.zip";
            is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 2;
-           ok $item->{files}->{"file:abc.txt"};
-           ok ! $item->{files}->{"file:abc.txt"}->{skip};
-           ok $item->{files}->{"file:xyz.txt"}->{skip};
+           ok $item->{files}->{"file:path:abc.txt"};
+           ok ! $item->{files}->{"file:path:abc.txt"}->{skip};
+           ok $item->{files}->{"file:path:xyz.txt"}->{skip};
          }
        }},
     ]);

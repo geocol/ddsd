@@ -30,7 +30,13 @@ sub create_files ($$$);
 sub create_zip ($$;%) {
   my ($items, $onerror, %args) = @_;
   my $in_files = [];
-  return create_files ($items, sub {
+  my @entries;
+  if (ref $items eq 'ARRAY') {
+    @entries = map { [$_->{file_name}, $_] } @$items;
+  } else {
+    @entries = map { [$_, $items->{$_}] } keys %$items;
+  }
+  return create_files (\@entries, sub {
     my ($key, $def, $body, $path) = @_;
     if (not defined $path) {
       $path = $TempPath->child (rand);
@@ -76,8 +82,9 @@ sub create_zip ($$;%) {
 sub create_files ($$$) {
   my ($items, $code, $onerror) = @_;
   my $pp = [];
-  for my $key (keys %$items) {
-    my $def = $items->{$key};
+  my @list = ref $items eq 'ARRAY' ? @$items : map { [$_, $items->{$_}] } keys %$items;
+  for my $entry (@list) {
+    my ($key, $def) = @$entry;
     my $body;
     my $path;
     if (exists $def->{json}) {

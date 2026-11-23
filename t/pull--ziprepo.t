@@ -38,9 +38,9 @@ Test {
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
-         ok $json->{items}->{"file:xyz.txt"};
+         ok $json->{items}->{"file:path:xyz.txt"};
          {
-           my $file = $json->{items}->{"file:abc.txt"};
+           my $file = $json->{items}->{"file:path:abc.txt"};
            is $file->{type}, 'file';
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
@@ -69,9 +69,9 @@ Test {
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 2;
-         ok $json->{items}->{"file:xyz.txt"};
+         ok $json->{items}->{"file:path:xyz.txt"};
          {
-           my $file = $json->{items}->{"file:abc.txt"};
+           my $file = $json->{items}->{"file:path:abc.txt"};
            is $file->{type}, 'file';
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
@@ -100,10 +100,10 @@ Test {
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
-           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:abc.txt";
-           is $json->{raw_paths}->{"abc.txt"}, "file:abc.txt";
+           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:path:abc.txt";
+           is $json->{raw_paths}->{"abc.txt"}, "file:path:abc.txt";
            {
-             my $item = $json->{items}->{"file:abc.txt"};
+             my $item = $json->{items}->{"file:path:abc.txt"};
              is $item->{type}, 'file';
              ok $item->{files}->{data};
              is $item->{rev}->{url}, undef;
@@ -136,7 +136,7 @@ Test {
           type => 'single',
           url => "https://hoge/$key.zip",
         },
-        files => {"file:xyz.txt" => {skip => 1}},
+        files => {"file:path:xyz.txt" => {skip => 1}},
       },
     },
     {
@@ -158,7 +158,7 @@ Test {
          is $json->{type}, 'datasnapshot';
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
-         ok $json->{items}->{"file:abc.txt"};
+         ok $json->{items}->{"file:path:abc.txt"};
        }},
       {path => "local/data/$key/files/abc.txt", text => "abc"},
       {path => $current->repo_path ('single', "https://hoge/$key.zip")->child ('index.json'), json => sub {
@@ -175,10 +175,10 @@ Test {
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
-           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:abc.txt";
+           is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"abc.txt"}, "file:path:abc.txt";
            is $json->{paths}->{"zip-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}->{"xyz.txt"}, undef;
-           ok $json->{items}->{"file:abc.txt"};
-           is $json->{items}->{"file:xyz.txt"}, undef;
+           ok $json->{items}->{"file:path:abc.txt"};
+           is $json->{items}->{"file:path:xyz.txt"}, undef;
          }
        }},
     ]);
@@ -236,8 +236,8 @@ Test {
            my $json_path = $dir_path->child ('index.json');
            my $json = json_bytes2perl $json_path->slurp;
            is $json->{type}, 'archive';
-           ok $json->{items}->{"file:abc.txt"};
-           ok $json->{items}->{"file:xyz.txt"};
+           ok $json->{items}->{"file:path:abc.txt"};
+           ok $json->{items}->{"file:path:xyz.txt"};
          }
        }},
     ]);
@@ -347,7 +347,7 @@ Test {
          is ref $json->{items}, 'HASH';
          is 0+keys %{$json->{items}}, 1;
          {
-           my $file = $json->{items}->{"file:abc.txt"};
+           my $file = $json->{items}->{"file:path:abc.txt"};
            is $file->{type}, 'file';
            is $file->{files}->{data}, "files/abc.txt";
            is $file->{rev}->{original_url}, undef;
@@ -380,7 +380,7 @@ Test {
           url => "https://hoge/$key/hoge.zip",
         },
         files => {
-          "file:abc.txt" => {
+          "file:path:abc.txt" => {
             sha256 => "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
           },
         },

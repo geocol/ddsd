@@ -256,7 +256,245 @@ Test {
       is $files[0]->{package_item}->{file_time}, 1704164645;
     } $current->c;
   });
-} n => 4, name => 'modified/issued parsed as file_time';
+ } n => 4, name => 'modified/issued parsed as file_time';
+
+Test {
+  my $current = shift;
+  my $key = 'bbccddee00112233445566778899aabb';
+  my $ds_id = "https://www.arcgis.com/home/item.html?id=$key";
+  my $feed_url = "https://hoge3/api/feed/dcat-us/1.1.json";
+  my $dist_url = "https://hoge3/data/\x{30C6}\x{30B9}\x{30C8}.csv";
+  my $dup_url = "https://hoge3/data/dup.csv";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge3/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+      },
+      $feed_url => {
+        json => {
+          dataset => [
+            {
+              identifier => $ds_id,
+              landingPage => "https://hoge3/documents/$key",
+              title => 'Dup/non-ASCII test',
+              distribution => [
+                {
+                  title => 'nonascii',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => $dist_url,
+                },
+                {
+                  title => 'dup1',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => $dup_url,
+                },
+                {
+                  title => 'dup2',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => $dup_url,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      $dist_url => {text => "a\n"},
+      $dup_url => {text => "b\n"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge3/documents/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 0 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      is 0+@files, 3;
+      my %by_key = map { $_->{key} => $_ } @files;
+      ok $by_key{"file:url:https://hoge3/data/\x{30C6}\x{30B9}\x{30C8}.csv"};
+      ok $by_key{"file:url:$dup_url"};
+      ok $by_key{"file:index:3"};
+    } $current->c;
+  });
+ } n => 5, name => 'dcatus file:url keys, non-ascii, duplicate -> file:index';
+
+Test {
+  my $current = shift;
+  my $key = 'ccddeeff00112233445566778899aabb';
+  my $ds_id = "https://www.arcgis.com/home/item.html?id=$key";
+  my $feed_url = "https://hoge4/api/feed/dcat-us/1.1.json";
+  my $valid_url = "https://hoge4/data/ok.csv";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge4/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+      },
+      $feed_url => {
+        json => {
+          dataset => [
+            {
+              identifier => $ds_id,
+              landingPage => "https://hoge4/documents/$key",
+              title => 'URL test',
+              distribution => [
+                {
+                  title => 'relative',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => 'data/relative.csv',
+                },
+                {
+                  title => 'invalid',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => 'http://[invalid',
+                },
+                {
+                  title => 'valid',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => $valid_url,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      $valid_url => {text => "ok\n"},
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge4/documents/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 12 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      is 0+@files, 3;
+      my %by_key = map { $_->{key} => $_ } @files;
+      ok $by_key{"file:url:data/relative.csv"};
+      ok $by_key{"file:url:http://[invalid"};
+      ok $by_key{"file:url:$valid_url"};
+    } $current->c;
+  });
+} n => 6, name => 'dcatus relative/invalid URLs listed, bad URL on fetch, valid kept';
+
+Test {
+  my $current = shift;
+  my $key = 'ddeeff00112233445566778899aabbcc';
+  my $ds_id = "https://www.arcgis.com/home/item.html?id=$key";
+  my $feed_url = "https://hoge5/api/feed/dcat-us/1.1.json";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge5/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+      },
+      $feed_url => {
+        json => {
+          dataset => [
+            {
+              identifier => $ds_id,
+              landingPage => "https://hoge5/documents/$key",
+              title => 'Only bad URLs',
+              distribution => [
+                {
+                  title => 'relative',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  accessURL => 'data/relative.csv',
+                },
+                {
+                  title => 'invalid',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                  downloadURL => 'http://[invalid',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge5/documents/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 12 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      is 0+@files, 2;
+      my %by_key = map { $_->{key} => $_ } @files;
+      ok $by_key{"file:url:data/relative.csv"};
+      ok $by_key{"file:url:http://[invalid"};
+      my @pkgs = grep { $_->{type} eq 'package' } @{$r->{jsonl}};
+      is 0+@pkgs, 1;
+    } $current->c;
+  });
+ } n => 6, name => 'dcatus only invalid/relative URLs listed, fetch has_error';
+
+Test {
+  my $current = shift;
+  my $key = 'eeff00112233445566778899aabbccdd';
+  my $ds_id = "https://www.arcgis.com/home/item.html?id=$key";
+  my $feed_url = "https://hoge6/api/feed/dcat-us/1.1.json";
+  return $current->prepare (
+    undef,
+    {
+      "https://hoge6/documents/$key" => {
+        text => qq{<html><head><link rel="stylesheet" href="https://hubcdn.arcgis.com/foo.css"></head><body></body></html>},
+      },
+      $feed_url => {
+        json => {
+          dataset => [
+            {
+              identifier => $ds_id,
+              landingPage => "https://hoge6/documents/$key",
+              title => 'No URL',
+              distribution => [
+                {
+                  title => 'no url',
+                  format => 'CSV',
+                  mediaType => 'text/csv',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  )->then (sub {
+    return $current->run ('add', additional => ["https://hoge6/documents/$key"]);
+  })->then (sub {
+    my $r = $_[0];
+    test { is $r->{exit_code}, 12 } $current->c;
+    return $current->run ('ls', additional => [$key, '--jsonl'], jsonl => 1);
+  })->then (sub {
+    my $r = $_[0];
+    test {
+      is $r->{exit_code}, 0;
+      my @files = grep { $_->{type} eq 'file' } @{$r->{jsonl}};
+      is 0+@files, 1;
+      is $files[0]->{key}, 'file:index:1';
+      is $files[0]->{source}, undef;
+    } $current->c;
+  });
+} n => 5, name => 'dcatus distribution with no URL listed, fetch broken file';
 
 Run;
 

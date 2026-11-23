@@ -16,7 +16,7 @@ Test {
           source => {
             type => 'files',
             files => {
-              "file:r:sparql" => {
+              "file:path:r:sparql" => {
                 url => "https://hoge/$key/sparqlep",
                 set_type => 'sparql',
               },

@@ -40,7 +40,7 @@ Test {
            is $item->{source}->{url}, "https://hoge/$key.zip";
            is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 1;
-           ok $item->{files}->{"file:abc.txt"}->{skip};
+           ok $item->{files}->{"file:path:abc.txt"}->{skip};
          }
        }},
     ]);
@@ -83,7 +83,7 @@ Test {
            is $item->{source}->{url}, "https://hoge/$key.zip";
            is $item->{file_url}, "https://hoge/$key.zip";
            is 0+keys %{$item->{files}}, 1;
-           ok $item->{files}->{"file:abc.txt"}->{skip};
+           ok $item->{files}->{"file:path:abc.txt"}->{skip};
          }
        }},
     ]);

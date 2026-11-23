@@ -263,14 +263,14 @@ sub get_item_list ($;%) {
         ## Otherwise, the sniffed encoding used to decode the file
         ## name is set to $zipped_file->{path_encoding}.
         
-        my $file_key = 'file:' . $zipped_file->{path};
+        my $file_key = 'file:path:' . $zipped_file->{path};
         if (defined $seen->{$file_key}) {
-          $file_key = 'file:' . $zipped_file->{central}->{raw_path};
+          $file_key = 'file:index:' . $i++;
         }
         while (defined $seen->{$file_key}) {
-          $file_key = 'object:' . $i++;
+          $file_key = 'file:index:' . $i++;
         }
-        $seen->{$file_key}++;
+        $seen->{$file_key} = 1;
         my $fdef = $file_defs->{$file_key};
 
         my $file = {key => $file_key};
