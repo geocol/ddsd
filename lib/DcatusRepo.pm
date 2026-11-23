@@ -686,8 +686,7 @@ sub get_item_list ($;%) {
             next unless defined $v and length $v;
             my $dtp = Web::DateTime::Parser->new;
             $dtp->onerror (sub { });
-            my $dt = $dtp->parse_iso8601_datetime ($v);
-            $dt = $dtp->parse_global_date_and_time_string ($v) unless defined $dt;
+            my $dt = $dtp->parse_xs_date_time_stamp_string ($v);
             if (defined $dt) {
               $pi->{file_time} = $dt->to_unix_number;
               last;
