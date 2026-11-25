@@ -46,10 +46,22 @@ sub run ($$;%) {
     my $def;
     DEF: {
       if ($args{single_file}) {
-        $def = {
-          type => 'single',
-          url => $url->stringify,
-        };
+        if (defined $args{filter}) {
+          $def = {
+            type => 'filtered',
+            filter => $args{filter},
+            upstream_file_key => 'file',
+            source => {
+              type => 'single',
+              url => $url->stringify,
+            },
+          };
+        } else {
+          $def = {
+            type => 'single',
+            url => $url->stringify,
+          };
+        }
         my $p = [grep { length } split m{/}, $url->path]->[-1];
         $name = percent_decode_c ($p // '');
         last DEF;

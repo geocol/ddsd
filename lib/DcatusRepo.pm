@@ -841,7 +841,7 @@ sub get_item_list ($;%) {
     }
 
     return $files;
-  });
+  })->finally (sub { $in->close if defined $in });
 } # get_item_list
 
 sub get_legal ($;%) {

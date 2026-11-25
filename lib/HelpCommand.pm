@@ -30,6 +30,13 @@ Arguments
                 native timestamp fields).  If not specified,
                 auto-detected if possible.
 
+  --filter=<filter>
+                When used with --single-file, create a filtered package
+                whose upstream file is transformed by <filter> and saved
+                as a text/plain file.  Currently supported filter:
+                |strip_tags| (remove HTML tag-like sequences; script/style
+                blocks and comments are also removed).
+
   --insecure    Allow fetches from an insecure source (such as plain HTTP).
 
   --name=<package>

@@ -107,6 +107,37 @@ sub get_repo_by_source ($$%) {
       source => $source,
     });
     return undef;
+  } elsif ($type eq 'filtered') {
+    unless (defined $source->{source} and ref $source->{source} eq 'HASH') {
+      $logger->$bad_method ({
+        type => 'bad source',
+        %$el,
+        source => $source,
+      });
+      return undef;
+    }
+    my $upstream_repo = $self->get_repo_by_source ($source->{source}, %args);
+    return undef unless defined $upstream_repo;
+    require FilteredRepo;
+    my $uargs = {};
+    if (defined $source->{file_url}) {
+      my $url = Web::URL->parse_string ($source->{file_url});
+      if (not defined $url) {
+        $logger->$bad_method ({
+          type => 'bad source file_url',
+          value => $source->{file_url} // '',
+          %$el,
+        });
+        return undef;
+      }
+      $uargs->{url} = $url;
+    } elsif (defined $source->{file_path}) {
+      $uargs->{path_string} = $source->{file_path};
+    }
+    return FilteredRepo->new_from_upstream ($upstream_repo, $uargs,
+      filter => $source->{filter},
+      upstream_file_key => $source->{upstream_file_key},
+    );
   } elsif ($type eq 'zip') {
     unless (defined $source->{source} and ref $source->{source} eq 'HASH') {
       $logger->$bad_method ({
